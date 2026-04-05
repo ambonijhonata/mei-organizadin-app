@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">TCC Android Native</string>
+    <string name="login_brand_line_one">MEI</string>
+    <string name="login_brand_line_two">ORGANIZADINHO</string>
+    <string name="login_subtitle">Organize seus agendamentos</string>
+    <string name="login_welcome_title">Bem-vindo</string>
+    <string name="login_google_button">Entrar com Google</string>
+    <string name="login_google_button_loading">Entrando...</string>
+    <string name="login_google_button_description">Entrar com Google</string>
+    <string name="drawer_app_title">MEI ORGANIZADINHO</string>
+    <string name="drawer_menu_home">Inicio</string>
+    <string name="drawer_menu_registers">Cadastros</string>
+    <string name="drawer_menu_clients">Clientes</string>
+    <string name="drawer_menu_services">Servicos</string>
+    <string name="drawer_menu_reports">Relatorios</string>
+    <string name="drawer_menu_cash_flow">Fluxo de Caixa</string>
+    <string name="drawer_menu_revenue">Faturamento</string>
+    <string name="drawer_menu_logout">Sair</string>
+    <string name="drawer_expand_submenu">Expandir submenu %1$s</string>
+    <string name="drawer_collapse_submenu">Recolher submenu %1$s</string>
+</resources>
