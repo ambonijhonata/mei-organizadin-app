@@ -24,12 +24,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
@@ -161,7 +163,7 @@ private fun RevenueReportStep(
 
         if (uiState.staleDataWarning) {
             Spacer(modifier = Modifier.height(10.dp))
-            ReportInfoBanner(text = "Dados desatualizados")
+            ReportInfoBanner(text = stringResource(R.string.feedback_report_stale_data))
         }
 
         Spacer(modifier = Modifier.height(12.dp))

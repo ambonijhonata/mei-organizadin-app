@@ -1,10 +1,12 @@
-﻿package com.tcc.androidnative.feature.auth.ui
+package com.tcc.androidnative.feature.auth.ui
 
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.common.api.ApiException
-import com.tcc.androidnative.core.config.ApiConfig
+import com.tcc.androidnative.R
+import com.tcc.androidnative.core.ui.feedback.MessageDurations
+import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.feature.auth.data.AuthRepository
 import com.tcc.androidnative.feature.auth.data.google.GoogleAuthTokens
 import com.tcc.androidnative.feature.auth.data.google.GoogleSignInGateway
@@ -16,18 +18,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
-import java.net.ConnectException
-import java.net.UnknownHostException
-
-private const val LOGIN_ERROR_DURATION_MS = 5_000L
 
 data class LoginUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val errorMessage: String? = null,
-    val errorDurationMillis: Long = LOGIN_ERROR_DURATION_MS
+    val transientMessage: TransientMessage? = null
 )
 
 @HiltViewModel
@@ -43,12 +38,12 @@ class LoginViewModel @Inject constructor(
     fun onGoogleSignInResult(data: Intent?) {
         googleSignInGateway.extractTokens(data)
             .onSuccess { tokens -> onGoogleTokensReceived(tokens) }
-            .onFailure { error -> showLoginError(error) }
+            .onFailure { showLoginError() }
     }
 
     fun onGoogleTokensReceived(tokens: GoogleAuthTokens) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, transientMessage = null) }
             runCatching {
                 authRepository.login(
                     idToken = tokens.idToken,
@@ -59,95 +54,51 @@ class LoginViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isAuthenticated = true,
-                        errorMessage = null
+                        transientMessage = null
                     )
                 }
-            }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isAuthenticated = false,
-                        errorMessage = mapErrorMessage(error)
-                    )
-                }
-                clearErrorAfterTimeout()
+            }.onFailure {
+                showLoginError()
             }
         }
     }
 
     fun logout() {
         authRepository.logout()
-        _uiState.update { it.copy(isAuthenticated = false, errorMessage = null) }
+        _uiState.update { it.copy(isAuthenticated = false, transientMessage = null) }
     }
 
-    private fun showLoginError(error: Throwable) {
+    private fun showLoginError() {
         viewModelScope.launch {
+            val message = loginErrorMessage()
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     isAuthenticated = false,
-                    errorMessage = mapErrorMessage(error)
+                    transientMessage = message
                 )
             }
-            clearErrorAfterTimeout()
+            clearErrorAfterTimeout(message)
         }
     }
 
-    private fun mapErrorMessage(error: Throwable): String {
-        return when (error) {
-            is ApiException -> when (error.statusCode) {
-                10 -> "Falha na configuracao do Google Login (SHA-1, pacote ou Client ID)."
-                7 -> "Sem conexao com internet para autenticar no Google."
-                12501 -> "Login cancelado."
-                else -> LOGIN_ERROR_MESSAGE
-            }
-            is IllegalStateException -> {
-                if (error.message?.contains("GOOGLE_WEB_CLIENT_ID") == true) {
-                    "GOOGLE_WEB_CLIENT_ID nao configurado no Gradle."
-                } else {
-                    LOGIN_ERROR_MESSAGE
-                }
-            }
-            is ConnectException, is UnknownHostException, is IOException ->
-                "Nao foi possivel conectar na API (${ApiConfig.BASE_URL})."
-            is HttpException -> mapHttpErrorMessage(error)
-            else -> LOGIN_ERROR_MESSAGE
-        }
+    private fun loginErrorMessage(): TransientMessage {
+        return TransientMessage(
+            textResId = R.string.login_feedback_error,
+            tone = MessageTone.ERROR,
+            durationMillis = MessageDurations.LOGIN_ERROR_5_MIN
+        )
     }
 
-    private fun mapHttpErrorMessage(error: HttpException): String {
-        val status = error.code()
-        val body = runCatching { error.response()?.errorBody()?.string().orEmpty() }
-            .getOrDefault("")
-
-        val backendCode = extractJsonField(body, "code")
-        val backendMessage = extractJsonField(body, "message")
-
-        return when {
-            !backendMessage.isNullOrBlank() && !backendCode.isNullOrBlank() ->
-                "HTTP $status ($backendCode): $backendMessage"
-            !backendMessage.isNullOrBlank() ->
-                "HTTP $status: $backendMessage"
-            !error.message().isNullOrBlank() ->
-                "HTTP $status: ${error.message()}"
-            else ->
-                "HTTP $status: erro na API."
-        }
-    }
-
-    private fun extractJsonField(json: String, field: String): String? {
-        val match = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"").find(json) ?: return null
-        return match.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
-    }
-
-    private suspend fun clearErrorAfterTimeout() {
-        delay(LOGIN_ERROR_DURATION_MS)
+    private suspend fun clearErrorAfterTimeout(message: TransientMessage) {
+        delay(message.durationMillis)
         _uiState.update { state ->
-            if (state.errorMessage.isNullOrBlank()) state else state.copy(errorMessage = null)
+            if (state.transientMessage == message) {
+                state.copy(transientMessage = null)
+            } else {
+                state
+            }
         }
-    }
-
-    private companion object {
-        const val LOGIN_ERROR_MESSAGE = "Erro ao fazer login no Google"
     }
 }
+

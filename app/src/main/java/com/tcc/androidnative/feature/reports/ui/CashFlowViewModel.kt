@@ -1,7 +1,9 @@
 package com.tcc.androidnative.feature.reports.ui
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
@@ -56,24 +58,24 @@ class CashFlowViewModel @Inject constructor(
     fun emitReport() {
         val start = runCatching { DateFormats.parseUiDate(_uiState.value.startDateInput) }.getOrNull()
         if (start == null) {
-            showMessage("Data inicial invalida", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_start_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         val end = runCatching { DateFormats.parseUiDate(_uiState.value.endDateInput) }.getOrNull()
         if (end == null) {
-            showMessage("Data final invalida", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_end_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         if (start.isAfter(end)) {
-            showMessage("Data inicial deve ser menor que a data final", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_start_before_end, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         val rangeDaysInclusive = ChronoUnit.DAYS.between(start, end) + 1
         if (rangeDaysInclusive > 7) {
-            showMessage("Periodo maximo permitido e de 7 dias", MessageTone.WARNING, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_cash_flow_period_limit, MessageTone.WARNING, MessageDurations.SHORT_3S)
             return
         }
 
@@ -100,9 +102,9 @@ class CashFlowViewModel @Inject constructor(
                         )
                     }
                     showMessage(
-                        text = "Erro ao gerar fluxo de caixa",
+                        textResId = R.string.feedback_report_generate_error,
                         tone = MessageTone.ERROR,
-                        duration = MessageDurations.MEDIUM_5S
+                        duration = MessageDurations.SHORT_3S
                     )
                 }
         }
@@ -120,9 +122,19 @@ class CashFlowViewModel @Inject constructor(
         _uiState.update { it.copy(step = CashFlowScreenStep.FORM, selectedDetail = null) }
     }
 
-    private fun showMessage(text: String, tone: MessageTone, duration: Long) {
+    private fun showMessage(
+        @StringRes textResId: Int,
+        tone: MessageTone,
+        duration: Long,
+        textArgs: List<String> = emptyList()
+    ) {
         viewModelScope.launch {
-            val message = TransientMessage(text = text, tone = tone, durationMillis = duration)
+            val message = TransientMessage(
+                textResId = textResId,
+                textArgs = textArgs,
+                tone = tone,
+                durationMillis = duration
+            )
             _uiState.update { it.copy(transientMessage = message) }
             delay(duration)
             _uiState.update { state ->

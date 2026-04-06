@@ -1,7 +1,9 @@
 package com.tcc.androidnative.feature.reports.ui
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
@@ -52,18 +54,18 @@ class RevenueViewModel @Inject constructor(
     fun emitReport() {
         val start = runCatching { DateFormats.parseUiDate(_uiState.value.startDateInput) }.getOrNull()
         if (start == null) {
-            showMessage("Data inicial invalida", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_start_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         val end = runCatching { DateFormats.parseUiDate(_uiState.value.endDateInput) }.getOrNull()
         if (end == null) {
-            showMessage("Data final invalida", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_end_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         if (start.isAfter(end)) {
-            showMessage("Data inicial deve ser menor que a data final", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_report_start_before_end, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
@@ -90,9 +92,9 @@ class RevenueViewModel @Inject constructor(
                         )
                     }
                     showMessage(
-                        text = "Erro ao gerar faturamento",
+                        textResId = R.string.feedback_report_generate_error,
                         tone = MessageTone.ERROR,
-                        duration = MessageDurations.MEDIUM_5S
+                        duration = MessageDurations.SHORT_3S
                     )
                 }
         }
@@ -102,9 +104,19 @@ class RevenueViewModel @Inject constructor(
         _uiState.update { it.copy(step = RevenueScreenStep.FORM) }
     }
 
-    private fun showMessage(text: String, tone: MessageTone, duration: Long) {
+    private fun showMessage(
+        @StringRes textResId: Int,
+        tone: MessageTone,
+        duration: Long,
+        textArgs: List<String> = emptyList()
+    ) {
         viewModelScope.launch {
-            val message = TransientMessage(text = text, tone = tone, durationMillis = duration)
+            val message = TransientMessage(
+                textResId = textResId,
+                textArgs = textArgs,
+                tone = tone,
+                durationMillis = duration
+            )
             _uiState.update { it.copy(transientMessage = message) }
             delay(duration)
             _uiState.update { state ->

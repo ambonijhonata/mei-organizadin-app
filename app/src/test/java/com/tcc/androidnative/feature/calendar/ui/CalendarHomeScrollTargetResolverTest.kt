@@ -38,6 +38,12 @@ class CalendarHomeScrollTargetResolverTest {
         assertEquals("10:30", mapDeviceTimeToSlotLabel(LocalTime.of(10, 59)))
     }
 
+    @Test
+    fun `first day of current month helper should use utc month start`() {
+        val millis = firstDayOfCurrentMonthUtcMillis { java.time.LocalDate.of(2026, 4, 20) }
+        assertEquals(java.time.LocalDate.of(2026, 4, 1), utcMillisToLocalDate(millis))
+    }
+
     private fun buildSlots(): List<String> {
         return (0 until 48).map { index ->
             val hour = index / 2

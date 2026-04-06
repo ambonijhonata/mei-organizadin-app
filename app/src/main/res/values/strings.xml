@@ -18,4 +18,58 @@
     <string name="drawer_menu_logout">Sair</string>
     <string name="drawer_expand_submenu">Expandir submenu %1$s</string>
     <string name="drawer_collapse_submenu">Recolher submenu %1$s</string>
+
+    <string name="login_feedback_error">Erro ao fazer login no Google</string>
+
+    <string name="feedback_calendar_sync_warning">Sincronizacao parcial indisponivel (%1$s/%2$s): %3$s Exibindo dados atuais.</string>
+    <string name="feedback_calendar_sync_warning_default_detail">Falha ao atualizar dados no Google.</string>
+    <string name="feedback_calendar_reauth_required">Integracao Google revogada. Reautentique para voltar a sincronizar.</string>
+    <string name="feedback_calendar_loading">Sincronizando e carregando agenda...</string>
+    <string name="feedback_calendar_refreshing">Atualizando agenda em segundo plano...</string>
+    <string name="feedback_calendar_load_error">Erro ao carregar agenda</string>
+    <string name="feedback_calendar_reauth_action">Reautenticar Google</string>
+
+    <string name="feedback_client_load_error">Erro ao carregar clientes</string>
+    <string name="feedback_client_edit_load_error">Erro ao carregar cliente para edicao</string>
+    <string name="feedback_client_name_required">Nome e obrigatorio</string>
+    <string name="feedback_client_cpf_invalid">CPF invalido</string>
+    <string name="feedback_client_birth_date_invalid">Data de nascimento invalida</string>
+    <string name="feedback_client_create_success">Cliente cadastrado com sucesso</string>
+    <string name="feedback_client_update_success">Cliente editado com sucesso</string>
+    <string name="feedback_client_save_error">Erro ao cadastrar cliente</string>
+    <string name="feedback_client_delete_success">Cliente excluido com sucesso</string>
+    <string name="feedback_client_delete_link_warning">Cliente não foi excluido pois possui agendamento(s) registrado(s).</string>
+    <string name="feedback_client_delete_error">Erro ao excluir cliente</string>
+    <string name="feedback_client_bulk_delete_success">%1$s excluidos com sucesso.</string>
+    <string name="feedback_client_bulk_delete_warning">%1$s clientes não foram excluidos pois possuem agendamentos registrados.</string>
+    <string name="feedback_client_bulk_delete_error">Erro ao excluir clientes</string>
+
+    <string name="feedback_service_load_error">Erro ao carregar servicos</string>
+    <string name="feedback_service_edit_load_error">Erro ao carregar servico para edicao</string>
+    <string name="feedback_service_description_required">Descricao e obrigatoria</string>
+    <string name="feedback_service_value_required">Valor e obrigatorio</string>
+    <string name="feedback_service_value_positive_required">Valor deve ser maior que zero</string>
+    <string name="feedback_service_create_success">Servico cadastrado com sucesso</string>
+    <string name="feedback_service_update_success">Servico editado com sucesso</string>
+    <string name="feedback_service_save_error">Erro ao cadastrar servico</string>
+    <string name="feedback_service_delete_success">Servico excluido com sucesso</string>
+    <string name="feedback_service_delete_link_warning">Serviço não foi excluido pois possui agendamentos registrados.</string>
+    <string name="feedback_service_delete_error">Erro ao excluir servico</string>
+    <string name="feedback_service_bulk_delete_success">%1$s excluidos com sucesso.</string>
+    <string name="feedback_service_bulk_delete_warning">%1$s servicos não foram excluidos pois possuem agendamentos registrados.</string>
+    <string name="feedback_service_bulk_delete_error">Erro ao excluir servicos</string>
+
+    <string name="feedback_report_start_date_invalid">Data inicial invalida</string>
+    <string name="feedback_report_end_date_invalid">Data final invalida</string>
+    <string name="feedback_report_start_before_end">Data inicial deve ser menor que a data final</string>
+    <string name="feedback_cash_flow_period_limit">Relatorio de fluxo de caixa permitido somente para um periodo de ate 7 dias</string>
+    <string name="feedback_report_generate_error">Erro ao gerar relatorio</string>
+    <string name="feedback_report_stale_data">Dados desatualizados</string>
+
+    <string name="calendar_header_content_description">Cabecalho de data da tela inicial</string>
+    <string name="calendar_previous_day">Ir para dia anterior</string>
+    <string name="calendar_next_day">Ir para proximo dia</string>
+    <string name="calendar_date_picker_open">Selecionar data da agenda</string>
+    <string name="calendar_date_picker_confirm">Selecionar</string>
+    <string name="calendar_date_picker_cancel">Cancelar</string>
 </resources>

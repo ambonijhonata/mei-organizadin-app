@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -21,29 +21,48 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tcc.androidnative.R
+import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
+import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.ui.theme.BluePrimary
+import com.tcc.androidnative.ui.theme.LoginBrandBlue
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -62,18 +81,22 @@ fun CalendarHomeScreen(
         uiState = uiState,
         onPreviousDay = viewModel::onPreviousDay,
         onNextDay = viewModel::onNextDay,
+        onDateSelected = viewModel::onDateSelected,
         onReauthenticateRequested = onReauthenticateRequested
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CalendarHomeContent(
     uiState: CalendarHomeUiState,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
+    onDateSelected: (LocalDate) -> Unit,
     onReauthenticateRequested: () -> Unit,
     listState: LazyListState? = null,
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
+    currentDateProvider: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
     onAutoFocusIndexResolved: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -83,9 +106,15 @@ internal fun CalendarHomeContent(
     val eventsBySlot = remember(uiState.items) { buildSlotMap(uiState.items) }
     val weekdayLabel = remember(uiState.selectedDate) { formatWeekdayLabel(uiState.selectedDate) }
     val monthYearLabel = remember(uiState.selectedDate) { formatMonthYearLabel(uiState.selectedDate) }
+    val datePickerContentDescription = stringResource(R.string.calendar_date_picker_open)
+    val previousDayContentDescription = stringResource(R.string.calendar_previous_day)
+    val nextDayContentDescription = stringResource(R.string.calendar_next_day)
+    val headerContentDescription = stringResource(R.string.calendar_header_content_description)
+    val reauthActionLabel = stringResource(R.string.feedback_calendar_reauth_action)
+    val isDatePickerVisible = rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.selectedDate, uiState.items, uiState.isLoading, uiState.errorMessage) {
-        if (uiState.isLoading || !uiState.errorMessage.isNullOrBlank() || slotLabels.isEmpty()) {
+        if (uiState.isLoading || uiState.errorMessage != null || slotLabels.isEmpty()) {
             return@LaunchedEffect
         }
 
@@ -99,6 +128,41 @@ internal fun CalendarHomeContent(
         onAutoFocusIndexResolved(targetIndex)
     }
 
+    if (isDatePickerVisible.value) {
+        val selectedDateMillis = localDateToUtcMillis(uiState.selectedDate)
+        val currentMonthMillis = firstDayOfCurrentMonthUtcMillis(currentDateProvider)
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateMillis,
+            initialDisplayedMonthMillis = currentMonthMillis
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { isDatePickerVisible.value = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        isDatePickerVisible.value = false
+                        datePickerState.selectedDateMillis
+                            ?.let(::utcMillisToLocalDate)
+                            ?.let(onDateSelected)
+                    }
+                ) {
+                    Text(stringResource(R.string.calendar_date_picker_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isDatePickerVisible.value = false }) {
+                    Text(stringResource(R.string.calendar_date_picker_cancel))
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false
+            )
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,7 +171,7 @@ internal fun CalendarHomeContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "Cabecalho de data da tela inicial" },
+                .semantics { contentDescription = headerContentDescription },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -121,7 +185,7 @@ internal fun CalendarHomeContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    modifier = Modifier.semantics { contentDescription = "Ir para dia anterior" },
+                    modifier = Modifier.semantics { contentDescription = previousDayContentDescription },
                     onClick = onPreviousDay
                 ) {
                     Icon(
@@ -136,7 +200,7 @@ internal fun CalendarHomeContent(
                     style = MaterialTheme.typography.titleLarge
                 )
                 IconButton(
-                    modifier = Modifier.semantics { contentDescription = "Ir para proximo dia" },
+                    modifier = Modifier.semantics { contentDescription = nextDayContentDescription },
                     onClick = onNextDay
                 ) {
                     Icon(
@@ -151,31 +215,64 @@ internal fun CalendarHomeContent(
                 color = Color.Gray,
                 style = MaterialTheme.typography.titleMedium
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { isDatePickerVisible.value = true },
+                border = BorderStroke(1.dp, Color(0xFFD1D5DB)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = LoginBrandBlue),
+                modifier = Modifier.semantics { contentDescription = datePickerContentDescription }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    tint = LoginBrandBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = DateFormats.toUiDate(uiState.selectedDate),
+                    color = Color(0xFF374151)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.isReauthRequired) {
-            Text(text = "Integracao Google requer nova autenticacao.")
+        if (uiState.syncWarningMessage != null) {
+            FeedbackMessageCard(message = uiState.syncWarningMessage)
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onReauthenticateRequested) {
-                Text(text = "Reautenticar Google")
+        }
+
+        if (uiState.isRefreshing) {
+            FeedbackMessageCard(
+                text = stringResource(R.string.feedback_calendar_refreshing),
+                tone = MessageTone.INFO
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (uiState.isReauthRequired) {
+            Button(
+                onClick = onReauthenticateRequested,
+                modifier = Modifier.semantics {
+                    contentDescription = reauthActionLabel
+                }
+            ) {
+                Text(text = reauthActionLabel)
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        if (!uiState.syncWarningMessage.isNullOrBlank()) {
-            Text(text = uiState.syncWarningMessage!!)
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        if (uiState.isLoading) {
-            Text(text = "Sincronizando e carregando agenda...")
+        if (uiState.isLoading && uiState.items.isEmpty()) {
+            FeedbackMessageCard(
+                text = stringResource(R.string.feedback_calendar_loading),
+                tone = MessageTone.INFO
+            )
             return
         }
 
-        if (!uiState.errorMessage.isNullOrBlank()) {
-            Text(text = uiState.errorMessage!!)
+        if (uiState.errorMessage != null && uiState.items.isEmpty()) {
+            FeedbackMessageCard(message = uiState.errorMessage)
             return
         }
 
@@ -321,6 +418,18 @@ internal fun mapDeviceTimeToSlotLabel(deviceLocalTime: LocalTime): String {
         .format(slotFormatter)
 }
 
+internal fun firstDayOfCurrentMonthUtcMillis(currentDateProvider: () -> LocalDate): Long {
+    return localDateToUtcMillis(currentDateProvider().withDayOfMonth(1))
+}
+
+internal fun utcMillisToLocalDate(utcMillis: Long): LocalDate {
+    return Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+}
+
+private fun localDateToUtcMillis(date: LocalDate): Long {
+    return date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+}
+
 private suspend fun centerSlotOnViewport(listState: LazyListState, targetIndex: Int) {
     listState.scrollToItem(index = targetIndex)
 
@@ -358,5 +467,5 @@ private fun formatMonthYearLabel(date: LocalDate): String {
             current.toString()
         }
     }
-    return "$month de ${date.year}"
+    return "$month De ${date.year}"
 }

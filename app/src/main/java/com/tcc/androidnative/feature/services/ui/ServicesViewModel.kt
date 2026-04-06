@@ -1,11 +1,14 @@
 package com.tcc.androidnative.feature.services.ui
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.CurrencyFormats
+import com.tcc.androidnative.feature.services.data.DeleteServiceOutcome
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -119,9 +122,9 @@ class ServicesViewModel @Inject constructor(
                 .onFailure {
                     _uiState.update { state -> state.copy(isSubmittingForm = false) }
                     showMessage(
-                        text = "Erro ao carregar servico para edicao",
+                        textResId = R.string.feedback_service_edit_load_error,
                         tone = MessageTone.ERROR,
-                        duration = MessageDurations.MEDIUM_5S
+                        duration = MessageDurations.SHORT_3S
                     )
                 }
         }
@@ -155,17 +158,17 @@ class ServicesViewModel @Inject constructor(
         val mode = _uiState.value.formMode ?: return
         val form = _uiState.value.formState
         if (form.description.isBlank()) {
-            showMessage("Descricao obrigatoria", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_service_description_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
         if (form.valueInput.isBlank()) {
-            showMessage("Valor obrigatorio", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_service_value_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
         val parsed = runCatching { CurrencyFormats.parseUiValue(form.valueInput) }.getOrNull()
         if (parsed == null || parsed <= java.math.BigDecimal.ZERO) {
-            showMessage("Valor deve ser maior que zero", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_service_value_positive_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
@@ -190,15 +193,19 @@ class ServicesViewModel @Inject constructor(
                 dismissForm()
                 reload()
                 showMessage(
-                    text = if (mode == ServiceFormMode.CREATE) "Servico cadastrado com sucesso" else "Servico atualizado com sucesso",
+                    textResId = if (mode == ServiceFormMode.CREATE) {
+                        R.string.feedback_service_create_success
+                    } else {
+                        R.string.feedback_service_update_success
+                    },
                     tone = MessageTone.SUCCESS,
                     duration = MessageDurations.SHORT_3S
                 )
             }.onFailure {
                 showMessage(
-                    text = "Erro ao salvar servico",
+                    textResId = R.string.feedback_service_save_error,
                     tone = MessageTone.ERROR,
-                    duration = MessageDurations.MEDIUM_5S
+                    duration = MessageDurations.SHORT_3S
                 )
             }
         }
@@ -210,46 +217,56 @@ class ServicesViewModel @Inject constructor(
 
         viewModelScope.launch {
             if (selected.size == 1) {
-                runCatching { repository.delete(selected.first()) }
-                    .onSuccess {
+                when (repository.delete(selected.first())) {
+                    DeleteServiceOutcome.DELETED -> {
                         reload()
                         showMessage(
-                            text = "Servico excluido com sucesso",
+                            textResId = R.string.feedback_service_delete_success,
                             tone = MessageTone.SUCCESS,
-                            duration = MessageDurations.MEDIUM_5S
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
-                    .onFailure {
+                    DeleteServiceOutcome.HAS_LINK -> {
                         showMessage(
-                            text = "Erro ao excluir servico",
-                            tone = MessageTone.ERROR,
-                            duration = MessageDurations.MEDIUM_5S
+                            textResId = R.string.feedback_service_delete_link_warning,
+                            tone = MessageTone.WARNING,
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
+                    DeleteServiceOutcome.FAILED -> {
+                        showMessage(
+                            textResId = R.string.feedback_service_delete_error,
+                            tone = MessageTone.ERROR,
+                            duration = MessageDurations.SHORT_3S
+                        )
+                    }
+                }
             } else {
                 runCatching { repository.bulkDelete(selected) }
                     .onSuccess { (deleted, hasLink) ->
                         reload()
                         if (deleted > 0) {
                             showMessage(
-                                text = "$deleted servicos excluidos com sucesso",
+                                textResId = R.string.feedback_service_bulk_delete_success,
                                 tone = MessageTone.SUCCESS,
-                                duration = MessageDurations.MEDIUM_5S
+                                duration = MessageDurations.SHORT_3S,
+                                textArgs = listOf(deleted.toString())
                             )
                         }
                         if (hasLink > 0) {
                             showMessage(
-                                text = "$hasLink servicos vinculados nao foram excluidos",
+                                textResId = R.string.feedback_service_bulk_delete_warning,
                                 tone = MessageTone.WARNING,
-                                duration = MessageDurations.LONG_8S
+                                duration = MessageDurations.SHORT_3S,
+                                textArgs = listOf(hasLink.toString())
                             )
                         }
                     }
                     .onFailure {
                         showMessage(
-                            text = "Erro ao excluir servicos em lote",
+                            textResId = R.string.feedback_service_bulk_delete_error,
                             tone = MessageTone.ERROR,
-                            duration = MessageDurations.MEDIUM_5S
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
             }
@@ -306,17 +323,27 @@ class ServicesViewModel @Inject constructor(
             }.onFailure {
                 _uiState.update { it.copy(isLoading = false, isAppending = false) }
                 showMessage(
-                    text = "Erro ao carregar servicos",
+                    textResId = R.string.feedback_service_load_error,
                     tone = MessageTone.ERROR,
-                    duration = MessageDurations.MEDIUM_5S
+                    duration = MessageDurations.SHORT_3S
                 )
             }
         }
     }
 
-    private fun showMessage(text: String, tone: MessageTone, duration: Long) {
+    private fun showMessage(
+        @StringRes textResId: Int,
+        tone: MessageTone,
+        duration: Long,
+        textArgs: List<String> = emptyList()
+    ) {
         viewModelScope.launch {
-            val message = TransientMessage(text = text, tone = tone, durationMillis = duration)
+            val message = TransientMessage(
+                textResId = textResId,
+                textArgs = textArgs,
+                tone = tone,
+                durationMillis = duration
+            )
             _uiState.update { it.copy(transientMessage = message) }
             delay(duration)
             _uiState.update { state ->
@@ -325,4 +352,3 @@ class ServicesViewModel @Inject constructor(
         }
     }
 }
-

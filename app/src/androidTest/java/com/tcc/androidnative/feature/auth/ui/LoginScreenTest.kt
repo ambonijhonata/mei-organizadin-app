@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,7 +56,13 @@ class LoginScreenTest {
         composeRule.setContent {
             AndroidNativeTheme {
                 LoginScreen(
-                    uiState = LoginUiState(errorMessage = "Erro ao fazer login no Google"),
+                    uiState = LoginUiState(
+                        transientMessage = TransientMessage(
+                            text = "Erro ao fazer login no Google",
+                            tone = MessageTone.ERROR,
+                            durationMillis = 300_000L
+                        )
+                    ),
                     onGoogleClick = { clicked = true }
                 )
             }

@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -46,6 +48,7 @@ class CalendarHomeScreenTest {
                     ),
                     onPreviousDay = {},
                     onNextDay = {},
+                    onDateSelected = {},
                     onReauthenticateRequested = {},
                     currentLocalTimeProvider = { LocalTime.of(10, 20) }
                 )
@@ -56,6 +59,8 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithText("Abril De 2026").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ir para dia anterior").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ir para proximo dia").assertIsDisplayed()
+        composeRule.onNodeWithText("04/04/2026").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selecionar data da agenda").assertIsDisplayed()
         composeRule.onAllNodesWithText("00:00 - Livre").assertCountEquals(0)
         composeRule.onNodeWithText("14:30").assertIsDisplayed()
         composeRule.onNodeWithText("Reuniao com Cliente").assertIsDisplayed()
@@ -69,19 +74,23 @@ class CalendarHomeScreenTest {
                 CalendarHomeContent(
                     uiState = CalendarHomeUiState(
                         selectedDate = LocalDate.of(2026, 4, 4),
-                        syncWarningMessage = "Sincronizacao parcial indisponivel",
+                        syncWarningMessage = TransientMessage(
+                            text = "Integracao Google revogada. Reautentique para voltar a sincronizar.",
+                            tone = MessageTone.WARNING,
+                            durationMillis = 0L
+                        ),
                         isReauthRequired = true
                     ),
                     onPreviousDay = {},
                     onNextDay = {},
+                    onDateSelected = {},
                     onReauthenticateRequested = {}
                 )
             }
         }
 
-        composeRule.onNodeWithText("Integracao Google requer nova autenticacao.").assertIsDisplayed()
+        composeRule.onNodeWithText("Integracao Google revogada. Reautentique para voltar a sincronizar.").assertIsDisplayed()
         composeRule.onNodeWithText("Reautenticar Google").assertIsDisplayed()
-        composeRule.onNodeWithText("Sincronizacao parcial indisponivel").assertIsDisplayed()
     }
 
     @Test
@@ -93,6 +102,7 @@ class CalendarHomeScreenTest {
                     uiState = CalendarHomeUiState(selectedDate = LocalDate.of(2026, 4, 4)),
                     onPreviousDay = {},
                     onNextDay = {},
+                    onDateSelected = {},
                     onReauthenticateRequested = {},
                     currentLocalTimeProvider = { LocalTime.of(10, 40) },
                     onAutoFocusIndexResolved = { index -> resolvedIndexes.add(index) }
@@ -150,6 +160,7 @@ class CalendarHomeScreenTest {
                             )
                         )
                     },
+                    onDateSelected = { selectedDate = it },
                     onReauthenticateRequested = {},
                     currentLocalTimeProvider = { LocalTime.of(9, 10) },
                     onAutoFocusIndexResolved = { index -> resolvedIndexes.add(index) }
@@ -164,5 +175,24 @@ class CalendarHomeScreenTest {
         assertTrue(resolvedIndexes.contains(29))
         assertTrue(resolvedIndexes.contains(16))
         composeRule.onNodeWithText("Evento Dia 5").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_open_date_picker_dialog_from_selector() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = LocalDate.of(2026, 4, 5)),
+                    onPreviousDay = {},
+                    onNextDay = {},
+                    onDateSelected = {},
+                    onReauthenticateRequested = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Selecionar data da agenda").performClick()
+        composeRule.onNodeWithText("Selecionar").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancelar").assertIsDisplayed()
     }
 }

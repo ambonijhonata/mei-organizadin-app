@@ -1,7 +1,9 @@
 package com.tcc.androidnative.feature.clients.ui
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
@@ -9,6 +11,7 @@ import com.tcc.androidnative.core.util.CpfValidator
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
+import com.tcc.androidnative.feature.clients.data.DeleteClientOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -127,9 +130,9 @@ class ClientsViewModel @Inject constructor(
                 .onFailure {
                     _uiState.update { state -> state.copy(isSubmittingForm = false) }
                     showMessage(
-                        text = "Erro ao carregar cliente para edicao",
+                        textResId = R.string.feedback_client_edit_load_error,
                         tone = MessageTone.ERROR,
-                        duration = MessageDurations.MEDIUM_5S
+                        duration = MessageDurations.SHORT_3S
                     )
                 }
         }
@@ -170,11 +173,11 @@ class ClientsViewModel @Inject constructor(
         val form = _uiState.value.formState
 
         if (form.name.isBlank()) {
-            showMessage("Nome obrigatorio", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_client_name_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
         if (form.cpf.isNotBlank() && !CpfValidator.isValid(form.cpf)) {
-            showMessage("CPF invalido", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_client_cpf_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
@@ -184,7 +187,7 @@ class ClientsViewModel @Inject constructor(
             runCatching { DateFormats.parseUiDate(form.birthDate) }.getOrNull()
         }
         if (form.birthDate.isNotBlank() && parsedBirthDate == null) {
-            showMessage("Data de nascimento invalida", MessageTone.ERROR, MessageDurations.SHORT_3S)
+            showMessage(R.string.feedback_client_birth_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
@@ -210,15 +213,19 @@ class ClientsViewModel @Inject constructor(
                 dismissForm()
                 reload()
                 showMessage(
-                    text = if (mode == ClientFormMode.CREATE) "Cliente cadastrado com sucesso" else "Cliente atualizado com sucesso",
+                    textResId = if (mode == ClientFormMode.CREATE) {
+                        R.string.feedback_client_create_success
+                    } else {
+                        R.string.feedback_client_update_success
+                    },
                     tone = MessageTone.SUCCESS,
                     duration = MessageDurations.SHORT_3S
                 )
             }.onFailure {
                 showMessage(
-                    text = "Erro ao salvar cliente",
+                    textResId = R.string.feedback_client_save_error,
                     tone = MessageTone.ERROR,
-                    duration = MessageDurations.MEDIUM_5S
+                    duration = MessageDurations.SHORT_3S
                 )
             }
         }
@@ -230,46 +237,56 @@ class ClientsViewModel @Inject constructor(
 
         viewModelScope.launch {
             if (selected.size == 1) {
-                runCatching { repository.delete(selected.first()) }
-                    .onSuccess {
+                when (repository.delete(selected.first())) {
+                    DeleteClientOutcome.DELETED -> {
                         reload()
                         showMessage(
-                            text = "Cliente excluido com sucesso",
+                            textResId = R.string.feedback_client_delete_success,
                             tone = MessageTone.SUCCESS,
-                            duration = MessageDurations.MEDIUM_5S
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
-                    .onFailure {
+                    DeleteClientOutcome.HAS_LINK -> {
                         showMessage(
-                            text = "Erro ao excluir cliente",
-                            tone = MessageTone.ERROR,
-                            duration = MessageDurations.MEDIUM_5S
+                            textResId = R.string.feedback_client_delete_link_warning,
+                            tone = MessageTone.WARNING,
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
+                    DeleteClientOutcome.FAILED -> {
+                        showMessage(
+                            textResId = R.string.feedback_client_delete_error,
+                            tone = MessageTone.ERROR,
+                            duration = MessageDurations.SHORT_3S
+                        )
+                    }
+                }
             } else {
                 runCatching { repository.bulkDelete(selected) }
                     .onSuccess { (deleted, hasLink) ->
                         reload()
                         if (deleted > 0) {
                             showMessage(
-                                text = "$deleted clientes excluidos com sucesso",
+                                textResId = R.string.feedback_client_bulk_delete_success,
                                 tone = MessageTone.SUCCESS,
-                                duration = MessageDurations.MEDIUM_5S
+                                duration = MessageDurations.SHORT_3S,
+                                textArgs = listOf(deleted.toString())
                             )
                         }
                         if (hasLink > 0) {
                             showMessage(
-                                text = "$hasLink clientes com agendamento vinculado nao foram excluidos",
+                                textResId = R.string.feedback_client_bulk_delete_warning,
                                 tone = MessageTone.WARNING,
-                                duration = MessageDurations.LONG_8S
+                                duration = MessageDurations.SHORT_3S,
+                                textArgs = listOf(hasLink.toString())
                             )
                         }
                     }
                     .onFailure {
                         showMessage(
-                            text = "Erro ao excluir clientes em lote",
+                            textResId = R.string.feedback_client_bulk_delete_error,
                             tone = MessageTone.ERROR,
-                            duration = MessageDurations.MEDIUM_5S
+                            duration = MessageDurations.SHORT_3S
                         )
                     }
             }
@@ -326,17 +343,27 @@ class ClientsViewModel @Inject constructor(
             }.onFailure {
                 _uiState.update { it.copy(isLoading = false, isAppending = false) }
                 showMessage(
-                    text = "Erro ao carregar clientes",
+                    textResId = R.string.feedback_client_load_error,
                     tone = MessageTone.ERROR,
-                    duration = MessageDurations.MEDIUM_5S
+                    duration = MessageDurations.SHORT_3S
                 )
             }
         }
     }
 
-    private fun showMessage(text: String, tone: MessageTone, duration: Long) {
+    private fun showMessage(
+        @StringRes textResId: Int,
+        tone: MessageTone,
+        duration: Long,
+        textArgs: List<String> = emptyList()
+    ) {
         viewModelScope.launch {
-            val message = TransientMessage(text = text, tone = tone, durationMillis = duration)
+            val message = TransientMessage(
+                textResId = textResId,
+                textArgs = textArgs,
+                tone = tone,
+                durationMillis = duration
+            )
             _uiState.update { it.copy(transientMessage = message) }
             delay(duration)
             _uiState.update { state ->
@@ -345,4 +372,3 @@ class ClientsViewModel @Inject constructor(
         }
     }
 }
-

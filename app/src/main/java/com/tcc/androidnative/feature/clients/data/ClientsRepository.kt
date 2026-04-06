@@ -6,6 +6,7 @@ import com.tcc.androidnative.feature.clients.data.remote.dto.ClientUpsertRequest
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 data class ClientModel(
     val id: Long,
@@ -23,12 +24,18 @@ data class ClientsPage(
     val totalItems: Long
 )
 
+enum class DeleteClientOutcome {
+    DELETED,
+    HAS_LINK,
+    FAILED
+}
+
 interface ClientsRepository {
     suspend fun list(name: String?, pageIndex: Int, itemsPerPage: Int): ClientsPage
     suspend fun getById(id: Long): ClientModel
     suspend fun create(model: ClientModel): ClientModel
     suspend fun update(id: Long, model: ClientModel): ClientModel
-    suspend fun delete(id: Long)
+    suspend fun delete(id: Long): DeleteClientOutcome
     suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int>
 }
 
@@ -109,12 +116,35 @@ class ClientsRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun delete(id: Long) {
-        api.deleteClient(id)
+    override suspend fun delete(id: Long): DeleteClientOutcome {
+        return try {
+            api.deleteClient(id)
+            DeleteClientOutcome.DELETED
+        } catch (error: Throwable) {
+            if (error is HttpException && isHasLinkedAppointmentError(error)) {
+                DeleteClientOutcome.HAS_LINK
+            } else {
+                DeleteClientOutcome.FAILED
+            }
+        }
     }
 
     override suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int> {
         val response = api.bulkDelete(ids)
         return response.deleted to response.hasLink
+    }
+
+    private fun isHasLinkedAppointmentError(error: HttpException): Boolean {
+        if (error.code() != 422) return false
+
+        val errorBody = runCatching { error.response()?.errorBody()?.string().orEmpty() }
+            .getOrDefault("")
+        val backendCode = extractJsonField(errorBody, "code")
+        return backendCode == "BUSINESS_ERROR"
+    }
+
+    private fun extractJsonField(json: String, field: String): String? {
+        val match = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"").find(json) ?: return null
+        return match.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
     }
 }

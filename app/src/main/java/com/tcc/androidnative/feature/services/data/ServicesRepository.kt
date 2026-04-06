@@ -6,6 +6,7 @@ import com.tcc.androidnative.feature.services.data.remote.dto.ServiceUpsertReque
 import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 data class ServiceModel(
     val id: Long,
@@ -20,12 +21,18 @@ data class ServicesPage(
     val totalItems: Int
 )
 
+enum class DeleteServiceOutcome {
+    DELETED,
+    HAS_LINK,
+    FAILED
+}
+
 interface ServicesRepository {
     suspend fun list(description: String?, uiPageIndex: Int, pageSize: Int): ServicesPage
     suspend fun getById(id: Long): ServiceModel
     suspend fun create(description: String, valueInput: String): ServiceModel
     suspend fun update(id: Long, description: String, valueInput: String): ServiceModel
-    suspend fun delete(id: Long)
+    suspend fun delete(id: Long): DeleteServiceOutcome
     suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int>
 }
 
@@ -85,12 +92,35 @@ class ServicesRepositoryImpl @Inject constructor(
         return ServiceModel(response.id, response.description, response.value)
     }
 
-    override suspend fun delete(id: Long) {
-        api.deleteService(id)
+    override suspend fun delete(id: Long): DeleteServiceOutcome {
+        return try {
+            api.deleteService(id)
+            DeleteServiceOutcome.DELETED
+        } catch (error: Throwable) {
+            if (error is HttpException && isHasLinkedAppointmentError(error)) {
+                DeleteServiceOutcome.HAS_LINK
+            } else {
+                DeleteServiceOutcome.FAILED
+            }
+        }
     }
 
     override suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int> {
         val response = api.bulkDelete(ids)
         return response.deleted to response.hasLink
+    }
+
+    private fun isHasLinkedAppointmentError(error: HttpException): Boolean {
+        if (error.code() != 422) return false
+
+        val errorBody = runCatching { error.response()?.errorBody()?.string().orEmpty() }
+            .getOrDefault("")
+        val backendCode = extractJsonField(errorBody, "code")
+        return backendCode == "BUSINESS_ERROR"
+    }
+
+    private fun extractJsonField(json: String, field: String): String? {
+        val match = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"").find(json) ?: return null
+        return match.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
     }
 }

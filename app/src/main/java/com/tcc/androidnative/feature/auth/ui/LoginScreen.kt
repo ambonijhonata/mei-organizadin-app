@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tcc.androidnative.R
+import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
 import com.tcc.androidnative.ui.theme.LoginBackground
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import com.tcc.androidnative.ui.theme.LoginBrandTitleStyle
@@ -38,9 +39,6 @@ import com.tcc.androidnative.ui.theme.LoginButtonLabelStyle
 import com.tcc.androidnative.ui.theme.LoginCardBackground
 import com.tcc.androidnative.ui.theme.LoginCardBorder
 import com.tcc.androidnative.ui.theme.LoginCardTitleStyle
-import com.tcc.androidnative.ui.theme.LoginErrorBackground
-import com.tcc.androidnative.ui.theme.LoginErrorBorder
-import com.tcc.androidnative.ui.theme.LoginErrorText
 import com.tcc.androidnative.ui.theme.LoginSubtitleGray
 import com.tcc.androidnative.ui.theme.LoginSubtitleStyle
 
@@ -81,23 +79,14 @@ fun LoginScreen(
             textAlign = TextAlign.Center
         )
 
-        if (!uiState.errorMessage.isNullOrBlank()) {
+        uiState.transientMessage?.let { message ->
             Spacer(modifier = Modifier.height(20.dp))
-            Surface(
+            FeedbackMessageCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 360.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = LoginErrorBackground,
-                border = BorderStroke(1.dp, LoginErrorBorder)
-            ) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    text = uiState.errorMessage,
-                    color = LoginErrorText,
-                    textAlign = TextAlign.Center
-                )
-            }
+                message = message
+            )
         }
 
         Spacer(modifier = Modifier.height(28.dp))

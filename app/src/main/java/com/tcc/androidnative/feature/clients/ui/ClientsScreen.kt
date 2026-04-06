@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
@@ -68,16 +68,8 @@ fun ClientsScreen(
         )
 
         uiState.transientMessage?.let { message ->
-            val color = when (message.tone) {
-                MessageTone.SUCCESS -> Color(0xFF1B5E20)
-                MessageTone.WARNING -> Color(0xFFE65100)
-                MessageTone.ERROR -> Color(0xFFC62828)
-                MessageTone.INFO -> MaterialTheme.colorScheme.primary
-            }
-            Text(
-                text = message.text,
-                color = color,
-                fontWeight = FontWeight.SemiBold,
+            FeedbackMessageCard(
+                message = message,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }

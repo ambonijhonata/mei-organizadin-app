@@ -1,5 +1,6 @@
 package com.tcc.androidnative.feature.calendar.ui
 
+import com.tcc.androidnative.R
 import com.tcc.androidnative.feature.calendar.data.CalendarEventModel
 import com.tcc.androidnative.feature.calendar.data.CalendarIntegrationStatus
 import com.tcc.androidnative.feature.calendar.data.CalendarRepository
@@ -12,7 +13,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,11 +30,13 @@ class CalendarHomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `init should sync and load current day events`() = runTest {
+    fun `init should load current day before background sync`() = runTest {
         val fakeRepo = FakeCalendarRepository()
         val viewModel = CalendarHomeViewModel(fakeRepo)
         advanceUntilIdle()
 
+        assertTrue(fakeRepo.callTrace.isNotEmpty())
+        assertTrue(fakeRepo.callTrace.first().startsWith("events:"))
         assertEquals(1, fakeRepo.syncCalls)
         assertEquals(1, fakeRepo.requestedDates.size)
         assertFalse(viewModel.uiState.value.items.isEmpty())
@@ -60,6 +65,7 @@ class CalendarHomeViewModelTest {
         advanceUntilIdle()
         val nextDate = fakeRepo.requestedDates.last()
         assertEquals(initialDate, nextDate)
+        assertEquals(1, fakeRepo.syncCalls)
     }
 
     @Test
@@ -78,7 +84,7 @@ class CalendarHomeViewModelTest {
 
         assertFalse(viewModel.uiState.value.items.isEmpty())
         assertNull(viewModel.uiState.value.errorMessage)
-        assertTrue(viewModel.uiState.value.syncWarningMessage?.contains("Sincronizacao parcial") == true)
+        assertEquals(R.string.feedback_calendar_sync_warning, viewModel.uiState.value.syncWarningMessage?.textResId)
         assertFalse(viewModel.uiState.value.isReauthRequired)
     }
 
@@ -93,6 +99,7 @@ class CalendarHomeViewModelTest {
         assertTrue(viewModel.uiState.value.isReauthRequired)
         assertFalse(viewModel.uiState.value.items.isEmpty())
         assertNull(viewModel.uiState.value.errorMessage)
+        assertEquals(R.string.feedback_calendar_reauth_required, viewModel.uiState.value.syncWarningMessage?.textResId)
     }
 
     @Test
@@ -116,7 +123,7 @@ class CalendarHomeViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isReauthRequired)
-        assertTrue(viewModel.uiState.value.syncWarningMessage?.contains("Reautentique") == true)
+        assertEquals(R.string.feedback_calendar_reauth_required, viewModel.uiState.value.syncWarningMessage?.textResId)
     }
 
     @Test
@@ -128,8 +135,42 @@ class CalendarHomeViewModelTest {
         val viewModel = CalendarHomeViewModel(fakeRepo)
         advanceUntilIdle()
 
-        assertEquals("Erro ao carregar agenda", viewModel.uiState.value.errorMessage)
+        assertEquals(R.string.feedback_calendar_load_error, viewModel.uiState.value.errorMessage?.textResId)
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `date selected directly should trigger day reload pipeline`() = runTest {
+        val fakeRepo = FakeCalendarRepository(
+            syncOutcomes = mutableListOf(
+                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
+            )
+        )
+        val viewModel = CalendarHomeViewModel(fakeRepo)
+        advanceUntilIdle()
+
+        val targetDate = LocalDate.of(2026, 4, 5)
+        viewModel.onDateSelected(targetDate)
+        advanceUntilIdle()
+
+        assertEquals(targetDate, fakeRepo.requestedDates.last())
+        assertEquals(targetDate, viewModel.uiState.value.selectedDate)
+    }
+
+    @Test
+    fun `background sync with delta should reload selected day`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val fakeRepo = FakeCalendarRepository(
+            syncOutcomes = mutableListOf(
+                CalendarSyncOutcome.Success(CalendarSyncResult(created = 2, updated = 1, deleted = 0))
+            )
+        )
+
+        CalendarHomeViewModel(fakeRepo)
+        advanceUntilIdle()
+
+        val todayRequests = fakeRepo.requestedDates.count { it == today }
+        assertTrue(todayRequests >= 2)
     }
 
     @Test
@@ -245,8 +286,6 @@ class CalendarHomeViewModelTest {
         val previousDay = today.minusDays(1)
         val fakeRepo = FakeCalendarRepository(
             syncOutcomes = mutableListOf(
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
                 CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
             ),
             eventDelayByDateMs = mutableMapOf(previousDay to 1_000L)
@@ -262,15 +301,65 @@ class CalendarHomeViewModelTest {
         assertTrue(viewModel.uiState.value.items.first().title.contains(today.toString()))
         assertTrue(fakeRepo.syncCalls >= 1)
     }
+
+    @Test
+    fun `high volume navigation should not wait for slow background sync`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val nextDay = today.plusDays(1)
+        val highVolumeEvents = (0 until 14_354).map { index ->
+            CalendarEventModel(
+                id = index.toLong() + 1L,
+                title = "Evento-$index",
+                eventStart = today.atTime(9, 0).plusMinutes(index.toLong()).toInstant(ZoneOffset.UTC),
+                eventEnd = null,
+                identified = true,
+                serviceDescription = "Servico",
+                serviceValue = BigDecimal("10.00")
+            )
+        }
+        val fakeRepo = FakeCalendarRepository(
+            eventsByDate = mutableMapOf(
+                today to highVolumeEvents,
+                nextDay to listOf(
+                    CalendarEventModel(
+                        id = 99_999L,
+                        title = "Evento-$nextDay",
+                        eventStart = nextDay.atTime(10, 0).toInstant(ZoneOffset.UTC),
+                        eventEnd = null,
+                        identified = true,
+                        serviceDescription = "Servico",
+                        serviceValue = BigDecimal("50.00")
+                    )
+                )
+            ),
+            syncDelayMs = 120_000L
+        )
+        val viewModel = CalendarHomeViewModel(fakeRepo)
+
+        runCurrent()
+        assertTrue(viewModel.uiState.value.items.isNotEmpty())
+        viewModel.onNextDay()
+
+        runCurrent()
+        assertTrue(fakeRepo.requestedDates.contains(nextDay))
+        assertEquals(nextDay, viewModel.uiState.value.selectedDate)
+
+        // Ensure we are still inside slow sync window and navigation result was not blocked.
+        advanceTimeBy(1_000L)
+        runCurrent()
+        assertTrue(fakeRepo.syncCalls >= 1)
+        assertTrue(viewModel.uiState.value.items.any { it.title.contains(nextDay.toString()) })
+    }
 }
 
 private class FakeCalendarRepository(
     private val syncOutcomes: MutableList<CalendarSyncOutcome> = mutableListOf(
-        CalendarSyncOutcome.Success(CalendarSyncResult(created = 1, updated = 0, deleted = 0))
+        CalendarSyncOutcome.Success(CalendarSyncResult(created = 0, updated = 0, deleted = 0))
     ),
     private val eventsByDate: MutableMap<LocalDate, List<CalendarEventModel>> = mutableMapOf(),
     private val eventErrorsByDate: MutableMap<LocalDate, Throwable> = mutableMapOf(),
     private val eventDelayByDateMs: MutableMap<LocalDate, Long> = mutableMapOf(),
+    private val syncDelayMs: Long = 0L,
     private val integrationStatusResult: CalendarIntegrationStatus = CalendarIntegrationStatus(
         status = "SYNCED",
         lastSyncAt = null,
@@ -280,9 +369,14 @@ private class FakeCalendarRepository(
 ) : CalendarRepository {
     var syncCalls: Int = 0
     val requestedDates: MutableList<LocalDate> = mutableListOf()
+    val callTrace: MutableList<String> = mutableListOf()
 
     override suspend fun sync(): CalendarSyncOutcome {
         syncCalls += 1
+        callTrace += "sync"
+        if (syncDelayMs > 0L) {
+            delay(syncDelayMs)
+        }
         return if (syncOutcomes.isEmpty()) {
             CalendarSyncOutcome.Success(CalendarSyncResult(created = 0, updated = 0, deleted = 0))
         } else {
@@ -296,6 +390,7 @@ private class FakeCalendarRepository(
 
     override suspend fun eventsByDay(date: LocalDate): List<CalendarEventModel> {
         requestedDates += date
+        callTrace += "events:$date"
         eventDelayByDateMs[date]?.let { delay(it) }
         eventErrorsByDate[date]?.let { throw it }
         return eventsByDate[date] ?: listOf(
