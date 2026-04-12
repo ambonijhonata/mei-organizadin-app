@@ -14,6 +14,8 @@ import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.ReportsRepositoryImpl
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import com.tcc.androidnative.feature.services.data.ServicesRepositoryImpl
+import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
+import com.tcc.androidnative.feature.settings.data.SharedPreferencesCalendarSyncSettingsStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -50,4 +52,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindReportsRepository(impl: ReportsRepositoryImpl): ReportsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCalendarSyncSettingsStore(
+        impl: SharedPreferencesCalendarSyncSettingsStore
+    ): CalendarSyncSettingsStore
 }

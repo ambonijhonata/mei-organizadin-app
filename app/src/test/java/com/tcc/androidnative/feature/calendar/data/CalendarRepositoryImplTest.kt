@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
@@ -100,6 +101,26 @@ class CalendarRepositoryImplTest {
         assertEquals("REAUTH_REQUIRED", result.status)
         assertTrue(result.isReauthRequired())
     }
+
+    @Test
+    fun `sync should include startDate query when provided`() = runBlocking {
+        val fakeApi = FakeCalendarApi()
+        val repository = CalendarRepositoryImpl(fakeApi)
+
+        repository.sync(startDate = LocalDate.of(2026, 4, 7))
+
+        assertEquals("2026-04-07", fakeApi.lastSyncStartDate)
+    }
+
+    @Test
+    fun `sync should call api without startDate when filter is disabled`() = runBlocking {
+        val fakeApi = FakeCalendarApi()
+        val repository = CalendarRepositoryImpl(fakeApi)
+
+        repository.sync(startDate = null)
+
+        assertNull(fakeApi.lastSyncStartDate)
+    }
 }
 
 private class FakeCalendarApi(
@@ -112,7 +133,10 @@ private class FakeCalendarApi(
         errorMessage = null
     )
 ) : CalendarApi {
-    override suspend fun sync(): SyncResponseDto {
+    var lastSyncStartDate: String? = null
+
+    override suspend fun sync(startDate: String?): SyncResponseDto {
+        lastSyncStartDate = startDate
         syncError?.let { throw it }
         return syncResult
     }

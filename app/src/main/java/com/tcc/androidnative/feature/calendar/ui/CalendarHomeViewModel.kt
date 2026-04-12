@@ -8,6 +8,7 @@ import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarSyncOutcome
+import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
 import java.time.Instant
@@ -48,7 +49,8 @@ data class CalendarHomeUiState(
 
 @HiltViewModel
 class CalendarHomeViewModel @Inject constructor(
-    private val calendarRepository: CalendarRepository
+    private val calendarRepository: CalendarRepository,
+    private val calendarSyncSettingsStore: CalendarSyncSettingsStore
 ) : ViewModel() {
     private val hourFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val zoneResolver: () -> ZoneId = { ZoneId.systemDefault() }
@@ -179,7 +181,9 @@ class CalendarHomeViewModel @Inject constructor(
         }
         logInfo("calendar_background_sync_start")
 
-        val syncOutcome = calendarRepository.sync()
+        val settings = calendarSyncSettingsStore.getSettings()
+        val syncStartDate = if (settings.useStartDateFilter) settings.startDate else null
+        val syncOutcome = calendarRepository.sync(startDate = syncStartDate)
         val (syncWarningMessage, reauthRequired) = resolveSyncFeedback(syncOutcome)
         val shouldReloadSelectedDate = syncOutcome is CalendarSyncOutcome.Success && hasDelta(syncOutcome.result)
         logInfo(

@@ -76,4 +76,22 @@ class AppShellScaffoldTest {
         composeRule.onNodeWithText("MEI ORGANIZADINHO").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ir para tela inicial").assertIsDisplayed()
     }
+
+    @Test
+    fun drawer_should_show_settings_item() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.Home.route,
+                    onNavigate = {},
+                    onLogout = {}
+                ) {
+                    Text("Conteudo")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Abrir menu hamburguer").performClick()
+        composeRule.onNodeWithText("Configuracoes").assertIsDisplayed()
+    }
 }

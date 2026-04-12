@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,6 +62,7 @@ fun AppShellScaffold(
     topBarTitle: String = "MEI ORGANIZADINHO",
     topBarTitleColor: Color = DrawerMenuIconBlue,
     topBarIconColor: Color = DrawerMenuIconBlue,
+    isNavigationLocked: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -73,6 +75,7 @@ fun AppShellScaffold(
     val relatoriosLabel = stringResource(R.string.drawer_menu_reports)
     val cashFlowLabel = stringResource(R.string.drawer_menu_cash_flow)
     val revenueLabel = stringResource(R.string.drawer_menu_revenue)
+    val settingsLabel = stringResource(R.string.drawer_menu_settings)
     val logoutLabel = stringResource(R.string.drawer_menu_logout)
     val drawerTitle = stringResource(R.string.drawer_app_title)
     val drawerParentItemColors = NavigationDrawerItemDefaults.colors(
@@ -104,6 +107,9 @@ fun AppShellScaffold(
     }
 
     fun navigateOrClose(route: String) {
+        if (isNavigationLocked && route != AppDestination.Settings.route) {
+            return
+        }
         scope.launch {
             drawerState.close()
             if (currentRoute != route) {
@@ -128,7 +134,10 @@ fun AppShellScaffold(
                             text = drawerTitle,
                             color = DrawerMenuIconBlue
                         )
-                        IconButton(onClick = { navigateOrClose(AppDestination.Home.route) }) {
+                        IconButton(
+                            enabled = !isNavigationLocked,
+                            onClick = { navigateOrClose(AppDestination.Home.route) }
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.Home,
                                 contentDescription = homeLabel,
@@ -171,7 +180,11 @@ fun AppShellScaffold(
                             )
                         },
                         selected = false,
-                        onClick = { cadastrosExpanded = !cadastrosExpanded },
+                        onClick = {
+                            if (!isNavigationLocked) {
+                                cadastrosExpanded = !cadastrosExpanded
+                            }
+                        },
                         badge = {
                             Icon(
                                 imageVector = if (cadastrosExpanded) {
@@ -235,7 +248,11 @@ fun AppShellScaffold(
                             )
                         },
                         selected = false,
-                        onClick = { relatoriosExpanded = !relatoriosExpanded },
+                        onClick = {
+                            if (!isNavigationLocked) {
+                                relatoriosExpanded = !relatoriosExpanded
+                            }
+                        },
                         badge = {
                             Icon(
                                 imageVector = if (relatoriosExpanded) {
@@ -279,6 +296,19 @@ fun AppShellScaffold(
                     }
 
                     NavigationDrawerItem(
+                        label = { Text(settingsLabel) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = null
+                            )
+                        },
+                        selected = currentRoute == AppDestination.Settings.route,
+                        onClick = { navigateOrClose(AppDestination.Settings.route) },
+                        colors = drawerParentItemColors
+                    )
+
+                    NavigationDrawerItem(
                         label = { Text(logoutLabel) },
                         icon = {
                             Icon(
@@ -288,8 +318,10 @@ fun AppShellScaffold(
                         },
                         selected = false,
                         onClick = {
-                            scope.launch { drawerState.close() }
-                            onLogout()
+                            if (!isNavigationLocked) {
+                                scope.launch { drawerState.close() }
+                                onLogout()
+                            }
                         },
                         colors = drawerParentItemColors
                     )
@@ -304,6 +336,7 @@ fun AppShellScaffold(
                     navigationIcon = {
                         IconButton(
                             modifier = Modifier.semantics { contentDescription = "Abrir menu hamburguer" },
+                            enabled = !isNavigationLocked,
                             onClick = { scope.launch { drawerState.open() } }
                         ) {
                             Icon(Icons.Outlined.Menu, contentDescription = "Menu")
@@ -312,6 +345,7 @@ fun AppShellScaffold(
                     actions = {
                         IconButton(
                             modifier = Modifier.semantics { contentDescription = "Ir para tela inicial" },
+                            enabled = !isNavigationLocked,
                             onClick = { navigateOrClose(AppDestination.Home.route) }
                         ) {
                             Icon(Icons.Outlined.Home, contentDescription = "Home")

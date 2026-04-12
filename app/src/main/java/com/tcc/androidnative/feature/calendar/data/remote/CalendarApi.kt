@@ -10,7 +10,9 @@ import retrofit2.http.Query
 
 interface CalendarApi {
     @POST("/api/calendar/sync")
-    suspend fun sync(): SyncResponseDto
+    suspend fun sync(
+        @Query("startDate") startDate: String? = null
+    ): SyncResponseDto
 
     @GET("/api/calendar/events")
     suspend fun listEvents(
@@ -23,4 +25,3 @@ interface CalendarApi {
     @GET("/api/calendar/status")
     suspend fun status(): IntegrationStatusDto
 }
-

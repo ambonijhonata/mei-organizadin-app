@@ -1,4 +1,4 @@
-package com.tcc.androidnative.feature.calendar.ui
+﻿package com.tcc.androidnative.feature.calendar.ui
 
 import com.tcc.androidnative.R
 import com.tcc.androidnative.feature.calendar.data.CalendarEventModel
@@ -6,6 +6,8 @@ import com.tcc.androidnative.feature.calendar.data.CalendarIntegrationStatus
 import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarSyncOutcome
 import com.tcc.androidnative.feature.calendar.data.CalendarSyncResult
+import com.tcc.androidnative.feature.settings.data.CalendarSyncSettings
+import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import com.tcc.androidnative.testutil.MainDispatcherRule
 import java.math.BigDecimal
 import java.time.Instant
@@ -32,7 +34,7 @@ class CalendarHomeViewModelTest {
     @Test
     fun `init should load current day before background sync`() = runTest {
         val fakeRepo = FakeCalendarRepository()
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertTrue(fakeRepo.callTrace.isNotEmpty())
@@ -52,7 +54,7 @@ class CalendarHomeViewModelTest {
                 CalendarSyncOutcome.Success(CalendarSyncResult(1, 0, 0))
             )
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         val initialDate = fakeRepo.requestedDates.last()
@@ -79,7 +81,7 @@ class CalendarHomeViewModelTest {
                 )
             )
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.items.isEmpty())
@@ -93,7 +95,7 @@ class CalendarHomeViewModelTest {
         val fakeRepo = FakeCalendarRepository(
             syncOutcomes = mutableListOf(CalendarSyncOutcome.ReauthRequired)
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isReauthRequired)
@@ -119,7 +121,7 @@ class CalendarHomeViewModelTest {
                 errorMessage = "revoked"
             )
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isReauthRequired)
@@ -132,7 +134,7 @@ class CalendarHomeViewModelTest {
         val fakeRepo = FakeCalendarRepository(
             eventErrorsByDate = mutableMapOf(today to IllegalStateException("events error"))
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertEquals(R.string.feedback_calendar_load_error, viewModel.uiState.value.errorMessage?.textResId)
@@ -146,7 +148,7 @@ class CalendarHomeViewModelTest {
                 CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
             )
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         val targetDate = LocalDate.of(2026, 4, 5)
@@ -166,7 +168,7 @@ class CalendarHomeViewModelTest {
             )
         )
 
-        CalendarHomeViewModel(fakeRepo)
+        createViewModel(fakeRepo)
         advanceUntilIdle()
 
         val todayRequests = fakeRepo.requestedDates.count { it == today }
@@ -200,7 +202,7 @@ class CalendarHomeViewModelTest {
                 )
             )
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         assertEquals(listOf("Evento-manha", "Evento-tarde"), viewModel.uiState.value.items.map { it.title })
@@ -225,7 +227,7 @@ class CalendarHomeViewModelTest {
             )
         )
 
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         val item = viewModel.uiState.value.items.single()
@@ -237,7 +239,7 @@ class CalendarHomeViewModelTest {
 
     @Test
     fun `time label should use GMT-3 when user timezone is minus three`() = runTest {
-        val viewModel = CalendarHomeViewModel(FakeCalendarRepository())
+        val viewModel = createViewModel(FakeCalendarRepository())
 
         val label = viewModel.formatEventTimeLabel(Instant.parse("2026-04-04T13:00:00Z")) {
             ZoneOffset.ofHours(-3)
@@ -248,7 +250,7 @@ class CalendarHomeViewModelTest {
 
     @Test
     fun `time label should use UTC when user timezone is UTC`() = runTest {
-        val viewModel = CalendarHomeViewModel(FakeCalendarRepository())
+        val viewModel = createViewModel(FakeCalendarRepository())
 
         val label = viewModel.formatEventTimeLabel(Instant.parse("2026-04-04T13:00:00Z")) {
             ZoneOffset.UTC
@@ -259,7 +261,7 @@ class CalendarHomeViewModelTest {
 
     @Test
     fun `time label should fallback to UTC when timezone resolution fails`() = runTest {
-        val viewModel = CalendarHomeViewModel(FakeCalendarRepository())
+        val viewModel = createViewModel(FakeCalendarRepository())
 
         val label = viewModel.formatEventTimeLabel(Instant.parse("2026-04-04T13:00:00Z")) {
             throw IllegalStateException("timezone unavailable")
@@ -270,7 +272,7 @@ class CalendarHomeViewModelTest {
 
     @Test
     fun `duration label should fallback when end instant is missing`() = runTest {
-        val viewModel = CalendarHomeViewModel(FakeCalendarRepository())
+        val viewModel = createViewModel(FakeCalendarRepository())
 
         val duration = viewModel.formatDurationLabel(
             eventStart = Instant.parse("2026-04-04T13:00:00Z"),
@@ -290,7 +292,7 @@ class CalendarHomeViewModelTest {
             ),
             eventDelayByDateMs = mutableMapOf(previousDay to 1_000L)
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
         viewModel.onPreviousDay()
@@ -334,7 +336,7 @@ class CalendarHomeViewModelTest {
             ),
             syncDelayMs = 120_000L
         )
-        val viewModel = CalendarHomeViewModel(fakeRepo)
+        val viewModel = createViewModel(fakeRepo)
 
         runCurrent()
         assertTrue(viewModel.uiState.value.items.isNotEmpty())
@@ -349,6 +351,50 @@ class CalendarHomeViewModelTest {
         runCurrent()
         assertTrue(fakeRepo.syncCalls >= 1)
         assertTrue(viewModel.uiState.value.items.any { it.title.contains(nextDay.toString()) })
+    }
+
+    @Test
+    fun `background sync should send configured startDate when filter is enabled`() = runTest {
+        val fakeRepo = FakeCalendarRepository()
+        val settingsStore = FakeCalendarSyncSettingsStore(
+            CalendarSyncSettings(
+                useStartDateFilter = true,
+                startDate = LocalDate.of(2026, 4, 7),
+                initialSetupCompleted = true
+            )
+        )
+
+        createViewModel(fakeRepo, settingsStore)
+        advanceUntilIdle()
+
+        assertTrue(fakeRepo.requestedSyncStartDates.contains(LocalDate.of(2026, 4, 7)))
+    }
+
+    @Test
+    fun `background sync should omit startDate when filter is disabled`() = runTest {
+        val fakeRepo = FakeCalendarRepository()
+        val settingsStore = FakeCalendarSyncSettingsStore(
+            CalendarSyncSettings(
+                useStartDateFilter = false,
+                startDate = LocalDate.of(2026, 4, 7),
+                initialSetupCompleted = true
+            )
+        )
+
+        createViewModel(fakeRepo, settingsStore)
+        advanceUntilIdle()
+
+        assertTrue(fakeRepo.requestedSyncStartDates.contains(null))
+    }
+
+    private fun createViewModel(
+        repository: CalendarRepository,
+        settingsStore: CalendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+    ): CalendarHomeViewModel {
+        return CalendarHomeViewModel(
+            calendarRepository = repository,
+            calendarSyncSettingsStore = settingsStore
+        )
     }
 }
 
@@ -369,10 +415,12 @@ private class FakeCalendarRepository(
 ) : CalendarRepository {
     var syncCalls: Int = 0
     val requestedDates: MutableList<LocalDate> = mutableListOf()
+    val requestedSyncStartDates: MutableList<LocalDate?> = mutableListOf()
     val callTrace: MutableList<String> = mutableListOf()
 
-    override suspend fun sync(): CalendarSyncOutcome {
+    override suspend fun sync(startDate: LocalDate?): CalendarSyncOutcome {
         syncCalls += 1
+        requestedSyncStartDates += startDate
         callTrace += "sync"
         if (syncDelayMs > 0L) {
             delay(syncDelayMs)
@@ -403,6 +451,24 @@ private class FakeCalendarRepository(
                 serviceDescription = "Corte",
                 serviceValue = BigDecimal("50.00")
             )
+        )
+    }
+}
+
+private class FakeCalendarSyncSettingsStore(
+    private var settings: CalendarSyncSettings = CalendarSyncSettings(
+        useStartDateFilter = false,
+        startDate = LocalDate.of(2026, 1, 1),
+        initialSetupCompleted = true
+    )
+) : CalendarSyncSettingsStore {
+    override fun getSettings(): CalendarSyncSettings = settings
+
+    override fun saveSettings(useStartDateFilter: Boolean, startDate: LocalDate) {
+        settings = settings.copy(
+            useStartDateFilter = useStartDateFilter,
+            startDate = startDate,
+            initialSetupCompleted = true
         )
     }
 }

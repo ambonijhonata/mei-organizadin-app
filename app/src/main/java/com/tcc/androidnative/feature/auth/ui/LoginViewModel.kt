@@ -13,9 +13,11 @@ import com.tcc.androidnative.feature.auth.data.google.GoogleSignInGateway
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -32,6 +34,8 @@ class LoginViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    private val _loginSuccessEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val loginSuccessEvents = _loginSuccessEvents.asSharedFlow()
 
     fun signInIntent(): Intent = googleSignInGateway.signInIntent()
 
@@ -57,6 +61,7 @@ class LoginViewModel @Inject constructor(
                         transientMessage = null
                     )
                 }
+                _loginSuccessEvents.tryEmit(Unit)
             }.onFailure {
                 showLoginError()
             }
@@ -101,4 +106,3 @@ class LoginViewModel @Inject constructor(
         }
     }
 }
-

@@ -53,7 +53,7 @@ data class CalendarEventModel(
 )
 
 interface CalendarRepository {
-    suspend fun sync(): CalendarSyncOutcome
+    suspend fun sync(startDate: LocalDate? = null): CalendarSyncOutcome
     suspend fun integrationStatus(): CalendarIntegrationStatus
     suspend fun eventsByDay(date: LocalDate): List<CalendarEventModel>
 }
@@ -62,9 +62,9 @@ interface CalendarRepository {
 class CalendarRepositoryImpl @Inject constructor(
     private val api: CalendarApi
 ) : CalendarRepository {
-    override suspend fun sync(): CalendarSyncOutcome {
+    override suspend fun sync(startDate: LocalDate?): CalendarSyncOutcome {
         return try {
-            val response = api.sync()
+            val response = api.sync(startDate = startDate?.let(DateFormats::toApiDate))
             CalendarSyncOutcome.Success(
                 CalendarSyncResult(
                     created = response.created,

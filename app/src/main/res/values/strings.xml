@@ -15,6 +15,7 @@
     <string name="drawer_menu_reports">Relatorios</string>
     <string name="drawer_menu_cash_flow">Fluxo de Caixa</string>
     <string name="drawer_menu_revenue">Faturamento</string>
+    <string name="drawer_menu_settings">Configuracoes</string>
     <string name="drawer_menu_logout">Sair</string>
     <string name="drawer_expand_submenu">Expandir submenu %1$s</string>
     <string name="drawer_collapse_submenu">Recolher submenu %1$s</string>
@@ -72,4 +73,19 @@
     <string name="calendar_date_picker_open">Selecionar data da agenda</string>
     <string name="calendar_date_picker_confirm">Selecionar</string>
     <string name="calendar_date_picker_cancel">Cancelar</string>
+
+    <string name="settings_title">Configuracoes</string>
+    <string name="settings_enable_start_date_checkbox">Usar data inicial na sincronizacao</string>
+    <string name="settings_enable_start_date_checkbox_description">Habilitar filtro por data inicial</string>
+    <string name="settings_start_date_label">Sincronizar a partir de:</string>
+    <string name="settings_start_date_field_label">Data inicial</string>
+    <string name="settings_start_date_field_description">Campo de data inicial da sincronizacao</string>
+    <string name="settings_start_date_tooltip_message">O aplicativo ira buscar os agendamentos do google agenda a partir da data definida. Agendamentos anteriores a data nao serao importados.</string>
+    <string name="settings_tooltip_button_description">Exibir ajuda da data inicial</string>
+    <string name="settings_tooltip_close_button_description">Fechar ajuda</string>
+    <string name="settings_save_button">Gravar</string>
+    <string name="settings_save_button_description">Gravar configuracoes</string>
+    <string name="settings_cancel_button">Cancelar</string>
+    <string name="settings_cancel_button_description">Cancelar alteracoes de configuracoes</string>
+    <string name="settings_first_access_save_required">Primeiro acesso: grave as configuracoes para continuar.</string>
 </resources>

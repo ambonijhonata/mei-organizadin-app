@@ -7,5 +7,5 @@ sealed class AppDestination(val route: String) {
     data object Services : AppDestination("services")
     data object CashFlow : AppDestination("cashflow")
     data object Revenue : AppDestination("revenue")
+    data object Settings : AppDestination("settings")
 }
-
