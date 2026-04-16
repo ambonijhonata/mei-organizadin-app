@@ -1,6 +1,7 @@
 package com.tcc.androidnative.feature.auth.ui
 
 import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
@@ -41,12 +42,38 @@ class LoginViewModel @Inject constructor(
 
     fun onGoogleSignInResult(data: Intent?) {
         googleSignInGateway.extractTokens(data)
-            .onSuccess { tokens -> onGoogleTokensReceived(tokens) }
-            .onFailure { showLoginError() }
+            .onSuccess { tokens ->
+                logInfo(
+                    buildString {
+                        append("auth_login_tokens_received ")
+                        append("idTokenPresent=${tokens.idToken.isNotBlank()} ")
+                        append("idTokenLength=${tokens.idToken.length} ")
+                        append("authorizationCodePresent=${tokens.authorizationCode.isNotBlank()} ")
+                        append("authorizationCodeLength=${tokens.authorizationCode.length}")
+                    }
+                )
+                onGoogleTokensReceived(tokens)
+            }
+            .onFailure { error ->
+                logWarn(
+                    "auth_login_token_extraction_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                    error
+                )
+                showLoginError()
+            }
     }
 
     fun onGoogleTokensReceived(tokens: GoogleAuthTokens) {
         viewModelScope.launch {
+            logInfo(
+                buildString {
+                    append("auth_login_backend_start ")
+                    append("idTokenPresent=${tokens.idToken.isNotBlank()} ")
+                    append("idTokenLength=${tokens.idToken.length} ")
+                    append("authorizationCodePresent=${tokens.authorizationCode.isNotBlank()} ")
+                    append("authorizationCodeLength=${tokens.authorizationCode.length}")
+                }
+            )
             _uiState.update { it.copy(isLoading = true, transientMessage = null) }
             runCatching {
                 authRepository.login(
@@ -54,6 +81,7 @@ class LoginViewModel @Inject constructor(
                     authorizationCode = tokens.authorizationCode
                 )
             }.onSuccess {
+                logInfo("auth_login_backend_success")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -62,7 +90,11 @@ class LoginViewModel @Inject constructor(
                     )
                 }
                 _loginSuccessEvents.tryEmit(Unit)
-            }.onFailure {
+            }.onFailure { error ->
+                logError(
+                    "auth_login_backend_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                    error
+                )
                 showLoginError()
             }
         }
@@ -104,5 +136,33 @@ class LoginViewModel @Inject constructor(
                 state
             }
         }
+    }
+
+    private fun logInfo(message: String) {
+        runCatching { Log.i(TAG, message) }
+    }
+
+    private fun logWarn(message: String, throwable: Throwable? = null) {
+        runCatching {
+            if (throwable != null) {
+                Log.w(TAG, message, throwable)
+            } else {
+                Log.w(TAG, message)
+            }
+        }
+    }
+
+    private fun logError(message: String, throwable: Throwable? = null) {
+        runCatching {
+            if (throwable != null) {
+                Log.e(TAG, message, throwable)
+            } else {
+                Log.e(TAG, message)
+            }
+        }
+    }
+
+    private companion object {
+        const val TAG = "LoginViewModel"
     }
 }

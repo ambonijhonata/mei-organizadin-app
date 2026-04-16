@@ -17,6 +17,14 @@ class SessionInvalidationInterceptorTest {
         assertFalse(interceptor.shouldInvalidateSession(403))
         assertFalse(interceptor.shouldInvalidateSession(500))
     }
+
+    @Test
+    fun `should not invalidate session for payments preload 401`() {
+        val interceptor = SessionInvalidationInterceptor(FakeSessionManager())
+
+        assertFalse(interceptor.shouldInvalidateSession(401, "/api/calendar/events/10/payments"))
+        assertTrue(interceptor.isPaymentsPreloadPath("/api/calendar/events/10/payments"))
+    }
 }
 
 private class FakeSessionManager : SessionManager {

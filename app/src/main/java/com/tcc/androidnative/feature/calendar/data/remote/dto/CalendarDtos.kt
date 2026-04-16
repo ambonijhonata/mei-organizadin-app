@@ -16,7 +16,8 @@ data class CalendarEventDto(
     val eventEnd: String?,
     val identified: Boolean,
     val serviceDescription: String?,
-    val serviceValue: BigDecimal?
+    val serviceValue: BigDecimal?,
+    val paymentSummary: CalendarPaymentSummaryDto? = null
 )
 
 data class IntegrationStatusDto(
@@ -33,4 +34,3 @@ data class SpringPageDto<T>(
     val size: Int,
     val totalElements: Long
 )
-

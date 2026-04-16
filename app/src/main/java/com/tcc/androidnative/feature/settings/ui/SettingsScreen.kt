@@ -1,8 +1,6 @@
 package com.tcc.androidnative.feature.settings.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -36,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,30 +44,41 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcc.androidnative.R
-import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.delay
 
 private const val TOOLTIP_VISIBLE_MILLIS = 10_000L
+private const val SAVE_SUCCESS_NAVIGATION_DELAY_MILLIS = 300L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
-    onInitialSetupCompleted: () -> Unit = {},
+    onSaveSuccess: () -> Unit = {},
     onNavigateHome: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isDatePickerVisible by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = uiState.requiresFirstAccessSave) { }
+
+    LaunchedEffect(uiState.pendingNavigationTarget) {
+        if (uiState.pendingNavigationTarget == SettingsNavigationTarget.HOME) {
+            delay(SAVE_SUCCESS_NAVIGATION_DELAY_MILLIS)
+            viewModel.onNavigationHandled()
+            onSaveSuccess()
+        }
+    }
 
     if (isDatePickerVisible) {
         val selectedDateMillis = localDateToUtcMillis(uiState.startDate)
@@ -108,15 +117,12 @@ fun SettingsScreen(
     SettingsContent(
         uiState = uiState,
         onUseStartDateFilterChanged = viewModel::onUseStartDateFilterChanged,
+        onConsiderPaidAppointmentsOnlyInReportsChanged = viewModel::onConsiderPaidAppointmentsOnlyInReportsChanged,
+        onStartDateInputChanged = viewModel::onStartDateInputChanged,
         onDateFieldClick = { isDatePickerVisible = true },
-        onTooltipClick = viewModel::showTooltip,
-        onTooltipClose = viewModel::hideTooltip,
-        onSaveClick = {
-            val wasFirstAccess = viewModel.save()
-            if (wasFirstAccess) {
-                onInitialSetupCompleted()
-            }
-        },
+        onStartDateTooltipClick = viewModel::showStartDateTooltip,
+        onStartDateTooltipClose = viewModel::hideStartDateTooltip,
+        onSaveClick = viewModel::save,
         onCancelClick = {
             if (viewModel.cancel()) {
                 onNavigateHome()
@@ -129,26 +135,31 @@ fun SettingsScreen(
 internal fun SettingsContent(
     uiState: SettingsUiState,
     onUseStartDateFilterChanged: (Boolean) -> Unit,
+    onConsiderPaidAppointmentsOnlyInReportsChanged: (Boolean) -> Unit,
+    onStartDateInputChanged: (String) -> Unit,
     onDateFieldClick: () -> Unit,
-    onTooltipClick: () -> Unit,
-    onTooltipClose: () -> Unit,
+    onStartDateTooltipClick: () -> Unit,
+    onStartDateTooltipClose: () -> Unit,
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit,
     tooltipAutoDismissMillis: Long = TOOLTIP_VISIBLE_MILLIS
 ) {
     val cardShape = RoundedCornerShape(12.dp)
-    val interactionSource = remember { MutableInteractionSource() }
     val checkboxDescription = stringResource(R.string.settings_enable_start_date_checkbox_description)
+    val paidAppointmentsCheckboxDescription =
+        stringResource(R.string.settings_paid_appointments_checkbox_description)
     val tooltipButtonDescription = stringResource(R.string.settings_tooltip_button_description)
     val tooltipCloseDescription = stringResource(R.string.settings_tooltip_close_button_description)
     val startDateFieldDescription = stringResource(R.string.settings_start_date_field_description)
+    val startDateCalendarDescription =
+        stringResource(R.string.settings_start_date_calendar_icon_description)
     val saveButtonDescription = stringResource(R.string.settings_save_button_description)
     val cancelButtonDescription = stringResource(R.string.settings_cancel_button_description)
 
-    LaunchedEffect(uiState.isTooltipVisible) {
-        if (uiState.isTooltipVisible) {
-            kotlinx.coroutines.delay(tooltipAutoDismissMillis)
-            onTooltipClose()
+    LaunchedEffect(uiState.isStartDateTooltipVisible) {
+        if (uiState.isStartDateTooltipVisible) {
+            delay(tooltipAutoDismissMillis)
+            onStartDateTooltipClose()
         }
     }
 
@@ -164,6 +175,13 @@ internal fun SettingsContent(
             fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(16.dp))
+
+        uiState.transientMessage?.let { message ->
+            FeedbackMessageCard(
+                message = message,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -181,6 +199,14 @@ internal fun SettingsContent(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+
+                Text(
+                    text = stringResource(R.string.settings_sync_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = DrawerMenuIconBlue,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -212,13 +238,13 @@ internal fun SettingsContent(
                         modifier = Modifier.semantics {
                             contentDescription = tooltipButtonDescription
                         },
-                        onClick = onTooltipClick
+                        onClick = onStartDateTooltipClick
                     ) {
                         Text("?")
                     }
                 }
 
-                if (uiState.isTooltipVisible) {
+                if (uiState.isStartDateTooltipVisible) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -240,7 +266,7 @@ internal fun SettingsContent(
                                 modifier = Modifier.semantics {
                                     contentDescription = tooltipCloseDescription
                                 },
-                                onClick = onTooltipClose
+                                onClick = onStartDateTooltipClose
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
@@ -254,28 +280,65 @@ internal fun SettingsContent(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
-                    value = DateFormats.toUiDate(uiState.startDate),
-                    onValueChange = {},
+                    value = uiState.startDateInput,
+                    onValueChange = onStartDateInputChanged,
                     enabled = uiState.useStartDateFilter,
-                    readOnly = true,
+                    readOnly = false,
+                    singleLine = true,
                     label = { Text(stringResource(R.string.settings_start_date_field_label)) },
                     trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.CalendarMonth,
-                            contentDescription = null
-                        )
+                        IconButton(
+                            onClick = onDateFieldClick,
+                            enabled = uiState.useStartDateFilter,
+                            modifier = Modifier.semantics {
+                                contentDescription = startDateCalendarDescription
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CalendarMonth,
+                                contentDescription = null
+                            )
+                        }
                     },
+                    isError = uiState.startDateInputErrorResId != null,
+                    supportingText = {
+                        uiState.startDateInputErrorResId?.let { errorResId ->
+                            Text(stringResource(errorResId))
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
                             contentDescription = startDateFieldDescription
                         }
-                        .clickable(
-                            enabled = uiState.useStartDateFilter,
-                            interactionSource = interactionSource,
-                            indication = null
-                        ) { onDateFieldClick() }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.settings_reports_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = DrawerMenuIconBlue,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        modifier = Modifier.semantics {
+                            contentDescription = paidAppointmentsCheckboxDescription
+                        },
+                        checked = uiState.considerPaidAppointmentsOnlyInReports,
+                        onCheckedChange = onConsiderPaidAppointmentsOnlyInReportsChanged
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_paid_appointments_checkbox),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

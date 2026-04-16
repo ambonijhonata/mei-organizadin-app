@@ -19,6 +19,7 @@ class SharedPreferencesCalendarSyncSettingsStoreTest {
 
         assertFalse(settings.useStartDateFilter)
         assertEquals(LocalDate.of(2026, 4, 12), settings.startDate)
+        assertFalse(settings.considerPaidAppointmentsOnlyInReports)
         assertFalse(settings.initialSetupCompleted)
     }
 
@@ -31,12 +32,14 @@ class SharedPreferencesCalendarSyncSettingsStoreTest {
 
         store.saveSettings(
             useStartDateFilter = true,
-            startDate = LocalDate.of(2026, 4, 7)
+            startDate = LocalDate.of(2026, 4, 7),
+            considerPaidAppointmentsOnlyInReports = true
         )
 
         val settings = store.getSettings()
         assertTrue(settings.useStartDateFilter)
         assertEquals(LocalDate.of(2026, 4, 7), settings.startDate)
+        assertTrue(settings.considerPaidAppointmentsOnlyInReports)
         assertTrue(settings.initialSetupCompleted)
     }
 
@@ -56,20 +59,24 @@ class SharedPreferencesCalendarSyncSettingsStoreTest {
 
         user1Store.saveSettings(
             useStartDateFilter = true,
-            startDate = LocalDate.of(2026, 4, 7)
+            startDate = LocalDate.of(2026, 4, 7),
+            considerPaidAppointmentsOnlyInReports = true
         )
         user2Store.saveSettings(
             useStartDateFilter = false,
-            startDate = LocalDate.of(2026, 5, 1)
+            startDate = LocalDate.of(2026, 5, 1),
+            considerPaidAppointmentsOnlyInReports = false
         )
 
         val user1Settings = user1Store.getSettings()
         val user2Settings = user2Store.getSettings()
         assertTrue(user1Settings.useStartDateFilter)
         assertEquals(LocalDate.of(2026, 4, 7), user1Settings.startDate)
+        assertTrue(user1Settings.considerPaidAppointmentsOnlyInReports)
         assertTrue(user1Settings.initialSetupCompleted)
         assertFalse(user2Settings.useStartDateFilter)
         assertEquals(LocalDate.of(2026, 5, 1), user2Settings.startDate)
+        assertFalse(user2Settings.considerPaidAppointmentsOnlyInReports)
         assertTrue(user2Settings.initialSetupCompleted)
     }
 
@@ -84,12 +91,14 @@ class SharedPreferencesCalendarSyncSettingsStoreTest {
 
         anonymousStore.saveSettings(
             useStartDateFilter = true,
-            startDate = LocalDate.of(2026, 4, 7)
+            startDate = LocalDate.of(2026, 4, 7),
+            considerPaidAppointmentsOnlyInReports = true
         )
 
         val settings = anonymousStore.getSettings()
         assertTrue(settings.useStartDateFilter)
         assertEquals(LocalDate.of(2026, 4, 7), settings.startDate)
+        assertTrue(settings.considerPaidAppointmentsOnlyInReports)
         assertTrue(settings.initialSetupCompleted)
     }
 }

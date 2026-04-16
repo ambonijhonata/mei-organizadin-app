@@ -10,11 +10,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -194,5 +196,45 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithContentDescription("Selecionar data da agenda").performClick()
         composeRule.onNodeWithText("Selecionar").assertIsDisplayed()
         composeRule.onNodeWithText("Cancelar").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_notify_appointment_click_for_payments_navigation() {
+        var clickedEventId: Long? = null
+        var clickedServiceTotal: BigDecimal? = null
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(
+                        selectedDate = LocalDate.of(2026, 4, 4),
+                        items = listOf(
+                            CalendarAgendaItem(
+                                eventId = 88L,
+                                eventStart = Instant.parse("2026-04-04T09:00:00Z"),
+                                eventEnd = Instant.parse("2026-04-04T10:00:00Z"),
+                                slotLabel = "09:00",
+                                timeLabel = "09:00",
+                                title = "Corte",
+                                serviceDescription = "Cabelo e barba",
+                                durationLabel = "1 hora",
+                                serviceTotalValue = BigDecimal("65.00")
+                            )
+                        )
+                    ),
+                    onPreviousDay = {},
+                    onNextDay = {},
+                    onDateSelected = {},
+                    onReauthenticateRequested = {},
+                    onAppointmentClick = { item ->
+                        clickedEventId = item.eventId
+                        clickedServiceTotal = item.serviceTotalValue
+                    }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("appointment_card_88").performClick()
+        assertTrue(clickedEventId == 88L)
+        assertTrue(clickedServiceTotal == BigDecimal("65.00"))
     }
 }

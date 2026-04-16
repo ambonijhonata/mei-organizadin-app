@@ -66,6 +66,8 @@
     <string name="feedback_cash_flow_period_limit">Relatorio de fluxo de caixa permitido somente para um periodo de ate 7 dias</string>
     <string name="feedback_report_generate_error">Erro ao gerar relatorio</string>
     <string name="feedback_report_stale_data">Dados desatualizados</string>
+    <string name="feedback_settings_save_success">Configuracoes gravadas com sucesso</string>
+    <string name="feedback_settings_save_error">Erro ao gravar configuracoes</string>
 
     <string name="calendar_header_content_description">Cabecalho de data da tela inicial</string>
     <string name="calendar_previous_day">Ir para dia anterior</string>
@@ -75,11 +77,17 @@
     <string name="calendar_date_picker_cancel">Cancelar</string>
 
     <string name="settings_title">Configuracoes</string>
+    <string name="settings_sync_section_title">Sincronizacao</string>
+    <string name="settings_reports_section_title">Relatorios</string>
     <string name="settings_enable_start_date_checkbox">Usar data inicial na sincronizacao</string>
     <string name="settings_enable_start_date_checkbox_description">Habilitar filtro por data inicial</string>
+    <string name="settings_paid_appointments_checkbox">Considerar nos relatorios somente agendamentos pagos</string>
+    <string name="settings_paid_appointments_checkbox_description">Habilitar filtro de relatorios por agendamentos pagos</string>
     <string name="settings_start_date_label">Sincronizar a partir de:</string>
     <string name="settings_start_date_field_label">Data inicial</string>
     <string name="settings_start_date_field_description">Campo de data inicial da sincronizacao</string>
+    <string name="settings_start_date_calendar_icon_description">Abrir calendario de data inicial</string>
+    <string name="settings_start_date_invalid">Data inicial invalida</string>
     <string name="settings_start_date_tooltip_message">O aplicativo ira buscar os agendamentos do google agenda a partir da data definida. Agendamentos anteriores a data nao serao importados.</string>
     <string name="settings_tooltip_button_description">Exibir ajuda da data inicial</string>
     <string name="settings_tooltip_close_button_description">Fechar ajuda</string>
@@ -88,4 +96,25 @@
     <string name="settings_cancel_button">Cancelar</string>
     <string name="settings_cancel_button_description">Cancelar alteracoes de configuracoes</string>
     <string name="settings_first_access_save_required">Primeiro acesso: grave as configuracoes para continuar.</string>
+
+    <string name="payments_total_service_label">Valor total do servico:</string>
+    <string name="payments_payment_title">Pagamento %1$d</string>
+    <string name="payments_method_label">Metodo *</string>
+    <string name="payments_value_total_checkbox">Valor total</string>
+    <string name="payments_value_label">Valor *</string>
+    <string name="payments_add_payment_button">+ Adicionar forma de pagamento</string>
+    <string name="payments_total_paid_label">Total pago:</string>
+    <string name="payments_totals_by_method_label">Totais por metodo:</string>
+    <string name="payments_loading_existing_composition">Carregando pagamentos do agendamento...</string>
+    <string name="payments_save_button">Gravar</string>
+    <string name="payments_save_button_saving">Salvando...</string>
+    <string name="payments_cancel_button">Cancelar</string>
+    <string name="payments_method_dinheiro">Dinheiro</string>
+    <string name="payments_method_pix">PIX</string>
+    <string name="payments_method_credito">Cr&#233;dito</string>
+    <string name="payments_method_debito">D&#233;bito</string>
+    <string name="payments_add_payment_description">Adicionar forma de pagamento</string>
+    <string name="payments_remove_payment_description_prefix">Remover pagamento</string>
+    <string name="payments_save_button_description">Salvar pagamentos</string>
+    <string name="payments_cancel_button_description">Cancelar edicao de pagamentos</string>
 </resources>

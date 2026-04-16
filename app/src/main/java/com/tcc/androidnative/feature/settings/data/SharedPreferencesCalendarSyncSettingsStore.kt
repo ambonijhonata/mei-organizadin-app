@@ -36,14 +36,20 @@ class SharedPreferencesCalendarSyncSettingsStore internal constructor(
         return CalendarSyncSettings(
             useStartDateFilter = prefs.getBoolean(scopedKey(KEY_USE_START_DATE_FILTER), false),
             startDate = storedDate ?: defaultDate,
+            considerPaidAppointmentsOnlyInReports = prefs.getBoolean(scopedKey(KEY_PAID_APPOINTMENTS_ONLY_REPORTS), false),
             initialSetupCompleted = prefs.getBoolean(scopedKey(KEY_INITIAL_SETUP_COMPLETED), false)
         )
     }
 
-    override fun saveSettings(useStartDateFilter: Boolean, startDate: LocalDate) {
+    override fun saveSettings(
+        useStartDateFilter: Boolean,
+        startDate: LocalDate,
+        considerPaidAppointmentsOnlyInReports: Boolean
+    ) {
         prefs.edit()
             .putBoolean(scopedKey(KEY_USE_START_DATE_FILTER), useStartDateFilter)
             .putString(scopedKey(KEY_START_DATE_ISO), DateFormats.toApiDate(startDate))
+            .putBoolean(scopedKey(KEY_PAID_APPOINTMENTS_ONLY_REPORTS), considerPaidAppointmentsOnlyInReports)
             .putBoolean(scopedKey(KEY_INITIAL_SETUP_COMPLETED), true)
             .apply()
     }
@@ -60,6 +66,7 @@ class SharedPreferencesCalendarSyncSettingsStore internal constructor(
         const val FILE_NAME = "calendar_sync_settings"
         const val KEY_USE_START_DATE_FILTER = "use_start_date_filter"
         const val KEY_START_DATE_ISO = "start_date_iso"
+        const val KEY_PAID_APPOINTMENTS_ONLY_REPORTS = "paid_appointments_only_reports"
         const val KEY_INITIAL_SETUP_COMPLETED = "initial_setup_completed"
         const val ANONYMOUS_SCOPE = "anonymous"
     }

@@ -19,12 +19,16 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarHomeViewModelTest {
@@ -142,6 +146,44 @@ class CalendarHomeViewModelTest {
     }
 
     @Test
+    fun `transient unauthorized first load should recover after refresh`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val fakeRepo = FakeCalendarRepository(
+            eventResultsByDate = mutableMapOf(
+                today to mutableListOf(
+                    FakeCalendarRepository.EventDayResult.Failure(unauthorizedHttpException()),
+                    FakeCalendarRepository.EventDayResult.Success(
+                        listOf(
+                            CalendarEventModel(
+                                id = 42L,
+                                title = "Recuperado",
+                                eventStart = today.atTime(11, 0).toInstant(ZoneOffset.UTC),
+                                eventEnd = null,
+                                identified = true,
+                                serviceDescription = "Servico",
+                                serviceValue = BigDecimal("75.00")
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        val viewModel = createViewModel(fakeRepo)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.errorMessage)
+        assertTrue(viewModel.uiState.value.items.isEmpty())
+
+        viewModel.refreshSelectedDate()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.items.isEmpty())
+        assertEquals("Recuperado", viewModel.uiState.value.items.first().title)
+        assertNull(viewModel.uiState.value.errorMessage)
+        assertTrue(fakeRepo.requestedDates.count { it == today } >= 2)
+    }
+
+    @Test
     fun `date selected directly should trigger day reload pipeline`() = runTest {
         val fakeRepo = FakeCalendarRepository(
             syncOutcomes = mutableListOf(
@@ -235,6 +277,54 @@ class CalendarHomeViewModelTest {
         assertTrue(item.slotLabel.endsWith(":30"))
         assertEquals("1 hora", item.durationLabel)
         assertEquals("Servico teste", item.serviceDescription)
+    }
+
+    @Test
+    fun `mapped item should include payment status`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val fakeRepo = FakeCalendarRepository(
+            eventsByDate = mutableMapOf(
+                today to listOf(
+                    CalendarEventModel(
+                        id = 20L,
+                        title = "Pago",
+                        eventStart = Instant.parse("2026-04-04T13:00:00Z"),
+                        eventEnd = null,
+                        identified = true,
+                        serviceDescription = "Servico",
+                        serviceValue = BigDecimal("100.00"),
+                        paymentSummary = com.tcc.androidnative.feature.calendar.data.CalendarPaymentSummary(
+                            paidAmount = BigDecimal("100.00"),
+                            totalAmount = BigDecimal("100.00"),
+                            status = com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus.PAID
+                        )
+                    )
+                )
+            )
+        )
+
+        val viewModel = createViewModel(fakeRepo)
+        advanceUntilIdle()
+
+        assertEquals(
+            com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus.PAID,
+            viewModel.uiState.value.items.single().paymentStatus
+        )
+    }
+
+    @Test
+    fun `refreshSelectedDate should reload the current day immediately`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val fakeRepo = FakeCalendarRepository()
+        val viewModel = createViewModel(fakeRepo)
+        advanceUntilIdle()
+
+        val initialCalls = fakeRepo.requestedDates.count { it == today }
+        viewModel.refreshSelectedDate()
+        advanceUntilIdle()
+
+        val refreshedCalls = fakeRepo.requestedDates.count { it == today }
+        assertTrue(refreshedCalls > initialCalls)
     }
 
     @Test
@@ -403,6 +493,7 @@ private class FakeCalendarRepository(
         CalendarSyncOutcome.Success(CalendarSyncResult(created = 0, updated = 0, deleted = 0))
     ),
     private val eventsByDate: MutableMap<LocalDate, List<CalendarEventModel>> = mutableMapOf(),
+    private val eventResultsByDate: MutableMap<LocalDate, MutableList<EventDayResult>> = mutableMapOf(),
     private val eventErrorsByDate: MutableMap<LocalDate, Throwable> = mutableMapOf(),
     private val eventDelayByDateMs: MutableMap<LocalDate, Long> = mutableMapOf(),
     private val syncDelayMs: Long = 0L,
@@ -440,6 +531,14 @@ private class FakeCalendarRepository(
         requestedDates += date
         callTrace += "events:$date"
         eventDelayByDateMs[date]?.let { delay(it) }
+        eventResultsByDate[date]?.let { queue ->
+            if (queue.isNotEmpty()) {
+                return when (val result = queue.removeAt(0)) {
+                    is EventDayResult.Success -> result.items
+                    is EventDayResult.Failure -> throw result.error
+                }
+            }
+        }
         eventErrorsByDate[date]?.let { throw it }
         return eventsByDate[date] ?: listOf(
             CalendarEventModel(
@@ -453,6 +552,17 @@ private class FakeCalendarRepository(
             )
         )
     }
+
+    sealed interface EventDayResult {
+        data class Success(val items: List<CalendarEventModel>) : EventDayResult
+        data class Failure(val error: Throwable) : EventDayResult
+    }
+}
+
+private fun unauthorizedHttpException(): HttpException {
+    val body = """{"code":"UNAUTHORIZED","message":"Authentication required"}"""
+        .toResponseBody("application/json".toMediaType())
+    return HttpException(Response.error<CalendarEventModel>(401, body))
 }
 
 private class FakeCalendarSyncSettingsStore(
@@ -464,10 +574,15 @@ private class FakeCalendarSyncSettingsStore(
 ) : CalendarSyncSettingsStore {
     override fun getSettings(): CalendarSyncSettings = settings
 
-    override fun saveSettings(useStartDateFilter: Boolean, startDate: LocalDate) {
+    override fun saveSettings(
+        useStartDateFilter: Boolean,
+        startDate: LocalDate,
+        considerPaidAppointmentsOnlyInReports: Boolean
+    ) {
         settings = settings.copy(
             useStartDateFilter = useStartDateFilter,
             startDate = startDate,
+            considerPaidAppointmentsOnlyInReports = considerPaidAppointmentsOnlyInReports,
             initialSetupCompleted = true
         )
     }

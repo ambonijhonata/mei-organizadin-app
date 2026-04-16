@@ -38,19 +38,38 @@ data class RevenueReportModel(
     val syncMetadata: SyncMetadataModel
 )
 
+enum class ReportPaymentScope {
+    ALL,
+    PAID_ONLY
+}
+
 interface ReportsRepository {
-    suspend fun cashFlow(startDate: LocalDate, endDate: LocalDate): CashFlowReportModel
-    suspend fun revenue(startDate: LocalDate, endDate: LocalDate): RevenueReportModel
+    suspend fun cashFlow(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        paymentScope: ReportPaymentScope = ReportPaymentScope.ALL
+    ): CashFlowReportModel
+
+    suspend fun revenue(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        paymentScope: ReportPaymentScope = ReportPaymentScope.ALL
+    ): RevenueReportModel
 }
 
 @Singleton
 class ReportsRepositoryImpl @Inject constructor(
     private val api: ReportApi
 ) : ReportsRepository {
-    override suspend fun cashFlow(startDate: LocalDate, endDate: LocalDate): CashFlowReportModel {
+    override suspend fun cashFlow(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        paymentScope: ReportPaymentScope
+    ): CashFlowReportModel {
         val response = api.cashFlow(
             startDate = DateFormats.toApiDate(startDate),
-            endDate = DateFormats.toApiDate(endDate)
+            endDate = DateFormats.toApiDate(endDate),
+            paymentScope = paymentScope.name
         )
         return CashFlowReportModel(
             entries = response.entries.map { entry ->
@@ -72,10 +91,15 @@ class ReportsRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun revenue(startDate: LocalDate, endDate: LocalDate): RevenueReportModel {
+    override suspend fun revenue(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        paymentScope: ReportPaymentScope
+    ): RevenueReportModel {
         val response = api.revenue(
             startDate = DateFormats.toApiDate(startDate),
-            endDate = DateFormats.toApiDate(endDate)
+            endDate = DateFormats.toApiDate(endDate),
+            paymentScope = paymentScope.name
         )
         return RevenueReportModel(
             totalRevenue = response.totalRevenue,
@@ -89,4 +113,3 @@ class ReportsRepositoryImpl @Inject constructor(
         )
     }
 }
-

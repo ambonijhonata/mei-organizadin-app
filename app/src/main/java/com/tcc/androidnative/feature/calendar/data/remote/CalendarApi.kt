@@ -1,10 +1,15 @@
 package com.tcc.androidnative.feature.calendar.data.remote
 
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsResponseDto
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsUpsertRequestDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarEventDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.IntegrationStatusDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.SpringPageDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.SyncResponseDto
 import retrofit2.http.GET
+import retrofit2.http.PATCH
+import retrofit2.http.Body
+import retrofit2.http.Path
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -24,4 +29,15 @@ interface CalendarApi {
 
     @GET("/api/calendar/status")
     suspend fun status(): IntegrationStatusDto
+
+    @GET("/api/calendar/events/{eventId}/payments")
+    suspend fun getPayments(
+        @Path("eventId") eventId: Long
+    ): CalendarPaymentsResponseDto
+
+    @PATCH("/api/calendar/events/{eventId}/payments")
+    suspend fun upsertPayments(
+        @Path("eventId") eventId: Long,
+        @Body body: CalendarPaymentsUpsertRequestDto
+    ): CalendarPaymentsResponseDto
 }

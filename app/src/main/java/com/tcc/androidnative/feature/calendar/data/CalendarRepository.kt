@@ -2,6 +2,7 @@ package com.tcc.androidnative.feature.calendar.data
 
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.calendar.data.remote.CalendarApi
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentStatusDto
 import java.math.BigDecimal
 import java.io.IOException
 import java.time.Instant
@@ -42,6 +43,18 @@ data class CalendarIntegrationStatus(
     }
 }
 
+enum class CalendarPaymentStatus {
+    NONE,
+    PARTIAL,
+    PAID
+}
+
+data class CalendarPaymentSummary(
+    val paidAmount: BigDecimal,
+    val totalAmount: BigDecimal,
+    val status: CalendarPaymentStatus
+)
+
 data class CalendarEventModel(
     val id: Long,
     val title: String,
@@ -49,7 +62,8 @@ data class CalendarEventModel(
     val eventEnd: Instant?,
     val identified: Boolean,
     val serviceDescription: String?,
-    val serviceValue: BigDecimal?
+    val serviceValue: BigDecimal?,
+    val paymentSummary: CalendarPaymentSummary? = null
 )
 
 interface CalendarRepository {
@@ -120,8 +134,23 @@ class CalendarRepositoryImpl @Inject constructor(
                 eventEnd = it.eventEnd?.let(DateFormats::parseInstant),
                 identified = it.identified,
                 serviceDescription = it.serviceDescription,
-                serviceValue = it.serviceValue
+                serviceValue = it.serviceValue,
+                paymentSummary = it.paymentSummary?.let { summary ->
+                    CalendarPaymentSummary(
+                        paidAmount = summary.paidAmount,
+                        totalAmount = summary.totalAmount,
+                        status = summary.status.toDomainStatus()
+                    )
+                }
             )
+        }
+    }
+
+    private fun CalendarPaymentStatusDto.toDomainStatus(): CalendarPaymentStatus {
+        return when (this) {
+            CalendarPaymentStatusDto.NONE -> CalendarPaymentStatus.NONE
+            CalendarPaymentStatusDto.PARTIAL -> CalendarPaymentStatus.PARTIAL
+            CalendarPaymentStatusDto.PAID -> CalendarPaymentStatus.PAID
         }
     }
 

@@ -43,6 +43,7 @@ Contract source:
 1. Baseline navigation:
    - Login, open Calendar Home, switch previous/next day.
    - Confirm selected date changes and list updates.
+   - Navigate to a previous day that contains events (e.g., `2026-04-11`) and confirm events render without forcing logout.
 2. Rapid day switching race:
    - Tap previous/next quickly 10+ times.
    - Confirm final rendered list matches the last selected date.

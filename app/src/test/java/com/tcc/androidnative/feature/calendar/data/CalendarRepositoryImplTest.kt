@@ -2,6 +2,12 @@ package com.tcc.androidnative.feature.calendar.data
 
 import com.tcc.androidnative.feature.calendar.data.remote.CalendarApi
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarEventDto
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentEntryResponseDto
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentStatusDto
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentSummaryDto
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsResponseDto
+import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsUpsertRequestDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.IntegrationStatusDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.SpringPageDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.SyncResponseDto
@@ -121,11 +127,54 @@ class CalendarRepositoryImplTest {
 
         assertNull(fakeApi.lastSyncStartDate)
     }
+
+    @Test
+    fun `eventsByDay should map payment summary status`() = runBlocking {
+        val repository = CalendarRepositoryImpl(
+            FakeCalendarApi(
+                events = listOf(
+                    CalendarEventDto(
+                        id = 1L,
+                        googleEventId = "g1",
+                        title = "Evento",
+                        eventStart = "2026-01-01T10:00:00Z",
+                        eventEnd = "2026-01-01T11:00:00Z",
+                        identified = true,
+                        serviceDescription = "Servico",
+                        serviceValue = BigDecimal("10.00"),
+                        paymentSummary = CalendarPaymentSummaryDto(
+                            paidAmount = BigDecimal("5.00"),
+                            totalAmount = BigDecimal("10.00"),
+                            status = CalendarPaymentStatusDto.PARTIAL
+                        )
+                    )
+                )
+            )
+        )
+
+        val events = repository.eventsByDay(LocalDate.of(2026, 1, 1))
+
+        assertEquals(1, events.size)
+        assertEquals(CalendarPaymentStatus.PARTIAL, events.single().paymentSummary?.status)
+        assertEquals(BigDecimal("5.00"), events.single().paymentSummary?.paidAmount)
+    }
 }
 
 private class FakeCalendarApi(
     private val syncResult: SyncResponseDto = SyncResponseDto(created = 0, updated = 0, deleted = 0),
     private val syncError: Throwable? = null,
+    private val events: List<CalendarEventDto> = listOf(
+        CalendarEventDto(
+            id = 1L,
+            googleEventId = "g1",
+            title = "Evento",
+            eventStart = "2026-01-01T10:00:00Z",
+            eventEnd = "2026-01-01T11:00:00Z",
+            identified = true,
+            serviceDescription = "Servico",
+            serviceValue = BigDecimal("10.00")
+        )
+    ),
     private val statusResult: IntegrationStatusDto = IntegrationStatusDto(
         status = "SYNCED",
         lastSyncAt = null,
@@ -148,18 +197,7 @@ private class FakeCalendarApi(
         size: Int
     ): SpringPageDto<CalendarEventDto> {
         return SpringPageDto(
-            content = listOf(
-                CalendarEventDto(
-                    id = 1L,
-                    googleEventId = "g1",
-                    title = "Evento",
-                    eventStart = "2026-01-01T10:00:00Z",
-                    eventEnd = "2026-01-01T11:00:00Z",
-                    identified = true,
-                    serviceDescription = "Servico",
-                    serviceValue = BigDecimal("10.00")
-                )
-            ),
+            content = events,
             totalPages = 1,
             number = page,
             size = size,
@@ -168,6 +206,31 @@ private class FakeCalendarApi(
     }
 
     override suspend fun status(): IntegrationStatusDto = statusResult
+
+    override suspend fun getPayments(eventId: Long): CalendarPaymentsResponseDto {
+        return CalendarPaymentsResponseDto(
+            eventId = eventId,
+            payments = emptyList()
+        )
+    }
+
+    override suspend fun upsertPayments(
+        eventId: Long,
+        body: CalendarPaymentsUpsertRequestDto
+    ): CalendarPaymentsResponseDto {
+        return CalendarPaymentsResponseDto(
+            eventId = eventId,
+            payments = body.payments.mapIndexed { index, payment ->
+                CalendarPaymentEntryResponseDto(
+                    id = index.toLong() + 1L,
+                    paymentType = payment.paymentType,
+                    amount = payment.amount,
+                    valueTotal = payment.valueTotal,
+                    paidAt = "2026-01-01T10:00:00Z"
+                )
+            }
+        )
+    }
 }
 
 private fun httpError(code: Int, body: String): HttpException {

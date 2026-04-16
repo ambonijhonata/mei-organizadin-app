@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarSyncOutcome
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 data class CalendarAgendaItem(
     val eventId: Long,
@@ -34,7 +37,9 @@ data class CalendarAgendaItem(
     val timeLabel: String,
     val title: String,
     val serviceDescription: String?,
-    val durationLabel: String
+    val durationLabel: String,
+    val serviceTotalValue: BigDecimal = BigDecimal.ZERO,
+    val paymentStatus: CalendarPaymentStatus = CalendarPaymentStatus.NONE
 )
 
 data class CalendarHomeUiState(
@@ -103,20 +108,7 @@ class CalendarHomeViewModel @Inject constructor(
         logInfo("calendar_pipeline_start requestId=$requestId date=$selectedDate")
 
         try {
-            val items = calendarRepository.eventsByDay(selectedDate)
-                    .sortedBy { it.eventStart }
-                    .map { event ->
-                        CalendarAgendaItem(
-                            eventId = event.id,
-                            eventStart = event.eventStart,
-                            eventEnd = event.eventEnd,
-                            slotLabel = formatSlotLabel(event.eventStart),
-                            timeLabel = formatEventTimeLabel(event.eventStart),
-                            title = event.title,
-                            serviceDescription = event.serviceDescription,
-                            durationLabel = formatDurationLabel(event.eventStart, event.eventEnd)
-                        )
-                    }
+            val items = mapAgendaItems(calendarRepository.eventsByDay(selectedDate))
             updateStateIfLatest(requestId) {
                 it.copy(
                     isLoading = false,
@@ -132,6 +124,33 @@ class CalendarHomeViewModel @Inject constructor(
         } catch (error: CancellationException) {
             logInfo("calendar_pipeline_cancelled requestId=$requestId date=$selectedDate")
             throw error
+        } catch (error: HttpException) {
+            if (error.code() == HTTP_UNAUTHORIZED) {
+                handleTransientAuthFailure(requestId, selectedDate)
+                logInfo(
+                    "calendar_pipeline_transient_unauthorized requestId=$requestId date=$selectedDate"
+                )
+                return
+            }
+            updateStateIfLatest(requestId) {
+                it.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    items = emptyList(),
+                    selectedDate = selectedDate,
+                    errorMessage = TransientMessage(
+                        textResId = R.string.feedback_calendar_load_error,
+                        tone = MessageTone.ERROR,
+                        durationMillis = 0L
+                    ),
+                    syncWarningMessage = null,
+                    isReauthRequired = false
+                )
+            }
+            logError(
+                "calendar_pipeline_list_error requestId=$requestId date=$selectedDate message=${error.message}",
+                error
+            )
         } catch (error: Throwable) {
             updateStateIfLatest(requestId) {
                 it.copy(
@@ -214,20 +233,7 @@ class CalendarHomeViewModel @Inject constructor(
         val reloadStart = System.nanoTime()
 
         try {
-            val items = calendarRepository.eventsByDay(selectedDate)
-                .sortedBy { it.eventStart }
-                .map { event ->
-                    CalendarAgendaItem(
-                        eventId = event.id,
-                        eventStart = event.eventStart,
-                        eventEnd = event.eventEnd,
-                        slotLabel = formatSlotLabel(event.eventStart),
-                        timeLabel = formatEventTimeLabel(event.eventStart),
-                        title = event.title,
-                        serviceDescription = event.serviceDescription,
-                        durationLabel = formatDurationLabel(event.eventStart, event.eventEnd)
-                    )
-                }
+            val items = mapAgendaItems(calendarRepository.eventsByDay(selectedDate))
             updateStateIfLatest(requestId) {
                 it.copy(
                     isLoading = false,
@@ -245,6 +251,25 @@ class CalendarHomeViewModel @Inject constructor(
         } catch (error: CancellationException) {
             logInfo("calendar_background_sync_reload_cancelled requestId=$requestId date=$selectedDate")
             throw error
+        } catch (error: HttpException) {
+            if (error.code() == HTTP_UNAUTHORIZED) {
+                handleTransientAuthFailure(requestId, selectedDate)
+                logInfo(
+                    "calendar_background_sync_reload_transient_unauthorized requestId=$requestId date=$selectedDate"
+                )
+                return
+            }
+            _uiState.update { state ->
+                state.copy(
+                    isRefreshing = false,
+                    syncWarningMessage = syncWarningMessage,
+                    isReauthRequired = reauthRequired
+                )
+            }
+            logError(
+                "calendar_background_sync_reload_error requestId=$requestId date=$selectedDate message=${error.message}",
+                error
+            )
         } catch (error: Throwable) {
             _uiState.update { state ->
                 state.copy(
@@ -258,6 +283,89 @@ class CalendarHomeViewModel @Inject constructor(
                 error
             )
         }
+    }
+
+    fun refreshSelectedDate() {
+        viewModelScope.launch {
+            refreshSelectedDateInternal()
+        }
+    }
+
+    private suspend fun refreshSelectedDateInternal() {
+        val selectedDate = selectedDateFlow.value
+        val requestId = nextRequestId()
+        latestRequestId = requestId
+        updateStateIfLatest(requestId) {
+            it.copy(
+                isRefreshing = true,
+                errorMessage = null
+            )
+        }
+
+        try {
+            val items = mapAgendaItems(calendarRepository.eventsByDay(selectedDate))
+            updateStateIfLatest(requestId) {
+                it.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    items = items,
+                    selectedDate = selectedDate,
+                    errorMessage = null
+                )
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: HttpException) {
+            if (error.code() == HTTP_UNAUTHORIZED) {
+                handleTransientAuthFailure(requestId, selectedDate)
+                logInfo(
+                    "calendar_refresh_transient_unauthorized requestId=$requestId date=$selectedDate"
+                )
+                return
+            }
+            updateStateIfLatest(requestId) {
+                it.copy(
+                    isRefreshing = false,
+                    errorMessage = TransientMessage(
+                        textResId = R.string.feedback_calendar_load_error,
+                        tone = MessageTone.ERROR,
+                        durationMillis = 0L
+                    )
+                )
+            }
+        } catch (error: Throwable) {
+            updateStateIfLatest(requestId) {
+                it.copy(
+                    isRefreshing = false,
+                    errorMessage = TransientMessage(
+                        textResId = R.string.feedback_calendar_load_error,
+                        tone = MessageTone.ERROR,
+                        durationMillis = 0L
+                    )
+                )
+            }
+        }
+    }
+
+    private fun mapAgendaItems(
+        events: List<com.tcc.androidnative.feature.calendar.data.CalendarEventModel>
+    ): List<CalendarAgendaItem> {
+        return events
+            .sortedBy { it.eventStart }
+            .map { event ->
+                CalendarAgendaItem(
+                    eventId = event.id,
+                    eventStart = event.eventStart,
+                    eventEnd = event.eventEnd,
+                    slotLabel = formatSlotLabel(event.eventStart),
+                    timeLabel = formatEventTimeLabel(event.eventStart),
+                    title = event.title,
+                    serviceDescription = event.serviceDescription,
+                    durationLabel = formatDurationLabel(event.eventStart, event.eventEnd),
+                    serviceTotalValue = event.serviceValue ?: BigDecimal.ZERO,
+                    paymentStatus = event.paymentSummary?.status ?: CalendarPaymentStatus.NONE
+                )
+            }
     }
 
     private fun hasDelta(result: com.tcc.androidnative.feature.calendar.data.CalendarSyncResult): Boolean {
@@ -314,6 +422,19 @@ class CalendarHomeViewModel @Inject constructor(
             return
         }
         _uiState.update(reducer)
+    }
+
+    private fun handleTransientAuthFailure(requestId: Long, selectedDate: LocalDate) {
+        updateStateIfLatest(requestId) { state ->
+            state.copy(
+                isLoading = false,
+                isRefreshing = false,
+                selectedDate = selectedDate,
+                errorMessage = null,
+                syncWarningMessage = null,
+                isReauthRequired = false
+            )
+        }
     }
 
     private fun nextRequestId(): Long {
@@ -374,9 +495,10 @@ class CalendarHomeViewModel @Inject constructor(
         return "${hours}h ${remainingMinutes}min"
     }
 
-    private companion object {
+    companion object {
         const val TAG = "CalendarHomeViewModel"
         const val UNKNOWN_DURATION_LABEL = "Duracao nao informada"
+        const val HTTP_UNAUTHORIZED = 401
         val BACKGROUND_SYNC_FRESHNESS_WINDOW: Duration = Duration.ofMinutes(1)
     }
 }

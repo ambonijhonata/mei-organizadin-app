@@ -1,6 +1,7 @@
 package com.tcc.androidnative.feature.calendar.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -57,8 +59,11 @@ import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.ui.theme.BluePrimary
+import com.tcc.androidnative.ui.theme.GreenSuccess
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -73,7 +78,8 @@ private val localePtBr = Locale("pt", "BR")
 @Composable
 fun CalendarHomeScreen(
     viewModel: CalendarHomeViewModel = hiltViewModel(),
-    onReauthenticateRequested: () -> Unit = {}
+    onReauthenticateRequested: () -> Unit = {},
+    onAppointmentClick: (CalendarAgendaItem) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -82,7 +88,8 @@ fun CalendarHomeScreen(
         onPreviousDay = viewModel::onPreviousDay,
         onNextDay = viewModel::onNextDay,
         onDateSelected = viewModel::onDateSelected,
-        onReauthenticateRequested = onReauthenticateRequested
+        onReauthenticateRequested = onReauthenticateRequested,
+        onAppointmentClick = onAppointmentClick
     )
 }
 
@@ -94,6 +101,7 @@ internal fun CalendarHomeContent(
     onNextDay: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onReauthenticateRequested: () -> Unit,
+    onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
     listState: LazyListState? = null,
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
     currentDateProvider: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
@@ -302,6 +310,7 @@ internal fun CalendarHomeContent(
                         } else {
                             AppointmentCard(
                                 item = item,
+                                onClick = { onAppointmentClick(item) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -319,11 +328,35 @@ internal fun CalendarHomeContent(
 }
 
 @Composable
-private fun AppointmentCard(item: CalendarAgendaItem, modifier: Modifier = Modifier) {
+private fun AppointmentCard(
+    item: CalendarAgendaItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val appointmentColors = when (item.paymentStatus) {
+        CalendarPaymentStatus.NONE -> AppointmentColors(
+            border = BluePrimary.copy(alpha = 0.25f),
+            background = BluePrimary.copy(alpha = 0.10f),
+            accent = BluePrimary
+        )
+        CalendarPaymentStatus.PARTIAL -> AppointmentColors(
+            border = Color(0xFFF0C553).copy(alpha = 0.35f),
+            background = Color(0xFFFFF7DA),
+            accent = Color(0xFFB7791F)
+        )
+        CalendarPaymentStatus.PAID -> AppointmentColors(
+            border = GreenSuccess.copy(alpha = 0.25f),
+            background = GreenSuccess.copy(alpha = 0.10f),
+            accent = GreenSuccess
+        )
+    }
+
     Card(
-        modifier = modifier,
-        border = BorderStroke(1.dp, BluePrimary.copy(alpha = 0.25f)),
-        colors = CardDefaults.cardColors(containerColor = BluePrimary.copy(alpha = 0.10f))
+        modifier = modifier
+            .testTag("appointment_card_${item.eventId}")
+            .clickable(onClick = onClick),
+        border = BorderStroke(1.dp, appointmentColors.border),
+        colors = CardDefaults.cardColors(containerColor = appointmentColors.background)
     ) {
         Row(
             modifier = Modifier
@@ -333,7 +366,7 @@ private fun AppointmentCard(item: CalendarAgendaItem, modifier: Modifier = Modif
         ) {
             Text(
                 text = item.timeLabel,
-                color = BluePrimary,
+                color = appointmentColors.accent,
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -383,6 +416,12 @@ private fun AppointmentCard(item: CalendarAgendaItem, modifier: Modifier = Modif
         }
     }
 }
+
+private data class AppointmentColors(
+    val border: Color,
+    val background: Color,
+    val accent: Color
+)
 
 private fun buildHalfHourSlots(): List<LocalTime> {
     return (0 until 48).map { halfHourIndex ->

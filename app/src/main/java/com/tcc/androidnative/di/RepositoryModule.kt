@@ -10,6 +10,8 @@ import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarRepositoryImpl
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
 import com.tcc.androidnative.feature.clients.data.ClientsRepositoryImpl
+import com.tcc.androidnative.feature.payments.data.PaymentsRepository
+import com.tcc.androidnative.feature.payments.data.PaymentsRepositoryImpl
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.ReportsRepositoryImpl
 import com.tcc.androidnative.feature.services.data.ServicesRepository
@@ -40,6 +42,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCalendarRepository(impl: CalendarRepositoryImpl): CalendarRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPaymentsRepository(impl: PaymentsRepositoryImpl): PaymentsRepository
 
     @Binds
     @Singleton

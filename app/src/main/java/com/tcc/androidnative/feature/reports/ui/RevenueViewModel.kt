@@ -8,8 +8,10 @@ import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.RevenueReportModel
+import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -38,7 +40,8 @@ data class RevenueUiState(
 
 @HiltViewModel
 class RevenueViewModel @Inject constructor(
-    private val repository: ReportsRepository
+    private val repository: ReportsRepository,
+    private val calendarSyncSettingsStore: CalendarSyncSettingsStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RevenueUiState())
     val uiState: StateFlow<RevenueUiState> = _uiState.asStateFlow()
@@ -71,7 +74,18 @@ class RevenueViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            runCatching { repository.revenue(startDate = start, endDate = end) }
+            val paymentScope = if (calendarSyncSettingsStore.getSettings().considerPaidAppointmentsOnlyInReports) {
+                ReportPaymentScope.PAID_ONLY
+            } else {
+                ReportPaymentScope.ALL
+            }
+            runCatching {
+                repository.revenue(
+                    startDate = start,
+                    endDate = end,
+                    paymentScope = paymentScope
+                )
+            }
                 .onSuccess { report ->
                     _uiState.update {
                         it.copy(

@@ -9,12 +9,18 @@ import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tcc.androidnative.feature.auth.ui.LoginRoute
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeScreen
+import com.tcc.androidnative.feature.calendar.ui.CalendarHomeViewModel
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.clients.ui.ClientsScreen
+import com.tcc.androidnative.feature.payments.ui.PaymentsScreen
 import com.tcc.androidnative.feature.reports.ui.CashFlowScreen
 import com.tcc.androidnative.feature.reports.ui.RevenueScreen
 import com.tcc.androidnative.feature.services.ui.ServicesScreen
@@ -25,10 +31,14 @@ import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 fun AppNavHost() {
     val sessionViewModel: SessionViewModel = hiltViewModel()
     val initialSetupViewModel: InitialSetupViewModel = hiltViewModel()
+    val calendarHomeViewModel: CalendarHomeViewModel = hiltViewModel()
     val session = sessionViewModel.sessionState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
     val startDestination = resolveStartDestination(hasSession = session.value != null)
     var requiresInitialSetup by rememberSaveable { mutableStateOf(false) }
+    var pendingCalendarRefresh by rememberSaveable { mutableStateOf(false) }
 
     fun navigateTo(route: String) {
         navController.navigate(route) {
@@ -44,9 +54,19 @@ fun AppNavHost() {
         val currentRoute = navController.currentDestination?.route
         if (session.value == null && currentRoute != AppDestination.Login.route) {
             requiresInitialSetup = false
+            pendingCalendarRefresh = false
             navController.navigate(AppDestination.Login.route) {
                 launchSingleTop = true
             }
+        } else if (session.value != null) {
+            pendingCalendarRefresh = true
+        }
+    }
+
+    LaunchedEffect(currentRoute, pendingCalendarRefresh) {
+        if (shouldRefreshCalendarAfterAuth(currentRoute, pendingCalendarRefresh)) {
+            calendarHomeViewModel.refreshSelectedDate()
+            pendingCalendarRefresh = false
         }
     }
 
@@ -72,7 +92,7 @@ fun AppNavHost() {
             )
         }
         composable(AppDestination.Home.route) {
-            AppShellScaffold(
+                AppShellScaffold(
                 currentRoute = AppDestination.Home.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
@@ -81,7 +101,19 @@ fun AppNavHost() {
                 topBarIconColor = DrawerMenuIconBlue
             ) {
                 CalendarHomeScreen(
-                    onReauthenticateRequested = sessionViewModel::logout
+                    viewModel = calendarHomeViewModel,
+                    onReauthenticateRequested = sessionViewModel::logout,
+                    onAppointmentClick = { item ->
+                        navController.navigate(
+                            AppDestination.Payments.createRoute(
+                                eventId = item.eventId,
+                                totalServiceValue = item.serviceTotalValue,
+                                preloadPayments = item.paymentStatus != CalendarPaymentStatus.NONE
+                            )
+                        ) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }
@@ -136,13 +168,46 @@ fun AppNavHost() {
                 isNavigationLocked = requiresInitialSetup
             ) {
                 SettingsScreen(
-                    onInitialSetupCompleted = {
+                    onSaveSuccess = {
                         requiresInitialSetup = false
-                        navigateTo(AppDestination.Home.route)
+                        navigateTo(resolveSettingsSaveDestination())
                     },
                     onNavigateHome = {
                         navigateTo(AppDestination.Home.route)
                     }
+                )
+            }
+        }
+        composable(
+            route = AppDestination.Payments.route,
+            arguments = listOf(
+                navArgument(AppDestination.Payments.ARG_EVENT_ID) {
+                    type = NavType.LongType
+                },
+                navArgument(AppDestination.Payments.ARG_TOTAL_SERVICE_VALUE) {
+                    type = NavType.StringType
+                    defaultValue = "0"
+                },
+                navArgument(AppDestination.Payments.ARG_PRELOAD_PAYMENTS) {
+                    type = NavType.BoolType
+                    defaultValue = true
+                }
+            )
+        ) {
+            AppShellScaffold(
+                currentRoute = AppDestination.Home.route,
+                onNavigate = ::navigateTo,
+                onLogout = sessionViewModel::logout,
+                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitleColor = DrawerMenuIconBlue,
+                topBarIconColor = DrawerMenuIconBlue
+            ) {
+                PaymentsScreen(
+                    onSaveSuccess = {
+                        calendarHomeViewModel.refreshSelectedDate()
+                        navController.popBackStack()
+                    },
+                    onCancelClick = { navController.popBackStack() }
                 )
             }
         }
@@ -155,4 +220,15 @@ internal fun resolveStartDestination(hasSession: Boolean): String {
 
 internal fun resolvePostLoginDestination(requiresInitialSetup: Boolean): String {
     return if (requiresInitialSetup) AppDestination.Settings.route else AppDestination.Home.route
+}
+
+internal fun resolveSettingsSaveDestination(): String {
+    return AppDestination.Home.route
+}
+
+internal fun shouldRefreshCalendarAfterAuth(
+    currentRoute: String?,
+    pendingCalendarRefresh: Boolean
+): Boolean {
+    return pendingCalendarRefresh && currentRoute == AppDestination.Home.route
 }

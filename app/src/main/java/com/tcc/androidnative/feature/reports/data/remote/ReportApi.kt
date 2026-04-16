@@ -10,13 +10,14 @@ interface ReportApi {
     @GET("/api/reports/cashflow")
     suspend fun cashFlow(
         @Query("startDate") startDate: String,
-        @Query("endDate") endDate: String
+        @Query("endDate") endDate: String,
+        @Query("paymentScope") paymentScope: String
     ): CashFlowReportDto
 
     @GET("/api/reports/revenue")
     suspend fun revenue(
         @Query("startDate") startDate: String,
-        @Query("endDate") endDate: String
+        @Query("endDate") endDate: String,
+        @Query("paymentScope") paymentScope: String
     ): RevenueReportDto
 }
-
