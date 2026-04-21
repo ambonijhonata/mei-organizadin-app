@@ -12,13 +12,18 @@ object CurrencyFormats {
         return formatter.format(value)
     }
 
+    fun formatInput(value: String): String {
+        val digits = value.filter(Char::isDigit)
+        if (digits.isEmpty()) return ""
+
+        val normalizedDigits = digits.trimStart('0').ifEmpty { "0" }
+        val decimalValue = normalizedDigits.toBigDecimal().movePointLeft(2)
+        return formatForUi(decimalValue)
+    }
+
     fun parseUiValue(input: String): BigDecimal {
-        val normalized = input
-            .replace("R$", "")
-            .replace(".", "")
-            .replace(",", ".")
-            .trim()
-        return normalized.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val digits = input.filter(Char::isDigit)
+        if (digits.isEmpty()) return BigDecimal.ZERO
+        return digits.toBigDecimal().movePointLeft(2)
     }
 }
-

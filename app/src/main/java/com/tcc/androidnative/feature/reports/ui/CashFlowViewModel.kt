@@ -8,6 +8,7 @@ import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.core.util.InputMasks
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
 import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
@@ -51,11 +52,11 @@ class CashFlowViewModel @Inject constructor(
     val uiState: StateFlow<CashFlowUiState> = _uiState.asStateFlow()
 
     fun onStartDateChange(value: String) {
-        _uiState.update { it.copy(startDateInput = value) }
+        _uiState.update { it.copy(startDateInput = InputMasks.formatBirthDateInput(value)) }
     }
 
     fun onEndDateChange(value: String) {
-        _uiState.update { it.copy(endDateInput = value) }
+        _uiState.update { it.copy(endDateInput = InputMasks.formatBirthDateInput(value)) }
     }
 
     fun emitReport() {

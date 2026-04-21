@@ -41,7 +41,7 @@
     <string name="feedback_client_delete_success">Cliente excluido com sucesso</string>
     <string name="feedback_client_delete_link_warning">Cliente não foi excluido pois possui agendamento(s) registrado(s).</string>
     <string name="feedback_client_delete_error">Erro ao excluir cliente</string>
-    <string name="feedback_client_bulk_delete_success">%1$s excluidos com sucesso.</string>
+    <string name="feedback_client_bulk_delete_success">%1$s cliente(s) excluido(s) com sucesso.</string>
     <string name="feedback_client_bulk_delete_warning">%1$s clientes não foram excluidos pois possuem agendamentos registrados.</string>
     <string name="feedback_client_bulk_delete_error">Erro ao excluir clientes</string>
 
@@ -56,7 +56,7 @@
     <string name="feedback_service_delete_success">Servico excluido com sucesso</string>
     <string name="feedback_service_delete_link_warning">Serviço não foi excluido pois possui agendamentos registrados.</string>
     <string name="feedback_service_delete_error">Erro ao excluir servico</string>
-    <string name="feedback_service_bulk_delete_success">%1$s excluidos com sucesso.</string>
+    <string name="feedback_service_bulk_delete_success">%1$s servicos excluidos com sucesso.</string>
     <string name="feedback_service_bulk_delete_warning">%1$s servicos não foram excluidos pois possuem agendamentos registrados.</string>
     <string name="feedback_service_bulk_delete_error">Erro ao excluir servicos</string>
 
@@ -81,7 +81,7 @@
     <string name="settings_reports_section_title">Relatorios</string>
     <string name="settings_enable_start_date_checkbox">Usar data inicial na sincronizacao</string>
     <string name="settings_enable_start_date_checkbox_description">Habilitar filtro por data inicial</string>
-    <string name="settings_paid_appointments_checkbox">Considerar nos relatorios somente agendamentos pagos</string>
+    <string name="settings_paid_appointments_checkbox">Considerar nos relatórios somente agendamentos pagos.</string>
     <string name="settings_paid_appointments_checkbox_description">Habilitar filtro de relatorios por agendamentos pagos</string>
     <string name="settings_start_date_label">Sincronizar a partir de:</string>
     <string name="settings_start_date_field_label">Data inicial</string>
@@ -117,4 +117,5 @@
     <string name="payments_remove_payment_description_prefix">Remover pagamento</string>
     <string name="payments_save_button_description">Salvar pagamentos</string>
     <string name="payments_cancel_button_description">Cancelar edicao de pagamentos</string>
+    <string name="payments_value_required_feedback">Valor do pagamento é obrigatório</string>
 </resources>

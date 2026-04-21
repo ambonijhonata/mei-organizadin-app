@@ -94,6 +94,34 @@ class ReportsViewModelMessagesTest {
 
         assertEquals(ReportPaymentScope.ALL, repository.lastCashFlowScope)
     }
+
+    @Test
+    fun `cash flow should sanitize and mask date inputs`() = runTest {
+        val viewModel = CashFlowViewModel(
+            repository = FakeReportsRepository(),
+            calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+        )
+
+        viewModel.onStartDateChange("2a/6b-1_2@2#0$2%6")
+        viewModel.onEndDateChange("26122026123")
+
+        assertEquals("26/12/2026", viewModel.uiState.value.startDateInput)
+        assertEquals("26/12/2026", viewModel.uiState.value.endDateInput)
+    }
+
+    @Test
+    fun `revenue should sanitize and mask date inputs`() = runTest {
+        val viewModel = RevenueViewModel(
+            repository = FakeReportsRepository(),
+            calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+        )
+
+        viewModel.onStartDateChange("26-12-2026")
+        viewModel.onEndDateChange("2612202")
+
+        assertEquals("26/12/2026", viewModel.uiState.value.startDateInput)
+        assertEquals("26/12/202", viewModel.uiState.value.endDateInput)
+    }
 }
 
 private class FakeReportsRepository(

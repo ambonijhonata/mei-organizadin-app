@@ -17,7 +17,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,6 +35,7 @@ import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
+import java.time.LocalDate
 
 @Composable
 fun RevenueScreen(
@@ -92,17 +92,23 @@ private fun RevenueFormStep(
                 color = Color(0xFF374151)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
+            ReportDateInputField(
                 value = uiState.startDateInput,
+                label = "Data inicial (dd/MM/yyyy)",
+                fieldDescription = "Data inicial do filtro de faturamento",
+                calendarDescription = "Abrir calendario da data inicial do faturamento",
                 onValueChange = onStartDateChange,
-                label = { Text("Data inicial (dd/MM/yyyy)") },
+                onDateSelected = { date: LocalDate -> onStartDateChange(DateFormats.toUiDate(date)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
+            ReportDateInputField(
                 value = uiState.endDateInput,
+                label = "Data final (dd/MM/yyyy)",
+                fieldDescription = "Data final do filtro de faturamento",
+                calendarDescription = "Abrir calendario da data final do faturamento",
                 onValueChange = onEndDateChange,
-                label = { Text("Data final (dd/MM/yyyy)") },
+                onDateSelected = { date: LocalDate -> onEndDateChange(DateFormats.toUiDate(date)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(14.dp))

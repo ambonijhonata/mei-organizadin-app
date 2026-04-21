@@ -24,13 +24,13 @@ class PaymentsRepositoryImplTest {
                 PaymentEntryUiState(
                     id = 1L,
                     method = PaymentMethod.PIX,
-                    amountInput = "50.00",
+                    amountInput = "R$ 50,00",
                     isValueTotal = false
                 ),
                 PaymentEntryUiState(
                     id = 2L,
                     method = PaymentMethod.DEBITO,
-                    amountInput = "25.50",
+                    amountInput = "R$ 25,50",
                     isValueTotal = true
                 )
             )
@@ -66,7 +66,7 @@ class PaymentsRepositoryImplTest {
         assertEquals(1, loaded.size)
         assertEquals(7L, loaded.first().id)
         assertEquals(PaymentMethod.PIX, loaded.first().method)
-        assertEquals("50", loaded.first().amountInput)
+        assertEquals("R$\u00a050,00", loaded.first().amountInput)
         assertTrue(!loaded.first().isValueTotal)
     }
 }

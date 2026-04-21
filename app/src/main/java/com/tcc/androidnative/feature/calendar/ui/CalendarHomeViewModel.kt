@@ -499,6 +499,6 @@ class CalendarHomeViewModel @Inject constructor(
         const val TAG = "CalendarHomeViewModel"
         const val UNKNOWN_DURATION_LABEL = "Duracao nao informada"
         const val HTTP_UNAUTHORIZED = 401
-        val BACKGROUND_SYNC_FRESHNESS_WINDOW: Duration = Duration.ofMinutes(1)
+        val BACKGROUND_SYNC_FRESHNESS_WINDOW: Duration = Duration.ofSeconds(20)
     }
 }

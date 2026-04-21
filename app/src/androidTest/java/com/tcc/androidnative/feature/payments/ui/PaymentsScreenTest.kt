@@ -7,8 +7,10 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -122,9 +124,15 @@ class PaymentsScreenTest {
             }
         }
 
-        composeRule.onNodeWithTag("add_payment_button").performClick()
+        composeRule.onNodeWithTag("payment_amount_1").performTextInput("1000")
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("add_payment_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("payment_amount_2").performTextInput("1000")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("add_payment_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("payment_amount_3").performTextInput("1000")
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("add_payment_button").performClick()
         composeRule.waitForIdle()
@@ -165,9 +173,9 @@ class PaymentsScreenTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("payment_amount_1").performTextInput("80")
+        composeRule.onNodeWithTag("payment_amount_1").performTextInput("8000")
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("payment_amount_2").performTextInput("30")
+        composeRule.onNodeWithTag("payment_amount_2").performTextInput("3000")
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Total pago:").assertIsDisplayed()
@@ -187,13 +195,13 @@ class PaymentsScreenTest {
                             PaymentEntryUiState(
                                 id = 10L,
                                 method = PaymentMethod.PIX,
-                                amountInput = "50",
+                                amountInput = "R$ 50,00",
                                 isValueTotal = false
                             ),
                             PaymentEntryUiState(
                                 id = 11L,
                                 method = PaymentMethod.DEBITO,
-                                amountInput = "100",
+                                amountInput = "R$ 100,00",
                                 isValueTotal = false
                             )
                         )
@@ -214,5 +222,85 @@ class PaymentsScreenTest {
         composeRule.onNodeWithText("Débito").assertIsDisplayed()
         composeRule.onNodeWithText("R$\u00a050,00").assertIsDisplayed()
         composeRule.onNodeWithText("R$\u00a0100,00").assertIsDisplayed()
+    }
+
+    @Test
+    fun payments_should_format_value_input_with_brl_mask_without_drift() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                var state by mutableStateOf(
+                    PaymentsFormReducer.initial(
+                        eventId = 1L,
+                        totalServiceValue = BigDecimal("100.00")
+                    )
+                )
+                PaymentsContent(
+                    uiState = state,
+                    onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
+                    onRemovePaymentClick = { paymentId -> state = PaymentsFormReducer.removePayment(state, paymentId) },
+                    onPaymentMethodChanged = { paymentId, method ->
+                        state = PaymentsFormReducer.updateMethod(state, paymentId, method)
+                    },
+                    onPaymentAmountChanged = { paymentId, value ->
+                        state = PaymentsFormReducer.updateAmount(state, paymentId, value)
+                    },
+                    onPaymentValueTotalChanged = { paymentId, checked ->
+                        state = PaymentsFormReducer.updateValueTotal(state, paymentId, checked)
+                    },
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("payment_amount_1").performTextInput("5555")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("payment_amount_1").assertTextContains("55,55")
+    }
+
+    @Test
+    fun payments_should_hide_used_methods_and_restore_after_removal() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                var state by mutableStateOf(
+                    PaymentsFormReducer.initial(
+                        eventId = 1L,
+                        totalServiceValue = BigDecimal("100.00")
+                    )
+                )
+                PaymentsContent(
+                    uiState = state,
+                    onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
+                    onRemovePaymentClick = { paymentId -> state = PaymentsFormReducer.removePayment(state, paymentId) },
+                    onPaymentMethodChanged = { paymentId, method ->
+                        state = PaymentsFormReducer.updateMethod(state, paymentId, method)
+                    },
+                    onPaymentAmountChanged = { paymentId, value ->
+                        state = PaymentsFormReducer.updateAmount(state, paymentId, value)
+                    },
+                    onPaymentValueTotalChanged = { paymentId, checked ->
+                        state = PaymentsFormReducer.updateValueTotal(state, paymentId, checked)
+                    },
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("payment_amount_1").performTextInput("4000")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("add_payment_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("payment_method_2").performClick()
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithText("Dinheiro").assertCountEquals(1)
+
+        composeRule.onNodeWithContentDescription("Remover pagamento 1").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("payment_method_2").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Dinheiro").assertIsDisplayed()
     }
 }
