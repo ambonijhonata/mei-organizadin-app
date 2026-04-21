@@ -41,6 +41,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -96,6 +98,7 @@ internal fun PaymentsContent(
     val removeButtonDescriptionPrefix = stringResource(R.string.payments_remove_payment_description_prefix)
     val loadingPaymentsText = stringResource(R.string.payments_loading_existing_composition)
     val totalsByMethodLabel = stringResource(R.string.payments_totals_by_method_label)
+    val saveErrorText = uiState.saveErrorMessageResId?.let { stringResource(it) } ?: uiState.saveErrorMessage
 
     Column(
         modifier = Modifier
@@ -103,9 +106,9 @@ internal fun PaymentsContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        if (!uiState.saveErrorMessage.isNullOrBlank()) {
+        if (!saveErrorText.isNullOrBlank()) {
             FeedbackMessageCard(
-                text = uiState.saveErrorMessage,
+                text = saveErrorText,
                 tone = MessageTone.ERROR
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -151,6 +154,19 @@ internal fun PaymentsContent(
         uiState.payments.forEachIndexed { index, entry ->
             val paymentNumber = index + 1
             val totalToggleEnabled = uiState.totalValueOwnerPaymentId == null || uiState.totalValueOwnerPaymentId == entry.id
+            val usedMethodsByOtherEntries = uiState.payments
+                .filter { it.id != entry.id }
+                .map { it.method }
+                .toSet()
+            val availableMethods = PaymentMethod.entries.filter { option ->
+                option == entry.method || option !in usedMethodsByOtherEntries
+            }
+            val amountField = remember(entry.id) { mutableStateOf(textFieldValueAtEnd(entry.amountInput)) }
+            LaunchedEffect(entry.amountInput) {
+                if (entry.amountInput != amountField.value.text) {
+                    amountField.value = textFieldValueAtEnd(entry.amountInput)
+                }
+            }
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -180,6 +196,7 @@ internal fun PaymentsContent(
                     PaymentMethodDropdown(
                         paymentId = entry.id,
                         method = entry.method,
+                        options = availableMethods,
                         onMethodSelected = { method ->
                             onPaymentMethodChanged(entry.id, method)
                         }
@@ -201,11 +218,16 @@ internal fun PaymentsContent(
 
                     Text(text = stringResource(R.string.payments_value_label))
                     OutlinedTextField(
-                        value = entry.amountInput,
-                        onValueChange = { value -> onPaymentAmountChanged(entry.id, value) },
+                        value = amountField.value,
+                        onValueChange = { incoming ->
+                            val formatted = CurrencyFormats.formatInput(incoming.text)
+                            amountField.value = textFieldValueAtEnd(formatted)
+                            onPaymentAmountChanged(entry.id, formatted)
+                        },
                         enabled = !entry.isValueTotal,
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        placeholder = { Text("R$ 0,00") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("payment_amount_${entry.id}")
@@ -310,6 +332,7 @@ internal fun PaymentsContent(
 private fun PaymentMethodDropdown(
     paymentId: Long,
     method: PaymentMethod,
+    options: List<PaymentMethod>,
     onMethodSelected: (PaymentMethod) -> Unit
 ) {
     var expanded by remember(paymentId) { mutableStateOf(false) }
@@ -333,7 +356,7 @@ private fun PaymentMethodDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            PaymentMethod.values().forEach { option ->
+            options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(methodToLabel(option)) },
                     onClick = {
@@ -355,4 +378,8 @@ private fun methodToLabel(method: PaymentMethod): String {
         PaymentMethod.DEBITO -> R.string.payments_method_debito
     }
     return stringResource(labelRes)
+}
+
+private fun textFieldValueAtEnd(text: String): TextFieldValue {
+    return TextFieldValue(text = text, selection = TextRange(text.length))
 }

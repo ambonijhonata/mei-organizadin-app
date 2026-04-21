@@ -3,6 +3,7 @@ package com.tcc.androidnative.feature.payments.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tcc.androidnative.R
 import com.tcc.androidnative.feature.payments.data.PaymentsRepository
 import com.tcc.androidnative.navigation.AppDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -116,9 +117,25 @@ class PaymentsViewModel @Inject constructor(
     fun savePayments() {
         val currentState = _uiState.value
         if (currentState.isSaving) return
+        if (currentState.hasPaymentWithoutAmount()) {
+            _uiState.update {
+                it.copy(
+                    isSaving = false,
+                    saveErrorMessage = null,
+                    saveErrorMessageResId = R.string.payments_value_required_feedback
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, saveErrorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isSaving = true,
+                    saveErrorMessage = null,
+                    saveErrorMessageResId = null
+                )
+            }
 
             runCatching {
                 paymentsRepository.savePayments(
@@ -126,13 +143,25 @@ class PaymentsViewModel @Inject constructor(
                     payments = currentState.payments
                 )
             }.onSuccess {
-                _uiState.update { it.copy(isSaving = false, saveErrorMessage = null) }
-                _saveEvents.tryEmit(PaymentSaveEvent.Saved)
-            }.onFailure { error ->
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        saveErrorMessage = error.message ?: "Falha ao salvar pagamentos."
+                        saveErrorMessage = null,
+                        saveErrorMessageResId = null
+                    )
+                }
+                _saveEvents.tryEmit(PaymentSaveEvent.Saved)
+            }.onFailure { error ->
+                val saveErrorResId = error.toSaveErrorMessageResId()
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        saveErrorMessage = if (saveErrorResId != null) {
+                            null
+                        } else {
+                            error.message ?: "Falha ao salvar pagamentos."
+                        },
+                        saveErrorMessageResId = saveErrorResId
                     )
                 }
             }
@@ -146,6 +175,18 @@ class PaymentsViewModel @Inject constructor(
 
     private fun Throwable.isUnauthorizedPreloadFailure(): Boolean {
         return this is HttpException && code() == 401
+    }
+
+    private fun Throwable.toSaveErrorMessageResId(): Int? {
+        return if (this is HttpException && code() == 422) {
+            R.string.payments_value_required_feedback
+        } else {
+            null
+        }
+    }
+
+    private fun PaymentsUiState.hasPaymentWithoutAmount(): Boolean {
+        return payments.any { entry -> entry.amountInput.isBlank() }
     }
 }
 

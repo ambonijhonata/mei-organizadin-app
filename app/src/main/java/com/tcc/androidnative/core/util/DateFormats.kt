@@ -20,5 +20,8 @@ object DateFormats {
     fun parseInstant(value: String): Instant = Instant.parse(value)
 
     fun instantToUiDate(value: Instant): String = value.atZone(ZoneOffset.UTC).toLocalDate().format(uiFormatter)
-}
 
+    fun toUtcMillis(date: LocalDate): Long = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+    fun fromUtcMillis(utcMillis: Long): LocalDate = Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+}

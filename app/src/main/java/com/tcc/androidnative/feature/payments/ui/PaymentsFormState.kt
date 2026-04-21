@@ -1,5 +1,7 @@
 package com.tcc.androidnative.feature.payments.ui
 
+import androidx.annotation.StringRes
+import com.tcc.androidnative.core.util.CurrencyFormats
 import java.math.BigDecimal
 
 enum class PaymentMethod {
@@ -32,7 +34,8 @@ data class PaymentsUiState(
     val isLoadingPayments: Boolean = false,
     val isSaving: Boolean = false,
     val loadErrorMessage: String? = null,
-    val saveErrorMessage: String? = null
+    val saveErrorMessage: String? = null,
+    @StringRes val saveErrorMessageResId: Int? = null
 )
 
 object PaymentsFormReducer {
@@ -72,9 +75,16 @@ object PaymentsFormReducer {
     fun addPayment(state: PaymentsUiState): PaymentsUiState {
         if (!state.canAddPayment) return state
         val nextId = nextPaymentId(state.payments)
+        val partialTotal = calculatePartialTotal(state.payments)
+        val remaining = nonNegative(state.totalServiceValue.subtract(partialTotal))
+        val suggestedMethod = nextAvailableMethod(state.payments)
         return recalculate(
             state.copy(
-                payments = state.payments + PaymentEntryUiState(id = nextId)
+                payments = state.payments + PaymentEntryUiState(
+                    id = nextId,
+                    method = suggestedMethod,
+                    amountInput = toAmountInput(remaining)
+                )
             )
         )
     }
@@ -94,6 +104,9 @@ object PaymentsFormReducer {
         paymentId: Long,
         method: PaymentMethod
     ): PaymentsUiState {
+        if (state.payments.any { it.id != paymentId && it.method == method }) {
+            return state
+        }
         return recalculate(
             state.copy(
                 payments = state.payments.map { entry ->
@@ -129,17 +142,14 @@ object PaymentsFormReducer {
         paymentId: Long,
         checked: Boolean
     ): PaymentsUiState {
+        val targetEntry = state.payments.firstOrNull { it.id == paymentId } ?: return state
         val updatedPayments = if (checked) {
-            state.payments.map { entry ->
-                if (entry.id == paymentId) {
-                    entry.copy(
-                        isValueTotal = true,
-                        amountInput = toAmountInput(state.totalServiceValue)
-                    )
-                } else {
-                    entry.copy(isValueTotal = false)
-                }
-            }
+            listOf(
+                targetEntry.copy(
+                    isValueTotal = true,
+                    amountInput = toAmountInput(state.totalServiceValue)
+                )
+            )
         } else {
             state.payments.map { entry ->
                 if (entry.id == paymentId) entry.copy(isValueTotal = false) else entry
@@ -156,7 +166,9 @@ object PaymentsFormReducer {
         } else {
             calculatePartialTotal(state.payments)
         }
-        val canAdd = state.payments.size < MAX_PAYMENT_ENTRIES && totalOwner == null
+        val canAdd = state.payments.size < MAX_PAYMENT_ENTRIES &&
+            totalOwner == null &&
+            hasRemainingBalance(totalPaid, state.totalServiceValue)
         val paymentTypeTotals = calculatePaymentTypeTotals(state.payments)
         return state.copy(
             totalPaid = totalPaid,
@@ -196,6 +208,11 @@ object PaymentsFormReducer {
         return (payments.maxOfOrNull { it.id } ?: 0L) + 1L
     }
 
+    private fun nextAvailableMethod(payments: List<PaymentEntryUiState>): PaymentMethod {
+        val usedMethods = payments.map { it.method }.toSet()
+        return PaymentMethod.entries.firstOrNull { it !in usedMethods } ?: PaymentMethod.DINHEIRO
+    }
+
     private fun isValidAmountInput(input: String): Boolean {
         if (input.isBlank()) return true
         val parsed = parseAmount(input) ?: return false
@@ -203,12 +220,27 @@ object PaymentsFormReducer {
     }
 
     private fun parseAmount(input: String): BigDecimal? {
-        val normalized = input.replace(",", ".").trim()
-        if (normalized.isBlank()) return null
-        return normalized.toBigDecimalOrNull()
+        val trimmed = input.trim()
+        if (trimmed.isBlank()) return null
+        val legacyNumericInput = LEGACY_NUMERIC_INPUT_REGEX.matchEntire(trimmed) != null
+        return if (legacyNumericInput) {
+            trimmed.replace(",", ".").toBigDecimalOrNull()
+        } else {
+            CurrencyFormats.parseUiValue(trimmed)
+        }
     }
 
     private fun toAmountInput(value: BigDecimal): String {
-        return value.stripTrailingZeros().toPlainString()
+        return CurrencyFormats.formatForUi(value)
     }
+
+    private fun hasRemainingBalance(totalPaid: BigDecimal, totalServiceValue: BigDecimal): Boolean {
+        return totalPaid.compareTo(totalServiceValue) < 0
+    }
+
+    private fun nonNegative(value: BigDecimal): BigDecimal {
+        return if (value.compareTo(BigDecimal.ZERO) < 0) BigDecimal.ZERO else value
+    }
+
+    private val LEGACY_NUMERIC_INPUT_REGEX = Regex("""^\d+([.,]\d{0,2})?$""")
 }

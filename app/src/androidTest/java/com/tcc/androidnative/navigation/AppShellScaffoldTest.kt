@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -93,5 +94,26 @@ class AppShellScaffoldTest {
 
         composeRule.onNodeWithContentDescription("Abrir menu hamburguer").performClick()
         composeRule.onNodeWithText("Configuracoes").assertIsDisplayed()
+    }
+
+    @Test
+    fun topbar_home_should_trigger_navigation_when_current_route_is_payments() {
+        var navigatedRoute: String? = null
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.Payments.route,
+                    onNavigate = { route -> navigatedRoute = route },
+                    onLogout = {}
+                ) {
+                    Text("Conteudo")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Ir para tela inicial").performClick()
+        composeRule.runOnIdle {
+            assertEquals(AppDestination.Home.route, navigatedRoute)
+        }
     }
 }

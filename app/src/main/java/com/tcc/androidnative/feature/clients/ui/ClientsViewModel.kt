@@ -1,20 +1,23 @@
-package com.tcc.androidnative.feature.clients.ui
+﻿package com.tcc.androidnative.feature.clients.ui
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
+import com.tcc.androidnative.core.network.BackendApiException
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.CpfValidator
 import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.core.util.InputMasks
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
 import com.tcc.androidnative.feature.clients.data.DeleteClientOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +26,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val CLIENTS_PAGE_SIZE = 25
+private const val FILTER_DEBOUNCE_MS = 500L
+private const val CLIENT_FIELD_NAME = "name"
+private const val CLIENT_FIELD_CPF = "cpf"
+private const val CLIENT_FIELD_BIRTH_DATE = "birthDate"
+private const val CLIENT_FIELD_EMAIL = "email"
+private const val CLIENT_FIELD_PHONE = "phone"
+private val DUPLICATE_NAME_REGEX = Regex("^\\s*(.+?)\\s+[Jj](?:á|a) cadastrado\\.?\\s*$")
 
 enum class ClientFormMode {
     CREATE,
@@ -35,7 +45,9 @@ data class ClientFormState(
     val cpf: String = "",
     val birthDate: String = "",
     val email: String = "",
-    val phone: String = ""
+    val phone: String = "",
+    val fieldErrors: Map<String, TransientMessage> = emptyMap(),
+    val bannerMessage: TransientMessage? = null
 )
 
 data class ClientsUiState(
@@ -49,7 +61,7 @@ data class ClientsUiState(
     val isSubmittingForm: Boolean = false,
     val formMode: ClientFormMode? = null,
     val formState: ClientFormState = ClientFormState(),
-    val transientMessage: TransientMessage? = null
+    val transientMessages: List<TransientMessage> = emptyList()
 )
 
 @HiltViewModel
@@ -58,6 +70,7 @@ class ClientsViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ClientsUiState())
     val uiState: StateFlow<ClientsUiState> = _uiState.asStateFlow()
+    private var filterDebounceJob: Job? = null
 
     init {
         reload()
@@ -65,9 +78,12 @@ class ClientsViewModel @Inject constructor(
 
     fun onFilterNameChange(value: String) {
         _uiState.update { it.copy(filterName = value) }
+        scheduleFilterReload()
     }
 
     fun applyFilter() {
+        filterDebounceJob?.cancel()
+        filterDebounceJob = null
         reload()
     }
 
@@ -119,10 +135,10 @@ class ClientsViewModel @Inject constructor(
                             formState = ClientFormState(
                                 id = model.id,
                                 name = model.name,
-                                cpf = model.cpf.orEmpty(),
+                                cpf = model.cpf?.let(InputMasks::formatCpfInput).orEmpty(),
                                 birthDate = model.dateOfBirth?.let(DateFormats::toUiDate).orEmpty(),
                                 email = model.email.orEmpty(),
-                                phone = model.phone.orEmpty()
+                                phone = model.phone?.let(InputMasks::formatPhoneInput).orEmpty()
                             )
                         )
                     }
@@ -148,6 +164,10 @@ class ClientsViewModel @Inject constructor(
         }
     }
 
+    fun onBirthDatePicked(date: LocalDate) {
+        updateForm(birthDate = DateFormats.toUiDate(date))
+    }
+
     fun updateForm(
         name: String? = null,
         cpf: String? = null,
@@ -156,13 +176,22 @@ class ClientsViewModel @Inject constructor(
         phone: String? = null
     ) {
         _uiState.update { state ->
+            val updatedFieldErrors = state.formState.fieldErrors.toMutableMap().apply {
+                if (name != null) remove(CLIENT_FIELD_NAME)
+                if (cpf != null) remove(CLIENT_FIELD_CPF)
+                if (birthDate != null) remove(CLIENT_FIELD_BIRTH_DATE)
+                if (email != null) remove(CLIENT_FIELD_EMAIL)
+                if (phone != null) remove(CLIENT_FIELD_PHONE)
+            }
             state.copy(
                 formState = state.formState.copy(
                     name = name ?: state.formState.name,
-                    cpf = cpf ?: state.formState.cpf,
-                    birthDate = birthDate ?: state.formState.birthDate,
+                    cpf = cpf?.let(InputMasks::formatCpfInput) ?: state.formState.cpf,
+                    birthDate = birthDate?.let(InputMasks::formatBirthDateInput) ?: state.formState.birthDate,
                     email = email ?: state.formState.email,
-                    phone = phone ?: state.formState.phone
+                    phone = phone?.let(InputMasks::formatPhoneInput) ?: state.formState.phone,
+                    fieldErrors = updatedFieldErrors,
+                    bannerMessage = null
                 )
             )
         }
@@ -173,11 +202,27 @@ class ClientsViewModel @Inject constructor(
         val form = _uiState.value.formState
 
         if (form.name.isBlank()) {
-            showMessage(R.string.feedback_client_name_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setClientFormErrors(
+                fieldErrors = mapOf(
+                    CLIENT_FIELD_NAME to TransientMessage(
+                        textResId = R.string.feedback_client_name_required,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
         if (form.cpf.isNotBlank() && !CpfValidator.isValid(form.cpf)) {
-            showMessage(R.string.feedback_client_cpf_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setClientFormErrors(
+                fieldErrors = mapOf(
+                    CLIENT_FIELD_CPF to TransientMessage(
+                        textResId = R.string.feedback_client_cpf_invalid,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
 
@@ -187,7 +232,15 @@ class ClientsViewModel @Inject constructor(
             runCatching { DateFormats.parseUiDate(form.birthDate) }.getOrNull()
         }
         if (form.birthDate.isNotBlank() && parsedBirthDate == null) {
-            showMessage(R.string.feedback_client_birth_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setClientFormErrors(
+                fieldErrors = mapOf(
+                    CLIENT_FIELD_BIRTH_DATE to TransientMessage(
+                        textResId = R.string.feedback_client_birth_date_invalid,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
 
@@ -196,10 +249,10 @@ class ClientsViewModel @Inject constructor(
             val payload = ClientModel(
                 id = form.id ?: 0L,
                 name = form.name.trim(),
-                cpf = form.cpf.trim().ifBlank { null },
+                cpf = InputMasks.digitsOnly(form.cpf).ifBlank { null },
                 dateOfBirth = parsedBirthDate,
                 email = form.email.trim().ifBlank { null },
-                phone = form.phone.trim().ifBlank { null }
+                phone = InputMasks.digitsOnly(form.phone).ifBlank { null }
             )
             val result = runCatching {
                 when (mode) {
@@ -222,11 +275,7 @@ class ClientsViewModel @Inject constructor(
                     duration = MessageDurations.SHORT_3S
                 )
             }.onFailure {
-                showMessage(
-                    textResId = R.string.feedback_client_save_error,
-                    tone = MessageTone.ERROR,
-                    duration = MessageDurations.SHORT_3S
-                )
+                handleClientSaveFailure(it)
             }
         }
     }
@@ -243,14 +292,14 @@ class ClientsViewModel @Inject constructor(
                         showMessage(
                             textResId = R.string.feedback_client_delete_success,
                             tone = MessageTone.SUCCESS,
-                            duration = MessageDurations.SHORT_3S
+                            duration = MessageDurations.MEDIUM_5S
                         )
                     }
                     DeleteClientOutcome.HAS_LINK -> {
                         showMessage(
                             textResId = R.string.feedback_client_delete_link_warning,
                             tone = MessageTone.WARNING,
-                            duration = MessageDurations.SHORT_3S
+                            duration = MessageDurations.LONG_8S
                         )
                     }
                     DeleteClientOutcome.FAILED -> {
@@ -269,7 +318,7 @@ class ClientsViewModel @Inject constructor(
                             showMessage(
                                 textResId = R.string.feedback_client_bulk_delete_success,
                                 tone = MessageTone.SUCCESS,
-                                duration = MessageDurations.SHORT_3S,
+                                duration = MessageDurations.MEDIUM_5S,
                                 textArgs = listOf(deleted.toString())
                             )
                         }
@@ -277,7 +326,7 @@ class ClientsViewModel @Inject constructor(
                             showMessage(
                                 textResId = R.string.feedback_client_bulk_delete_warning,
                                 tone = MessageTone.WARNING,
-                                duration = MessageDurations.SHORT_3S,
+                                duration = MessageDurations.LONG_8S,
                                 textArgs = listOf(hasLink.toString())
                             )
                         }
@@ -351,6 +400,14 @@ class ClientsViewModel @Inject constructor(
         }
     }
 
+    private fun scheduleFilterReload() {
+        filterDebounceJob?.cancel()
+        filterDebounceJob = viewModelScope.launch {
+            delay(FILTER_DEBOUNCE_MS)
+            reload()
+        }
+    }
+
     private fun showMessage(
         @StringRes textResId: Int,
         tone: MessageTone,
@@ -364,11 +421,74 @@ class ClientsViewModel @Inject constructor(
                 tone = tone,
                 durationMillis = duration
             )
-            _uiState.update { it.copy(transientMessage = message) }
+            _uiState.update { it.copy(transientMessages = it.transientMessages + message) }
             delay(duration)
             _uiState.update { state ->
-                if (state.transientMessage == message) state.copy(transientMessage = null) else state
+                state.copy(transientMessages = state.transientMessages.filterNot { it === message })
             }
         }
     }
+
+    private fun setClientFormErrors(
+        fieldErrors: Map<String, TransientMessage> = emptyMap(),
+        bannerMessage: TransientMessage? = null
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                isSubmittingForm = false,
+                formState = state.formState.copy(
+                    fieldErrors = fieldErrors,
+                    bannerMessage = bannerMessage
+                )
+            )
+        }
+    }
+
+    private fun handleClientSaveFailure(error: Throwable) {
+        when (error) {
+            is BackendApiException -> {
+                val details = error.details
+                if (details.fieldErrors.isNotEmpty()) {
+                    setClientFormErrors(
+                        fieldErrors = details.fieldErrors.mapValues { (_, message) ->
+                            TransientMessage(
+                                text = message,
+                                tone = MessageTone.ERROR,
+                                durationMillis = MessageDurations.SHORT_3S
+                            )
+                        }
+                    )
+                } else {
+                    setClientFormErrors(
+                        bannerMessage = TransientMessage(
+                            text = normalizeClientSaveMessage(details.message),
+                            tone = MessageTone.ERROR,
+                            durationMillis = MessageDurations.SHORT_3S
+                        )
+                    )
+                }
+            }
+            else -> {
+                setClientFormErrors(
+                    bannerMessage = TransientMessage(
+                        textResId = R.string.feedback_client_save_error,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            }
+        }
+    }
+
+    private fun normalizeClientSaveMessage(message: String?): String {
+        if (message.isNullOrBlank()) return ""
+        val duplicateMatch = DUPLICATE_NAME_REGEX.matchEntire(message) ?: return message
+        val name = duplicateMatch.groupValues.getOrNull(1)?.trim().orEmpty()
+        return if (name.isBlank()) {
+            message
+        } else {
+            "$name já cadastrado"
+        }
+    }
 }
+

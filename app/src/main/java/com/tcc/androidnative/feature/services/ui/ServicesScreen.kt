@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,17 +33,24 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
+import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
@@ -67,7 +75,7 @@ fun ServicesScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        uiState.transientMessage?.let { message ->
+        uiState.transientMessages.forEach { message ->
             FeedbackMessageCard(
                 message = message,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -263,6 +271,14 @@ private fun ServiceFormDialog(
     onValueChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
+    val valueField = remember { mutableStateOf(TextFieldValue("")) }
+
+    LaunchedEffect(formState.valueInput) {
+        if (formState.valueInput != valueField.value.text) {
+            valueField.value = textFieldValueAtEnd(formState.valueInput)
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -270,16 +286,33 @@ private fun ServiceFormDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                formState.bannerMessage?.let { message ->
+                    FeedbackMessageCard(message = message)
+                }
                 OutlinedTextField(
                     value = formState.description,
                     onValueChange = onDescriptionChange,
                     label = { Text("Descricao") },
+                    isError = formState.fieldErrors.containsKey("description"),
+                    supportingText = {
+                        formState.fieldErrors["description"]?.let { Text(resolveFormMessageText(it)) }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = formState.valueInput,
-                    onValueChange = onValueChange,
+                    value = valueField.value,
+                    onValueChange = { incoming ->
+                        val formatted = CurrencyFormats.formatInput(incoming.text)
+                        valueField.value = textFieldValueAtEnd(formatted)
+                        onValueChange(formatted)
+                    },
                     label = { Text("Valor") },
+                    placeholder = { Text("R$ 0,00") },
+                    isError = formState.fieldErrors.containsKey("valueInput"),
+                    supportingText = {
+                        formState.fieldErrors["valueInput"]?.let { Text(resolveFormMessageText(it)) }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -304,4 +337,21 @@ private fun ServiceFormDialog(
             }
         }
     )
+}
+
+private fun textFieldValueAtEnd(text: String): TextFieldValue {
+    return TextFieldValue(text = text, selection = TextRange(text.length))
+}
+
+@Composable
+private fun resolveFormMessageText(message: TransientMessage): String {
+    return if (message.textResId != null) {
+        if (message.textArgs.isEmpty()) {
+            androidx.compose.ui.res.stringResource(message.textResId)
+        } else {
+            androidx.compose.ui.res.stringResource(message.textResId, *message.textArgs.toTypedArray())
+        }
+    } else {
+        message.text.orEmpty()
+    }
 }

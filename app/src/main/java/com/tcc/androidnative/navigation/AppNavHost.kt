@@ -195,8 +195,16 @@ fun AppNavHost() {
             )
         ) {
             AppShellScaffold(
-                currentRoute = AppDestination.Home.route,
-                onNavigate = ::navigateTo,
+                currentRoute = AppDestination.Payments.route,
+                onNavigate = { route ->
+                    if (route == AppDestination.Home.route) {
+                        if (!navController.popBackStack()) {
+                            navigateTo(AppDestination.Home.route)
+                        }
+                    } else {
+                        navigateTo(route)
+                    }
+                },
                 onLogout = sessionViewModel::logout,
                 topBarTitle = "MEI ORGANIZADINHO",
                 topBarTitleColor = DrawerMenuIconBlue,

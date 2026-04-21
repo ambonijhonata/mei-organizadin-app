@@ -1,6 +1,8 @@
 package com.tcc.androidnative.feature.services.data
 
 import com.tcc.androidnative.core.util.CurrencyFormats
+import com.tcc.androidnative.core.network.BackendApiException
+import com.tcc.androidnative.core.network.BackendErrorParser
 import com.tcc.androidnative.feature.services.data.remote.ServiceApi
 import com.tcc.androidnative.feature.services.data.remote.dto.ServiceUpsertRequestDto
 import java.math.BigDecimal
@@ -38,7 +40,8 @@ interface ServicesRepository {
 
 @Singleton
 class ServicesRepositoryImpl @Inject constructor(
-    private val api: ServiceApi
+    private val api: ServiceApi,
+    private val backendErrorParser: BackendErrorParser
 ) : ServicesRepository {
     override suspend fun list(description: String?, uiPageIndex: Int, pageSize: Int): ServicesPage {
         // UI trabalha em pagina 1-based; API de services usa page 0-based.
@@ -72,24 +75,32 @@ class ServicesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun create(description: String, valueInput: String): ServiceModel {
-        val response = api.createService(
-            ServiceUpsertRequestDto(
-                description = description,
-                value = CurrencyFormats.parseUiValue(valueInput)
+        return try {
+            val response = api.createService(
+                ServiceUpsertRequestDto(
+                    description = description,
+                    value = CurrencyFormats.parseUiValue(valueInput)
+                )
             )
-        )
-        return ServiceModel(response.id, response.description, response.value)
+            ServiceModel(response.id, response.description, response.value)
+        } catch (error: HttpException) {
+            throw BackendApiException(backendErrorParser.parse(error), error)
+        }
     }
 
     override suspend fun update(id: Long, description: String, valueInput: String): ServiceModel {
-        val response = api.updateService(
-            id = id,
-            request = ServiceUpsertRequestDto(
-                description = description,
-                value = CurrencyFormats.parseUiValue(valueInput)
+        return try {
+            val response = api.updateService(
+                id = id,
+                request = ServiceUpsertRequestDto(
+                    description = description,
+                    value = CurrencyFormats.parseUiValue(valueInput)
+                )
             )
-        )
-        return ServiceModel(response.id, response.description, response.value)
+            ServiceModel(response.id, response.description, response.value)
+        } catch (error: HttpException) {
+            throw BackendApiException(backendErrorParser.parse(error), error)
+        }
     }
 
     override suspend fun delete(id: Long): DeleteServiceOutcome {
@@ -113,14 +124,6 @@ class ServicesRepositoryImpl @Inject constructor(
     private fun isHasLinkedAppointmentError(error: HttpException): Boolean {
         if (error.code() != 422) return false
 
-        val errorBody = runCatching { error.response()?.errorBody()?.string().orEmpty() }
-            .getOrDefault("")
-        val backendCode = extractJsonField(errorBody, "code")
-        return backendCode == "BUSINESS_ERROR"
-    }
-
-    private fun extractJsonField(json: String, field: String): String? {
-        val match = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"").find(json) ?: return null
-        return match.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
+        return backendErrorParser.parse(error).code == "BUSINESS_ERROR"
     }
 }

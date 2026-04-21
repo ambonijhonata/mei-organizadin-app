@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
+import com.tcc.androidnative.core.network.BackendApiException
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
@@ -13,6 +14,7 @@ import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +23,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val SERVICES_PAGE_SIZE = 25
+private const val FILTER_DEBOUNCE_MS = 500L
+private const val SERVICE_FIELD_DESCRIPTION = "description"
+private const val SERVICE_FIELD_VALUE = "valueInput"
+private val DUPLICATE_SERVICE_MESSAGE_REGEX = Regex("^\\s*(.+?)\\s+[Jj](?:á|a) cadastrado\\.?\\s*$")
+private const val LEGACY_DUPLICATE_SERVICE_MESSAGE = "Service with this description already exists"
+private const val DEFAULT_DUPLICATE_SERVICE_MESSAGE = "Serviço já cadastrado"
 
 enum class ServiceFormMode {
     CREATE,
@@ -30,7 +38,9 @@ enum class ServiceFormMode {
 data class ServiceFormState(
     val id: Long? = null,
     val description: String = "",
-    val valueInput: String = ""
+    val valueInput: String = "",
+    val fieldErrors: Map<String, TransientMessage> = emptyMap(),
+    val bannerMessage: TransientMessage? = null
 )
 
 data class ServicesUiState(
@@ -44,7 +54,7 @@ data class ServicesUiState(
     val isSubmittingForm: Boolean = false,
     val formMode: ServiceFormMode? = null,
     val formState: ServiceFormState = ServiceFormState(),
-    val transientMessage: TransientMessage? = null
+    val transientMessages: List<TransientMessage> = emptyList()
 )
 
 @HiltViewModel
@@ -53,6 +63,7 @@ class ServicesViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ServicesUiState())
     val uiState: StateFlow<ServicesUiState> = _uiState.asStateFlow()
+    private var filterDebounceJob: Job? = null
 
     init {
         reload()
@@ -60,9 +71,12 @@ class ServicesViewModel @Inject constructor(
 
     fun onFilterDescriptionChange(value: String) {
         _uiState.update { it.copy(filterDescription = value) }
+        scheduleFilterReload()
     }
 
     fun applyFilter() {
+        filterDebounceJob?.cancel()
+        filterDebounceJob = null
         reload()
     }
 
@@ -114,7 +128,7 @@ class ServicesViewModel @Inject constructor(
                             formState = ServiceFormState(
                                 id = model.id,
                                 description = model.description,
-                                valueInput = model.value.toPlainString()
+                                valueInput = CurrencyFormats.formatForUi(model.value)
                             )
                         )
                     }
@@ -145,10 +159,16 @@ class ServicesViewModel @Inject constructor(
         valueInput: String? = null
     ) {
         _uiState.update { state ->
+            val updatedFieldErrors = state.formState.fieldErrors.toMutableMap().apply {
+                if (description != null) remove(SERVICE_FIELD_DESCRIPTION)
+                if (valueInput != null) remove(SERVICE_FIELD_VALUE)
+            }
             state.copy(
                 formState = state.formState.copy(
                     description = description ?: state.formState.description,
-                    valueInput = valueInput ?: state.formState.valueInput
+                    valueInput = valueInput?.let(CurrencyFormats::formatInput) ?: state.formState.valueInput,
+                    fieldErrors = updatedFieldErrors,
+                    bannerMessage = null
                 )
             )
         }
@@ -158,17 +178,41 @@ class ServicesViewModel @Inject constructor(
         val mode = _uiState.value.formMode ?: return
         val form = _uiState.value.formState
         if (form.description.isBlank()) {
-            showMessage(R.string.feedback_service_description_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setServiceFormErrors(
+                fieldErrors = mapOf(
+                    SERVICE_FIELD_DESCRIPTION to TransientMessage(
+                        textResId = R.string.feedback_service_description_required,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
         if (form.valueInput.isBlank()) {
-            showMessage(R.string.feedback_service_value_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setServiceFormErrors(
+                fieldErrors = mapOf(
+                    SERVICE_FIELD_VALUE to TransientMessage(
+                        textResId = R.string.feedback_service_value_required,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
 
         val parsed = runCatching { CurrencyFormats.parseUiValue(form.valueInput) }.getOrNull()
         if (parsed == null || parsed <= java.math.BigDecimal.ZERO) {
-            showMessage(R.string.feedback_service_value_positive_required, MessageTone.ERROR, MessageDurations.SHORT_3S)
+            setServiceFormErrors(
+                fieldErrors = mapOf(
+                    SERVICE_FIELD_VALUE to TransientMessage(
+                        textResId = R.string.feedback_service_value_positive_required,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            )
             return
         }
 
@@ -202,11 +246,7 @@ class ServicesViewModel @Inject constructor(
                     duration = MessageDurations.SHORT_3S
                 )
             }.onFailure {
-                showMessage(
-                    textResId = R.string.feedback_service_save_error,
-                    tone = MessageTone.ERROR,
-                    duration = MessageDurations.SHORT_3S
-                )
+                handleServiceSaveFailure(it)
             }
         }
     }
@@ -223,14 +263,14 @@ class ServicesViewModel @Inject constructor(
                         showMessage(
                             textResId = R.string.feedback_service_delete_success,
                             tone = MessageTone.SUCCESS,
-                            duration = MessageDurations.SHORT_3S
+                            duration = MessageDurations.MEDIUM_5S
                         )
                     }
                     DeleteServiceOutcome.HAS_LINK -> {
                         showMessage(
                             textResId = R.string.feedback_service_delete_link_warning,
                             tone = MessageTone.WARNING,
-                            duration = MessageDurations.SHORT_3S
+                            duration = MessageDurations.LONG_8S
                         )
                     }
                     DeleteServiceOutcome.FAILED -> {
@@ -249,7 +289,7 @@ class ServicesViewModel @Inject constructor(
                             showMessage(
                                 textResId = R.string.feedback_service_bulk_delete_success,
                                 tone = MessageTone.SUCCESS,
-                                duration = MessageDurations.SHORT_3S,
+                                duration = MessageDurations.MEDIUM_5S,
                                 textArgs = listOf(deleted.toString())
                             )
                         }
@@ -257,7 +297,7 @@ class ServicesViewModel @Inject constructor(
                             showMessage(
                                 textResId = R.string.feedback_service_bulk_delete_warning,
                                 tone = MessageTone.WARNING,
-                                duration = MessageDurations.SHORT_3S,
+                                duration = MessageDurations.LONG_8S,
                                 textArgs = listOf(hasLink.toString())
                             )
                         }
@@ -331,6 +371,14 @@ class ServicesViewModel @Inject constructor(
         }
     }
 
+    private fun scheduleFilterReload() {
+        filterDebounceJob?.cancel()
+        filterDebounceJob = viewModelScope.launch {
+            delay(FILTER_DEBOUNCE_MS)
+            reload()
+        }
+    }
+
     private fun showMessage(
         @StringRes textResId: Int,
         tone: MessageTone,
@@ -344,11 +392,87 @@ class ServicesViewModel @Inject constructor(
                 tone = tone,
                 durationMillis = duration
             )
-            _uiState.update { it.copy(transientMessage = message) }
+            _uiState.update { it.copy(transientMessages = it.transientMessages + message) }
             delay(duration)
             _uiState.update { state ->
-                if (state.transientMessage == message) state.copy(transientMessage = null) else state
+                state.copy(transientMessages = state.transientMessages.filterNot { it === message })
             }
         }
+    }
+
+    private fun setServiceFormErrors(
+        fieldErrors: Map<String, TransientMessage> = emptyMap(),
+        bannerMessage: TransientMessage? = null
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                isSubmittingForm = false,
+                formState = state.formState.copy(
+                    fieldErrors = fieldErrors,
+                    bannerMessage = bannerMessage
+                )
+            )
+        }
+    }
+
+    private fun handleServiceSaveFailure(error: Throwable) {
+        when (error) {
+            is BackendApiException -> {
+                val details = error.details
+                if (details.fieldErrors.isNotEmpty()) {
+                    setServiceFormErrors(
+                        fieldErrors = details.fieldErrors.mapValues { (_, message) ->
+                            TransientMessage(
+                                text = normalizeServiceSaveMessage(message),
+                                tone = MessageTone.ERROR,
+                                durationMillis = MessageDurations.SHORT_3S
+                            )
+                        }
+                    )
+                } else {
+                    setServiceFormErrors(
+                        bannerMessage = TransientMessage(
+                            text = normalizeServiceSaveMessage(details.message),
+                            tone = MessageTone.ERROR,
+                            durationMillis = MessageDurations.SHORT_3S
+                        )
+                    )
+                }
+            }
+            else -> {
+                setServiceFormErrors(
+                    bannerMessage = TransientMessage(
+                        textResId = R.string.feedback_service_save_error,
+                        tone = MessageTone.ERROR,
+                        durationMillis = MessageDurations.SHORT_3S
+                    )
+                )
+            }
+        }
+    }
+
+    private fun normalizeServiceSaveMessage(message: String?): String {
+        val trimmedMessage = message?.trim().orEmpty()
+        val currentDescription = _uiState.value.formState.description.trim()
+        if (trimmedMessage.isBlank()) {
+            return currentDescription.ifBlank { null }?.let { "$it já cadastrado" }
+                ?: DEFAULT_DUPLICATE_SERVICE_MESSAGE
+        }
+        if (trimmedMessage.equals(LEGACY_DUPLICATE_SERVICE_MESSAGE, ignoreCase = true)) {
+            return currentDescription.ifBlank { null }?.let { "$it já cadastrado" }
+                ?: DEFAULT_DUPLICATE_SERVICE_MESSAGE
+        }
+
+        val duplicateMatch = DUPLICATE_SERVICE_MESSAGE_REGEX.matchEntire(trimmedMessage)
+            ?: return trimmedMessage
+        val description = duplicateMatch.groupValues.getOrNull(1)?.trim().orEmpty()
+        return description.ifBlank { currentDescription }.ifBlank { DEFAULT_DUPLICATE_SERVICE_MESSAGE }
+            .let { resolvedDescription ->
+                if (resolvedDescription == DEFAULT_DUPLICATE_SERVICE_MESSAGE) {
+                    resolvedDescription
+                } else {
+                    "$resolvedDescription já cadastrado"
+                }
+            }
     }
 }
