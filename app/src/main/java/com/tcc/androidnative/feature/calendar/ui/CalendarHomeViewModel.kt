@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
+import com.tcc.androidnative.core.network.isLikelyTransientNetworkFailure
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
@@ -63,7 +64,6 @@ class CalendarHomeViewModel @Inject constructor(
     private var requestCounter: Long = 0L
     private var latestRequestId: Long = 0L
     private var backgroundSyncJob: Job? = null
-    private var lastBackgroundSyncAt: Instant? = null
 
     private val _uiState = MutableStateFlow(CalendarHomeUiState())
     val uiState: StateFlow<CalendarHomeUiState> = _uiState.asStateFlow()
@@ -139,7 +139,11 @@ class CalendarHomeViewModel @Inject constructor(
                     items = emptyList(),
                     selectedDate = selectedDate,
                     errorMessage = TransientMessage(
-                        textResId = R.string.feedback_calendar_load_error,
+                        textResId = if (error.isLikelyTransientNetworkFailure()) {
+                            R.string.feedback_network_timeout
+                        } else {
+                            R.string.feedback_calendar_load_error
+                        },
                         tone = MessageTone.ERROR,
                         durationMillis = 0L
                     ),
@@ -159,7 +163,11 @@ class CalendarHomeViewModel @Inject constructor(
                     items = emptyList(),
                     selectedDate = selectedDate,
                     errorMessage = TransientMessage(
-                        textResId = R.string.feedback_calendar_load_error,
+                        textResId = if (error.isLikelyTransientNetworkFailure()) {
+                            R.string.feedback_network_timeout
+                        } else {
+                            R.string.feedback_calendar_load_error
+                        },
                         tone = MessageTone.ERROR,
                         durationMillis = 0L
                     ),
@@ -176,7 +184,7 @@ class CalendarHomeViewModel @Inject constructor(
 
     private fun launchBackgroundSyncIfDue() {
         if (!shouldTriggerBackgroundSync()) {
-            logInfo("calendar_background_sync_skipped reason=freshness_or_running")
+            logInfo("calendar_background_sync_skipped reason=sync_running")
             return
         }
         backgroundSyncJob = viewModelScope.launch {
@@ -185,16 +193,11 @@ class CalendarHomeViewModel @Inject constructor(
     }
 
     private fun shouldTriggerBackgroundSync(): Boolean {
-        if (backgroundSyncJob?.isActive == true) {
-            return false
-        }
-        val lastRun = lastBackgroundSyncAt ?: return true
-        return Duration.between(lastRun, Instant.now()) >= BACKGROUND_SYNC_FRESHNESS_WINDOW
+        return backgroundSyncJob?.isActive != true
     }
 
     private suspend fun runBackgroundSync() {
         val syncStart = System.nanoTime()
-        lastBackgroundSyncAt = Instant.now()
         _uiState.update { state ->
             state.copy(isRefreshing = true)
         }
@@ -327,7 +330,11 @@ class CalendarHomeViewModel @Inject constructor(
                 it.copy(
                     isRefreshing = false,
                     errorMessage = TransientMessage(
-                        textResId = R.string.feedback_calendar_load_error,
+                        textResId = if (error.isLikelyTransientNetworkFailure()) {
+                            R.string.feedback_network_timeout
+                        } else {
+                            R.string.feedback_calendar_load_error
+                        },
                         tone = MessageTone.ERROR,
                         durationMillis = 0L
                     )
@@ -338,7 +345,11 @@ class CalendarHomeViewModel @Inject constructor(
                 it.copy(
                     isRefreshing = false,
                     errorMessage = TransientMessage(
-                        textResId = R.string.feedback_calendar_load_error,
+                        textResId = if (error.isLikelyTransientNetworkFailure()) {
+                            R.string.feedback_network_timeout
+                        } else {
+                            R.string.feedback_calendar_load_error
+                        },
                         tone = MessageTone.ERROR,
                         durationMillis = 0L
                     )
@@ -499,6 +510,5 @@ class CalendarHomeViewModel @Inject constructor(
         const val TAG = "CalendarHomeViewModel"
         const val UNKNOWN_DURATION_LABEL = "Duracao nao informada"
         const val HTTP_UNAUTHORIZED = 401
-        val BACKGROUND_SYNC_FRESHNESS_WINDOW: Duration = Duration.ofSeconds(20)
     }
 }

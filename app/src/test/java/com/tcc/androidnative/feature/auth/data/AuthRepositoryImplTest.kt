@@ -20,7 +20,11 @@ class AuthRepositoryImplTest {
             response = LoginResponseDto(
                 userId = 10L,
                 email = "user@test.com",
-                name = "User"
+                name = "User",
+                accessToken = "access-token-from-backend",
+                accessTokenExpiresAt = "2100-01-01T00:00:00Z",
+                refreshToken = "refresh-token-from-backend",
+                refreshTokenExpiresAt = "2100-02-01T00:00:00Z"
             )
         )
         val fakeSession = FakeSessionManager()
@@ -30,7 +34,7 @@ class AuthRepositoryImplTest {
 
         assertEquals(10L, session.userId)
         assertEquals("user@test.com", fakeSession.currentSession()?.email)
-        assertEquals("id-token", fakeSession.getIdToken())
+        assertEquals("access-token-from-backend", fakeSession.getAccessToken())
     }
 
     @Test
@@ -53,15 +57,29 @@ class AuthRepositoryImplTest {
             response = LoginResponseDto(
                 userId = 1L,
                 email = "a@a.com",
-                name = "A"
+                name = "A",
+                accessToken = "access-token-from-backend",
+                accessTokenExpiresAt = "2100-01-01T00:00:00Z",
+                refreshToken = "refresh-token-from-backend",
+                refreshTokenExpiresAt = "2100-02-01T00:00:00Z"
             )
         )
         val fakeSession = FakeSessionManager().apply {
-            saveSession(UserSession(1L, "a@a.com", "A", "id-token"))
+            saveSession(
+                UserSession(
+                    userId = 1L,
+                    email = "a@a.com",
+                    name = "A",
+                    accessToken = "access-token",
+                    refreshToken = "refresh-token",
+                    accessTokenExpiresAtEpochSeconds = 4_102_444_800L,
+                    refreshTokenExpiresAtEpochSeconds = 4_112_444_800L
+                )
+            )
         }
         val repository = AuthRepositoryImpl(fakeApi, fakeSession)
 
-        repository.logout()
+        runBlocking { repository.logout() }
 
         assertNull(fakeSession.currentSession())
         assertNull(fakeSession.getIdToken())
@@ -76,6 +94,18 @@ private class FakeAuthApi(
         error?.let { throw it }
         return requireNotNull(response)
     }
+
+    override suspend fun refresh(body: com.tcc.androidnative.feature.auth.data.remote.dto.RefreshRequestDto): com.tcc.androidnative.feature.auth.data.remote.dto.RefreshResponseDto {
+        error?.let { throw it }
+        return com.tcc.androidnative.feature.auth.data.remote.dto.RefreshResponseDto(
+            accessToken = "new-access-token",
+            accessTokenExpiresAt = "2100-01-02T00:00:00Z",
+            refreshToken = "new-refresh-token",
+            refreshTokenExpiresAt = "2100-02-02T00:00:00Z"
+        )
+    }
+
+    override suspend fun logout(body: com.tcc.androidnative.feature.auth.data.remote.dto.LogoutRequestDto) = Unit
 }
 
 private class FakeSessionManager : SessionManager {
@@ -92,5 +122,5 @@ private class FakeSessionManager : SessionManager {
 
     override fun currentSession(): UserSession? = mutableState.value
 
-    override fun getIdToken(): String? = mutableState.value?.idToken
+    override fun getIdToken(): String? = mutableState.value?.accessToken
 }

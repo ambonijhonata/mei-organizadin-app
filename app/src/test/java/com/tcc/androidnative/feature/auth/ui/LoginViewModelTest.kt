@@ -76,11 +76,18 @@ private class FakeAuthRepository(
             userId = 1L,
             email = "test@example.com",
             name = "Test User",
-            idToken = idToken
+            accessToken = "access-token",
+            refreshToken = "refresh-token",
+            accessTokenExpiresAtEpochSeconds = 4_102_444_800L,
+            refreshTokenExpiresAtEpochSeconds = 4_112_444_800L
         )
     }
 
-    override fun logout() {
+    override suspend fun refresh(refreshToken: String): UserSession {
+        throw UnsupportedOperationException("Not needed in this test")
+    }
+
+    override suspend fun logout() {
     }
 }
 

@@ -11,15 +11,22 @@ class AuthTokenInterceptor @Inject constructor(
     private val sessionManager: SessionManager
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = sessionManager.getIdToken()
-        val request = if (token.isNullOrBlank()) {
+        val token = sessionManager.getAccessToken()
+        val originalRequest = chain.request()
+        val path = originalRequest.url.encodedPath
+        val request = if (token.isNullOrBlank() || isAuthFlowPath(path)) {
             chain.request()
         } else {
-            chain.request().newBuilder()
+            originalRequest.newBuilder()
                 .header("Authorization", "Bearer $token")
                 .build()
         }
         return chain.proceed(request)
     }
-}
 
+    private fun isAuthFlowPath(path: String): Boolean {
+        return path.startsWith("/api/auth/login") ||
+            path.startsWith("/api/auth/refresh") ||
+            path.startsWith("/api/auth/logout")
+    }
+}

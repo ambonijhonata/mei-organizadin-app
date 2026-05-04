@@ -2,7 +2,10 @@ package com.tcc.androidnative.di
 
 import com.tcc.androidnative.core.config.ApiConfig
 import com.tcc.androidnative.core.network.AuthTokenInterceptor
+import com.tcc.androidnative.core.network.AuthEndpointTimeoutInterceptor
 import com.tcc.androidnative.core.network.BigDecimalJsonAdapter
+import com.tcc.androidnative.core.network.RetryOnFailureInterceptor
+import com.tcc.androidnative.core.network.SessionRefreshInterceptor
 import com.tcc.androidnative.core.network.SessionInvalidationInterceptor
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -33,18 +36,24 @@ object NetworkModule {
     @Singleton
     fun provideHttpClient(
         authTokenInterceptor: AuthTokenInterceptor,
-        sessionInvalidationInterceptor: SessionInvalidationInterceptor
+        authEndpointTimeoutInterceptor: AuthEndpointTimeoutInterceptor,
+        sessionInvalidationInterceptor: SessionInvalidationInterceptor,
+        retryOnFailureInterceptor: RetryOnFailureInterceptor,
+        sessionRefreshInterceptor: SessionRefreshInterceptor
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .callTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
+            .addInterceptor(authEndpointTimeoutInterceptor)
             .addInterceptor(authTokenInterceptor)
+            .addInterceptor(sessionRefreshInterceptor)
             .addInterceptor(sessionInvalidationInterceptor)
+            .addInterceptor(retryOnFailureInterceptor)
             .addInterceptor(logging)
             .build()
     }

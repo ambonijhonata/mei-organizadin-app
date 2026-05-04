@@ -62,56 +62,18 @@ class CalendarHomeViewModelTest {
         advanceUntilIdle()
 
         val initialDate = fakeRepo.requestedDates.last()
-        setLastBackgroundSyncAt(viewModel, Instant.now())
+        val initialSyncCalls = fakeRepo.syncCalls
         viewModel.onPreviousDay()
         advanceUntilIdle()
         val previousDate = fakeRepo.requestedDates.last()
         assertEquals(initialDate.minusDays(1), previousDate)
+        assertEquals(initialSyncCalls + 1, fakeRepo.syncCalls)
 
         viewModel.onNextDay()
         advanceUntilIdle()
         val nextDate = fakeRepo.requestedDates.last()
         assertEquals(initialDate, nextDate)
-        assertEquals(1, fakeRepo.syncCalls)
-    }
-
-    @Test
-    fun `arrow navigation should skip background sync within 20 second freshness window`() = runTest {
-        val fakeRepo = FakeCalendarRepository(
-            syncOutcomes = mutableListOf(
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
-            )
-        )
-        val viewModel = createViewModel(fakeRepo)
-        advanceUntilIdle()
-
-        setLastBackgroundSyncAt(viewModel, Instant.now().minusSeconds(1))
-        val syncCallsBeforeNavigation = fakeRepo.syncCalls
-        viewModel.onNextDay()
-        advanceUntilIdle()
-
-        assertEquals(syncCallsBeforeNavigation, fakeRepo.syncCalls)
-    }
-
-    @Test
-    fun `arrow navigation should trigger background sync when freshness reaches 20 seconds`() = runTest {
-        val fakeRepo = FakeCalendarRepository(
-            syncOutcomes = mutableListOf(
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
-                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
-            )
-        )
-        val viewModel = createViewModel(fakeRepo)
-        advanceUntilIdle()
-
-        setLastBackgroundSyncAt(viewModel, Instant.now().minusSeconds(21))
-        val syncCallsBeforeNavigation = fakeRepo.syncCalls
-        viewModel.onNextDay()
-        advanceUntilIdle()
-
-        assertEquals(syncCallsBeforeNavigation + 1, fakeRepo.syncCalls)
+        assertEquals(initialSyncCalls + 2, fakeRepo.syncCalls)
     }
 
     @Test
@@ -227,18 +189,21 @@ class CalendarHomeViewModelTest {
     fun `date selected directly should trigger day reload pipeline`() = runTest {
         val fakeRepo = FakeCalendarRepository(
             syncOutcomes = mutableListOf(
+                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
                 CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
             )
         )
         val viewModel = createViewModel(fakeRepo)
         advanceUntilIdle()
 
+        val initialSyncCalls = fakeRepo.syncCalls
         val targetDate = LocalDate.of(2026, 4, 5)
         viewModel.onDateSelected(targetDate)
         advanceUntilIdle()
 
         assertEquals(targetDate, fakeRepo.requestedDates.last())
         assertEquals(targetDate, viewModel.uiState.value.selectedDate)
+        assertEquals(initialSyncCalls + 1, fakeRepo.syncCalls)
     }
 
     @Test
@@ -484,6 +449,36 @@ class CalendarHomeViewModelTest {
     }
 
     @Test
+    fun `day change should not start parallel sync and should retry after running sync completes`() = runTest {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val nextDay = today.plusDays(1)
+        val fakeRepo = FakeCalendarRepository(
+            syncOutcomes = mutableListOf(
+                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0)),
+                CalendarSyncOutcome.Success(CalendarSyncResult(0, 0, 0))
+            ),
+            syncDelayMs = 5_000L
+        )
+        val viewModel = createViewModel(fakeRepo)
+
+        runCurrent()
+        assertEquals(1, fakeRepo.syncCalls)
+
+        viewModel.onNextDay()
+        runCurrent()
+        assertEquals(nextDay, viewModel.uiState.value.selectedDate)
+        assertEquals(1, fakeRepo.syncCalls)
+
+        advanceTimeBy(5_000L)
+        runCurrent()
+
+        viewModel.onPreviousDay()
+        runCurrent()
+        assertEquals(today, viewModel.uiState.value.selectedDate)
+        assertEquals(2, fakeRepo.syncCalls)
+    }
+
+    @Test
     fun `background sync should send configured startDate when filter is enabled`() = runTest {
         val fakeRepo = FakeCalendarRepository()
         val settingsStore = FakeCalendarSyncSettingsStore(
@@ -527,11 +522,6 @@ class CalendarHomeViewModelTest {
         )
     }
 
-    private fun setLastBackgroundSyncAt(viewModel: CalendarHomeViewModel, instant: Instant) {
-        val field = CalendarHomeViewModel::class.java.getDeclaredField("lastBackgroundSyncAt")
-        field.isAccessible = true
-        field.set(viewModel, instant)
-    }
 }
 
 private class FakeCalendarRepository(

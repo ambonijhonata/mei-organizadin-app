@@ -8,4 +8,8 @@ interface SessionManager {
     fun clearSession()
     fun currentSession(): UserSession?
     fun getIdToken(): String?
+    fun getAccessToken(): String? = getIdToken()
+    fun getRefreshToken(): String? = currentSession()?.refreshToken
+    fun getAccessTokenExpiresAtEpochSeconds(): Long? = currentSession()?.accessTokenExpiresAtEpochSeconds
+    fun getRefreshTokenExpiresAtEpochSeconds(): Long? = currentSession()?.refreshTokenExpiresAtEpochSeconds
 }

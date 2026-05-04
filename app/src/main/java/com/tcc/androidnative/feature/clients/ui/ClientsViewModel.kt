@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.network.BackendApiException
+import com.tcc.androidnative.core.network.isLikelyTransientNetworkFailure
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
@@ -392,7 +393,11 @@ class ClientsViewModel @Inject constructor(
             }.onFailure {
                 _uiState.update { it.copy(isLoading = false, isAppending = false) }
                 showMessage(
-                    textResId = R.string.feedback_client_load_error,
+                    textResId = if (it.isLikelyTransientNetworkFailure()) {
+                        R.string.feedback_network_timeout
+                    } else {
+                        R.string.feedback_client_load_error
+                    },
                     tone = MessageTone.ERROR,
                     duration = MessageDurations.SHORT_3S
                 )
@@ -471,7 +476,11 @@ class ClientsViewModel @Inject constructor(
             else -> {
                 setClientFormErrors(
                     bannerMessage = TransientMessage(
-                        textResId = R.string.feedback_client_save_error,
+                        textResId = if (error.isLikelyTransientNetworkFailure()) {
+                            R.string.feedback_network_timeout
+                        } else {
+                            R.string.feedback_client_save_error
+                        },
                         tone = MessageTone.ERROR,
                         durationMillis = MessageDurations.SHORT_3S
                     )

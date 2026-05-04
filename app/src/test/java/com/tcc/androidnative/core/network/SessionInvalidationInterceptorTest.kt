@@ -10,10 +10,17 @@ import org.junit.Test
 
 class SessionInvalidationInterceptorTest {
     @Test
-    fun `should invalidate session only for 401`() {
+    fun `should invalidate session only for terminal refresh errors`() {
         val interceptor = SessionInvalidationInterceptor(FakeSessionManager())
 
-        assertTrue(interceptor.shouldInvalidateSession(401))
+        assertFalse(interceptor.shouldInvalidateSession(401))
+        assertTrue(
+            interceptor.shouldInvalidateSession(
+                401,
+                "/api/auth/refresh",
+                """{"code":"REFRESH_TOKEN_REVOKED"}"""
+            )
+        )
         assertFalse(interceptor.shouldInvalidateSession(403))
         assertFalse(interceptor.shouldInvalidateSession(500))
     }
@@ -41,5 +48,5 @@ private class FakeSessionManager : SessionManager {
 
     override fun currentSession(): UserSession? = mutableState.value
 
-    override fun getIdToken(): String? = mutableState.value?.idToken
+    override fun getIdToken(): String? = mutableState.value?.accessToken
 }

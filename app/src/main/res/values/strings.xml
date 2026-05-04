@@ -28,6 +28,7 @@
     <string name="feedback_calendar_loading">Sincronizando e carregando agenda...</string>
     <string name="feedback_calendar_refreshing">Atualizando agenda em segundo plano...</string>
     <string name="feedback_calendar_load_error">Erro ao carregar agenda</string>
+    <string name="feedback_network_timeout">Conexao instavel. Tente novamente em instantes.</string>
     <string name="feedback_calendar_reauth_action">Reautenticar Google</string>
 
     <string name="feedback_client_load_error">Erro ao carregar clientes</string>

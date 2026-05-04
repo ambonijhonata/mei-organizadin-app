@@ -13,7 +13,8 @@ class SessionInvalidationInterceptor @Inject constructor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val response = chain.proceed(request)
-        if (shouldInvalidateSession(response.code, request.url.encodedPath)) {
+        val responseBodyPreview = runCatching { response.peekBody(4096).string() }.getOrDefault("")
+        if (shouldInvalidateSession(response.code, request.url.encodedPath, responseBodyPreview)) {
             sessionManager.clearSession()
         }
         return response
@@ -21,11 +22,19 @@ class SessionInvalidationInterceptor @Inject constructor(
 
     internal fun shouldInvalidateSession(
         responseCode: Int,
-        encodedPath: String? = null
+        encodedPath: String? = null,
+        responseBody: String? = null
     ): Boolean {
         if (responseCode != 401) return false
         if (encodedPath != null && isPaymentsPreloadPath(encodedPath)) return false
-        return true
+        if (encodedPath != null && encodedPath.startsWith("/api/auth/refresh")) {
+            val body = responseBody.orEmpty()
+            return body.contains("REFRESH_TOKEN_INVALID") ||
+                body.contains("REFRESH_TOKEN_REVOKED") ||
+                body.contains("REFRESH_TOKEN_REUSED") ||
+                body.contains("REFRESH_TOKEN_EXPIRED")
+        }
+        return false
     }
 
     internal fun isPaymentsPreloadPath(encodedPath: String): Boolean {

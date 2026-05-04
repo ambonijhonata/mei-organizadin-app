@@ -101,8 +101,10 @@ class LoginViewModel @Inject constructor(
     }
 
     fun logout() {
-        authRepository.logout()
-        _uiState.update { it.copy(isAuthenticated = false, transientMessage = null) }
+        viewModelScope.launch {
+            authRepository.logout()
+            _uiState.update { it.copy(isAuthenticated = false, transientMessage = null) }
+        }
     }
 
     private fun showLoginError() {

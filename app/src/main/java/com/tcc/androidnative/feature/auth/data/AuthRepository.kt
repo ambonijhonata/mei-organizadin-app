@@ -5,13 +5,17 @@ import com.tcc.androidnative.core.session.SessionManager
 import com.tcc.androidnative.core.session.UserSession
 import com.tcc.androidnative.feature.auth.data.remote.AuthApi
 import com.tcc.androidnative.feature.auth.data.remote.dto.LoginRequestDto
+import com.tcc.androidnative.feature.auth.data.remote.dto.LogoutRequestDto
+import com.tcc.androidnative.feature.auth.data.remote.dto.RefreshRequestDto
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import retrofit2.HttpException
 
 interface AuthRepository {
     suspend fun login(idToken: String, authorizationCode: String): UserSession
-    fun logout()
+    suspend fun refresh(refreshToken: String): UserSession
+    suspend fun logout()
 }
 
 @Singleton
@@ -31,12 +35,20 @@ class AuthRepositoryImpl @Inject constructor(
         )
 
         return try {
-            val response = api.login(LoginRequestDto(idToken = idToken, authorizationCode = authorizationCode))
+            val response = api.login(
+                LoginRequestDto(
+                    idToken = idToken,
+                    authorizationCode = authorizationCode
+                )
+            )
             val session = UserSession(
                 userId = response.userId,
                 email = response.email,
                 name = response.name,
-                idToken = idToken
+                accessToken = response.accessToken,
+                refreshToken = response.refreshToken,
+                accessTokenExpiresAtEpochSeconds = parseEpochSeconds(response.accessTokenExpiresAt),
+                refreshTokenExpiresAtEpochSeconds = parseEpochSeconds(response.refreshTokenExpiresAt)
             )
             sessionManager.saveSession(session)
             logInfo("auth_login_request_success userId=${session.userId}")
@@ -56,8 +68,39 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun logout() {
+    override suspend fun refresh(refreshToken: String): UserSession {
+        val current = sessionManager.currentSession()
+            ?: throw IllegalStateException("No active session to refresh")
+        val response = api.refresh(
+            RefreshRequestDto(refreshToken = refreshToken)
+        )
+        val updated = current.copy(
+            accessToken = response.accessToken,
+            refreshToken = response.refreshToken,
+            accessTokenExpiresAtEpochSeconds = parseEpochSeconds(response.accessTokenExpiresAt),
+            refreshTokenExpiresAtEpochSeconds = parseEpochSeconds(response.refreshTokenExpiresAt)
+        )
+        sessionManager.saveSession(updated)
+        return updated
+    }
+
+    override suspend fun logout() {
+        val refreshToken = sessionManager.getRefreshToken()
+        runCatching {
+            if (!refreshToken.isNullOrBlank()) {
+                api.logout(LogoutRequestDto(refreshToken = refreshToken))
+            }
+        }.onFailure { error ->
+            logError(
+                "auth_logout_remote_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                error
+            )
+        }
         sessionManager.clearSession()
+    }
+
+    private fun parseEpochSeconds(value: String): Long {
+        return Instant.parse(value).epochSecond
     }
 
     private fun logInfo(message: String) {
