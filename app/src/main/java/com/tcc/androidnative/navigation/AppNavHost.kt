@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -20,6 +21,9 @@ import com.tcc.androidnative.feature.calendar.ui.CalendarHomeScreen
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeViewModel
 import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.clients.ui.ClientsScreen
+import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep1Screen
+import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep2Screen
+import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep4Screen
 import com.tcc.androidnative.feature.payments.ui.PaymentsScreen
 import com.tcc.androidnative.feature.reports.ui.CashFlowScreen
 import com.tcc.androidnative.feature.reports.ui.RevenueScreen
@@ -36,9 +40,14 @@ fun AppNavHost() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-    val startDestination = resolveStartDestination(hasSession = session.value != null)
-    var requiresInitialSetup by rememberSaveable { mutableStateOf(false) }
+    val hasSession = session.value != null
+    val startDestination = resolveStartDestination(
+        hasSession = hasSession,
+        shouldShowOnboarding = hasSession && initialSetupViewModel.shouldShowOnboarding()
+    )
     var pendingCalendarRefresh by rememberSaveable { mutableStateOf(false) }
+    val calendarListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    var allowCalendarInitialAutoFocus by rememberSaveable { mutableStateOf(true) }
 
     fun navigateTo(route: String) {
         navController.navigate(route) {
@@ -53,7 +62,6 @@ fun AppNavHost() {
     LaunchedEffect(session.value) {
         val currentRoute = navController.currentDestination?.route
         if (session.value == null && currentRoute != AppDestination.Login.route) {
-            requiresInitialSetup = false
             pendingCalendarRefresh = false
             navController.navigate(AppDestination.Login.route) {
                 launchSingleTop = true
@@ -77,15 +85,73 @@ fun AppNavHost() {
         composable(AppDestination.Login.route) {
             LoginRoute(
                 onLoginSuccess = {
-                    val authenticatedRoute = if (initialSetupViewModel.requiresInitialSetup()) {
-                        requiresInitialSetup = true
-                        resolvePostLoginDestination(requiresInitialSetup = true)
-                    } else {
-                        requiresInitialSetup = false
-                        resolvePostLoginDestination(requiresInitialSetup = false)
-                    }
+                    val authenticatedRoute = resolvePostLoginDestination(
+                        shouldShowOnboarding = initialSetupViewModel.shouldShowOnboarding()
+                    )
                     navController.navigate(authenticatedRoute) {
                         popUpTo(AppDestination.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(AppDestination.Onboarding1.route) {
+            OnboardingStep1Screen(
+                onCloseClick = {
+                    navController.navigate(AppDestination.Home.route) {
+                        popUpTo(AppDestination.Onboarding1.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onNextClick = {
+                    navController.navigate(AppDestination.Onboarding2.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(AppDestination.Onboarding2.route) {
+            OnboardingStep2Screen(
+                onCloseClick = {
+                    navController.navigate(AppDestination.Home.route) {
+                        popUpTo(AppDestination.Onboarding1.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onBackClick = {
+                    navController.navigate(AppDestination.Onboarding1.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onNextClick = {
+                    navController.navigate(AppDestination.Onboarding4.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onAddServiceClick = {
+                    navController.navigate(AppDestination.ServicesOnboarding.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(AppDestination.Onboarding4.route) {
+            OnboardingStep4Screen(
+                onCloseClick = {
+                    navController.navigate(AppDestination.Home.route) {
+                        popUpTo(AppDestination.Onboarding1.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onBackClick = {
+                    navController.navigate(AppDestination.Onboarding2.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onConcludeClick = {
+                    initialSetupViewModel.completeOnboarding()
+                    navController.navigate(AppDestination.Home.route) {
+                        popUpTo(AppDestination.Onboarding1.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -102,8 +168,11 @@ fun AppNavHost() {
             ) {
                 CalendarHomeScreen(
                     viewModel = calendarHomeViewModel,
+                    listState = calendarListState,
+                    allowInitialAutoFocus = allowCalendarInitialAutoFocus,
                     onReauthenticateRequested = sessionViewModel::logout,
                     onAppointmentClick = { item ->
+                        allowCalendarInitialAutoFocus = false
                         navController.navigate(
                             AppDestination.Payments.createRoute(
                                 eventId = item.eventId,
@@ -135,7 +204,36 @@ fun AppNavHost() {
                 topBarTitle = "MEI ORGANIZADINHO",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
-            ) { ServicesScreen() }
+            ) {
+                ServicesScreen(
+                    showContinueOnboarding = !initialSetupViewModel.hasCompletedOnboarding(),
+                    onContinueOnboardingClick = {
+                        navController.navigate(AppDestination.Onboarding4.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+        }
+        composable(AppDestination.ServicesOnboarding.route) {
+            AppShellScaffold(
+                currentRoute = AppDestination.Services.route,
+                onNavigate = ::navigateTo,
+                onLogout = sessionViewModel::logout,
+                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitleColor = DrawerMenuIconBlue,
+                topBarIconColor = DrawerMenuIconBlue
+            ) {
+                ServicesScreen(
+                    showContinueOnboarding = true,
+                    onContinueOnboardingClick = {
+                        navController.navigate(AppDestination.Onboarding4.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    openCreateFormOnLaunch = true
+                )
+            }
         }
         composable(AppDestination.CashFlow.route) {
             AppShellScaffold(
@@ -164,12 +262,10 @@ fun AppNavHost() {
                 onLogout = sessionViewModel::logout,
                 topBarTitle = "MEI ORGANIZADINHO",
                 topBarTitleColor = DrawerMenuIconBlue,
-                topBarIconColor = DrawerMenuIconBlue,
-                isNavigationLocked = requiresInitialSetup
+                topBarIconColor = DrawerMenuIconBlue
             ) {
                 SettingsScreen(
                     onSaveSuccess = {
-                        requiresInitialSetup = false
                         navigateTo(resolveSettingsSaveDestination())
                     },
                     onNavigateHome = {
@@ -222,12 +318,18 @@ fun AppNavHost() {
     }
 }
 
-internal fun resolveStartDestination(hasSession: Boolean): String {
-    return if (hasSession) AppDestination.Home.route else AppDestination.Login.route
+internal fun resolveStartDestination(
+    hasSession: Boolean,
+    shouldShowOnboarding: Boolean
+): String {
+    if (!hasSession) {
+        return AppDestination.Login.route
+    }
+    return if (shouldShowOnboarding) AppDestination.Onboarding1.route else AppDestination.Home.route
 }
 
-internal fun resolvePostLoginDestination(requiresInitialSetup: Boolean): String {
-    return if (requiresInitialSetup) AppDestination.Settings.route else AppDestination.Home.route
+internal fun resolvePostLoginDestination(shouldShowOnboarding: Boolean): String {
+    return if (shouldShowOnboarding) AppDestination.Onboarding1.route else AppDestination.Home.route
 }
 
 internal fun resolveSettingsSaveDestination(): String {

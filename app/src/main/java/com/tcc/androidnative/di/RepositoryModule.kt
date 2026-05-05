@@ -10,6 +10,8 @@ import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarRepositoryImpl
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
 import com.tcc.androidnative.feature.clients.data.ClientsRepositoryImpl
+import com.tcc.androidnative.feature.onboarding.data.FirstAccessPreferenceStore
+import com.tcc.androidnative.feature.onboarding.data.SharedPreferencesFirstAccessPreferenceStore
 import com.tcc.androidnative.feature.payments.data.PaymentsRepository
 import com.tcc.androidnative.feature.payments.data.PaymentsRepositoryImpl
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
@@ -64,4 +66,10 @@ abstract class RepositoryModule {
     abstract fun bindCalendarSyncSettingsStore(
         impl: SharedPreferencesCalendarSyncSettingsStore
     ): CalendarSyncSettingsStore
+
+    @Binds
+    @Singleton
+    abstract fun bindFirstAccessPreferenceStore(
+        impl: SharedPreferencesFirstAccessPreferenceStore
+    ): FirstAccessPreferenceStore
 }

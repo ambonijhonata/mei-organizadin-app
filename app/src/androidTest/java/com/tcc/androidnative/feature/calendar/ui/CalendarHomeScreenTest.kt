@@ -124,6 +124,8 @@ class CalendarHomeScreenTest {
         composeRule.setContent {
             AndroidNativeTheme {
                 var selectedDate by remember { mutableStateOf(LocalDate.of(2026, 4, 4)) }
+                var nextFocusRequestId by remember { mutableStateOf(0) }
+                var pendingFocusRequestId by remember { mutableStateOf<Int?>(null) }
                 var items by remember {
                     mutableStateOf(
                         listOf(
@@ -149,6 +151,8 @@ class CalendarHomeScreenTest {
                     onPreviousDay = {},
                     onNextDay = {
                         selectedDate = selectedDate.plusDays(1)
+                        nextFocusRequestId += 1
+                        pendingFocusRequestId = nextFocusRequestId
                         items = listOf(
                             CalendarAgendaItem(
                                 eventId = 2L,
@@ -164,6 +168,8 @@ class CalendarHomeScreenTest {
                     },
                     onDateSelected = { selectedDate = it },
                     onReauthenticateRequested = {},
+                    autoFocusRequestId = pendingFocusRequestId,
+                    onAutoFocusRequestConsumed = { pendingFocusRequestId = null },
                     currentLocalTimeProvider = { LocalTime.of(9, 10) },
                     onAutoFocusIndexResolved = { index -> resolvedIndexes.add(index) }
                 )
@@ -177,6 +183,96 @@ class CalendarHomeScreenTest {
         assertTrue(resolvedIndexes.contains(29))
         assertTrue(resolvedIndexes.contains(16))
         composeRule.onNodeWithText("Evento Dia 5").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_not_autofocus_when_restoring_from_payments_context() {
+        val resolvedIndexes = mutableListOf<Int>()
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = LocalDate.of(2026, 4, 4)),
+                    onPreviousDay = {},
+                    onNextDay = {},
+                    onDateSelected = {},
+                    onReauthenticateRequested = {},
+                    allowInitialAutoFocus = false,
+                    currentLocalTimeProvider = { LocalTime.of(10, 40) },
+                    onAutoFocusIndexResolved = { index -> resolvedIndexes.add(index) }
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        assertTrue(resolvedIndexes.isEmpty())
+    }
+
+    @Test
+    fun home_should_autofocus_after_explicit_date_change_even_without_initial_autofocus() {
+        val resolvedIndexes = mutableListOf<Int>()
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                var selectedDate by remember { mutableStateOf(LocalDate.of(2026, 4, 4)) }
+                var nextFocusRequestId by remember { mutableStateOf(0) }
+                var pendingFocusRequestId by remember { mutableStateOf<Int?>(null) }
+                var items by remember {
+                    mutableStateOf(
+                        listOf(
+                            CalendarAgendaItem(
+                                eventId = 1L,
+                                eventStart = Instant.parse("2026-04-04T14:30:00Z"),
+                                eventEnd = Instant.parse("2026-04-04T15:00:00Z"),
+                                slotLabel = "14:30",
+                                timeLabel = "14:30",
+                                title = "Evento Dia 4",
+                                serviceDescription = null,
+                                durationLabel = "30 min"
+                            )
+                        )
+                    )
+                }
+
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(
+                        selectedDate = selectedDate,
+                        items = items
+                    ),
+                    onPreviousDay = {},
+                    onNextDay = {
+                        selectedDate = selectedDate.plusDays(1)
+                        nextFocusRequestId += 1
+                        pendingFocusRequestId = nextFocusRequestId
+                        items = listOf(
+                            CalendarAgendaItem(
+                                eventId = 2L,
+                                eventStart = Instant.parse("2026-04-05T08:00:00Z"),
+                                eventEnd = Instant.parse("2026-04-05T08:30:00Z"),
+                                slotLabel = "08:00",
+                                timeLabel = "08:00",
+                                title = "Evento Dia 5",
+                                serviceDescription = null,
+                                durationLabel = "30 min"
+                            )
+                        )
+                    },
+                    onDateSelected = { selectedDate = it },
+                    onReauthenticateRequested = {},
+                    allowInitialAutoFocus = false,
+                    autoFocusRequestId = pendingFocusRequestId,
+                    onAutoFocusRequestConsumed = { pendingFocusRequestId = null },
+                    currentLocalTimeProvider = { LocalTime.of(9, 10) },
+                    onAutoFocusIndexResolved = { index -> resolvedIndexes.add(index) }
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        assertTrue(resolvedIndexes.isEmpty())
+        composeRule.onNodeWithContentDescription("Ir para proximo dia").performClick()
+        composeRule.waitForIdle()
+
+        assertTrue(resolvedIndexes.contains(16))
     }
 
     @Test

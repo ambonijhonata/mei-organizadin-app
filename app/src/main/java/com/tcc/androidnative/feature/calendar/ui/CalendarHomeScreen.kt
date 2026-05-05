@@ -41,6 +41,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -79,17 +80,37 @@ private val localePtBr = Locale("pt", "BR")
 fun CalendarHomeScreen(
     viewModel: CalendarHomeViewModel = hiltViewModel(),
     onReauthenticateRequested: () -> Unit = {},
-    onAppointmentClick: (CalendarAgendaItem) -> Unit = {}
+    onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
+    listState: LazyListState? = null,
+    allowInitialAutoFocus: Boolean = true
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var nextAutoFocusRequestId by rememberSaveable { mutableIntStateOf(0) }
+    var pendingAutoFocusRequestId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     CalendarHomeContent(
         uiState = uiState,
-        onPreviousDay = viewModel::onPreviousDay,
-        onNextDay = viewModel::onNextDay,
-        onDateSelected = viewModel::onDateSelected,
+        onPreviousDay = {
+            nextAutoFocusRequestId += 1
+            pendingAutoFocusRequestId = nextAutoFocusRequestId
+            viewModel.onPreviousDay()
+        },
+        onNextDay = {
+            nextAutoFocusRequestId += 1
+            pendingAutoFocusRequestId = nextAutoFocusRequestId
+            viewModel.onNextDay()
+        },
+        onDateSelected = { date ->
+            nextAutoFocusRequestId += 1
+            pendingAutoFocusRequestId = nextAutoFocusRequestId
+            viewModel.onDateSelected(date)
+        },
         onReauthenticateRequested = onReauthenticateRequested,
-        onAppointmentClick = onAppointmentClick
+        onAppointmentClick = onAppointmentClick,
+        listState = listState,
+        allowInitialAutoFocus = allowInitialAutoFocus,
+        autoFocusRequestId = pendingAutoFocusRequestId,
+        onAutoFocusRequestConsumed = { pendingAutoFocusRequestId = null }
     )
 }
 
@@ -106,6 +127,9 @@ internal fun CalendarHomeContent(
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
     currentDateProvider: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
     onAutoFocusIndexResolved: (Int) -> Unit = {},
+    allowInitialAutoFocus: Boolean = true,
+    autoFocusRequestId: Int? = null,
+    onAutoFocusRequestConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val resolvedListState = listState ?: rememberLazyListState()
@@ -120,9 +144,24 @@ internal fun CalendarHomeContent(
     val headerContentDescription = stringResource(R.string.calendar_header_content_description)
     val reauthActionLabel = stringResource(R.string.feedback_calendar_reauth_action)
     val isDatePickerVisible = rememberSaveable { mutableStateOf(false) }
+    var initialAutoFocusConsumed by rememberSaveable { mutableStateOf(false) }
+    var consumedAutoFocusRequestId by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(uiState.selectedDate, uiState.items, uiState.isLoading, uiState.errorMessage) {
+    LaunchedEffect(
+        allowInitialAutoFocus,
+        autoFocusRequestId,
+        uiState.selectedDate,
+        uiState.items,
+        uiState.isLoading,
+        uiState.errorMessage
+    ) {
         if (uiState.isLoading || uiState.errorMessage != null || slotLabels.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        val hasNewFocusRequest = autoFocusRequestId != null && autoFocusRequestId != consumedAutoFocusRequestId
+        val shouldRunInitialAutoFocus = allowInitialAutoFocus && !initialAutoFocusConsumed && autoFocusRequestId == null
+        if (!hasNewFocusRequest && !shouldRunInitialAutoFocus) {
             return@LaunchedEffect
         }
 
@@ -134,6 +173,13 @@ internal fun CalendarHomeContent(
 
         centerSlotOnViewport(resolvedListState, targetIndex)
         onAutoFocusIndexResolved(targetIndex)
+        if (hasNewFocusRequest) {
+            consumedAutoFocusRequestId = autoFocusRequestId
+            onAutoFocusRequestConsumed()
+        }
+        if (shouldRunInitialAutoFocus) {
+            initialAutoFocusConsumed = true
+        }
     }
 
     if (isDatePickerVisible.value) {

@@ -7,28 +7,44 @@ import org.junit.Test
 class AppNavHostRoutingTest {
     @Test
     fun `without session start destination should be login`() {
-        val route = resolveStartDestination(hasSession = false)
+        val route = resolveStartDestination(
+            hasSession = false,
+            shouldShowOnboarding = true
+        )
 
         assertEquals(AppDestination.Login.route, route)
     }
 
     @Test
     fun `with restored session start destination should be home`() {
-        val route = resolveStartDestination(hasSession = true)
+        val route = resolveStartDestination(
+            hasSession = true,
+            shouldShowOnboarding = false
+        )
 
         assertEquals(AppDestination.Home.route, route)
     }
 
     @Test
-    fun `post login first access should navigate to settings`() {
-        val route = resolvePostLoginDestination(requiresInitialSetup = true)
+    fun `with restored session and pending onboarding start destination should be onboarding step 1`() {
+        val route = resolveStartDestination(
+            hasSession = true,
+            shouldShowOnboarding = true
+        )
 
-        assertEquals(AppDestination.Settings.route, route)
+        assertEquals(AppDestination.Onboarding1.route, route)
+    }
+
+    @Test
+    fun `post login first access should navigate to onboarding step 1`() {
+        val route = resolvePostLoginDestination(shouldShowOnboarding = true)
+
+        assertEquals(AppDestination.Onboarding1.route, route)
     }
 
     @Test
     fun `post login subsequent access should navigate to home`() {
-        val route = resolvePostLoginDestination(requiresInitialSetup = false)
+        val route = resolvePostLoginDestination(shouldShowOnboarding = false)
 
         assertEquals(AppDestination.Home.route, route)
     }

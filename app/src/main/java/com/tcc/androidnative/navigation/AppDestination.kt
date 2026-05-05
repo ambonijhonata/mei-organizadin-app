@@ -5,8 +5,12 @@ import java.math.BigDecimal
 sealed class AppDestination(val route: String) {
     data object Login : AppDestination("login")
     data object Home : AppDestination("home")
+    data object Onboarding1 : AppDestination("onboarding1")
+    data object Onboarding2 : AppDestination("onboarding2")
+    data object Onboarding4 : AppDestination("onboarding4")
     data object Clients : AppDestination("clients")
     data object Services : AppDestination("services")
+    data object ServicesOnboarding : AppDestination("services_onboarding")
     data object CashFlow : AppDestination("cashflow")
     data object Revenue : AppDestination("revenue")
     data object Settings : AppDestination("settings")

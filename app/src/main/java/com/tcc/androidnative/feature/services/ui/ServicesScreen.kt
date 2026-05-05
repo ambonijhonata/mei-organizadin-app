@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -57,23 +58,57 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 
 @Composable
 fun ServicesScreen(
-    viewModel: ServicesViewModel = hiltViewModel()
+    viewModel: ServicesViewModel = hiltViewModel(),
+    showContinueOnboarding: Boolean = false,
+    onContinueOnboardingClick: (() -> Unit)? = null,
+    openCreateFormOnLaunch: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val allVisibleSelected = uiState.items.isNotEmpty() && uiState.items.all { it.id in uiState.selectedIds }
+
+    LaunchedEffect(openCreateFormOnLaunch) {
+        if (openCreateFormOnLaunch) {
+            viewModel.openCreateForm()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Servicos",
-            style = MaterialTheme.typography.headlineMedium,
-            color = DrawerMenuIconBlue,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Servicos",
+                style = MaterialTheme.typography.headlineMedium,
+                color = DrawerMenuIconBlue,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (showContinueOnboarding && onContinueOnboardingClick != null) {
+                Button(
+                    onClick = onContinueOnboardingClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = LoginBrandBlue,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(0.dp)
+                ) {
+                    Text("Continuar onboarding")
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
 
         uiState.transientMessages.forEach { message ->
             FeedbackMessageCard(
