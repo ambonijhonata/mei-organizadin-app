@@ -32,7 +32,7 @@ class ReportsViewModelMessagesTest {
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
         viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("10/04/2026")
+        viewModel.onEndDateChange("03/05/2026")
 
         viewModel.emitReport()
         runCurrent()
@@ -40,6 +40,23 @@ class ReportsViewModelMessagesTest {
         val message = viewModel.uiState.value.transientMessage
         assertEquals(R.string.feedback_cash_flow_period_limit, message?.textResId)
         assertEquals(MessageTone.WARNING, message?.tone)
+    }
+
+    @Test
+    fun `cash flow should allow period up to one month`() = runTest {
+        val repository = FakeReportsRepository()
+        val viewModel = CashFlowViewModel(
+            repository = repository,
+            calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+        )
+        viewModel.onStartDateChange("01/04/2026")
+        viewModel.onEndDateChange("01/05/2026")
+
+        viewModel.emitReport()
+        runCurrent()
+
+        assertEquals(null, viewModel.uiState.value.transientMessage)
+        assertEquals(ReportPaymentScope.ALL, repository.lastCashFlowScope)
     }
 
     @Test

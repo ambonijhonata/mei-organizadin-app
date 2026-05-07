@@ -64,7 +64,7 @@
     <string name="feedback_report_start_date_invalid">Data inicial inválida</string>
     <string name="feedback_report_end_date_invalid">Data final inválida</string>
     <string name="feedback_report_start_before_end">Data inicial deve ser menor que a data final</string>
-    <string name="feedback_cash_flow_period_limit">Relatório de fluxo de caixa permitido somente para um periodo de até 7 dias</string>
+    <string name="feedback_cash_flow_period_limit">Relatório de fluxo de caixa permitido somente para um periodo de até 1 mes</string>
     <string name="feedback_report_generate_error">Erro ao gerar relatório</string>
     <string name="feedback_report_stale_data">Dados desatualizados</string>
     <string name="feedback_settings_save_success">Configurações gravadas com sucesso</string>

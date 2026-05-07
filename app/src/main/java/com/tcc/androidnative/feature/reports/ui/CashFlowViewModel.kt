@@ -17,7 +17,6 @@ import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,8 +76,7 @@ class CashFlowViewModel @Inject constructor(
             return
         }
 
-        val rangeDaysInclusive = ChronoUnit.DAYS.between(start, end) + 1
-        if (rangeDaysInclusive > 7) {
+        if (end.isAfter(start.plusMonths(1))) {
             showMessage(R.string.feedback_cash_flow_period_limit, MessageTone.WARNING, MessageDurations.SHORT_3S)
             return
         }
