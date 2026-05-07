@@ -46,6 +46,27 @@ fun CashFlowScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    CashFlowScreenContent(
+        uiState = uiState,
+        onStartDateChange = viewModel::onStartDateChange,
+        onEndDateChange = viewModel::onEndDateChange,
+        onEmit = viewModel::emitReport,
+        onBackToForm = viewModel::backToForm,
+        onOpenDetail = viewModel::openDetail,
+        onBackToReport = viewModel::backToReport
+    )
+}
+
+@Composable
+internal fun CashFlowScreenContent(
+    uiState: CashFlowUiState,
+    onStartDateChange: (String) -> Unit,
+    onEndDateChange: (String) -> Unit,
+    onEmit: () -> Unit,
+    onBackToForm: () -> Unit,
+    onOpenDetail: (CashFlowEntryModel) -> Unit,
+    onBackToReport: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,18 +88,18 @@ fun CashFlowScreen(
         when (uiState.step) {
             CashFlowScreenStep.FORM -> CashFlowFormStep(
                 uiState = uiState,
-                onStartDateChange = viewModel::onStartDateChange,
-                onEndDateChange = viewModel::onEndDateChange,
-                onEmit = viewModel::emitReport
+                onStartDateChange = onStartDateChange,
+                onEndDateChange = onEndDateChange,
+                onEmit = onEmit
             )
             CashFlowScreenStep.REPORT -> CashFlowReportStep(
                 uiState = uiState,
-                onBackToForm = viewModel::backToForm,
-                onOpenDetail = viewModel::openDetail
+                onBackToForm = onBackToForm,
+                onOpenDetail = onOpenDetail
             )
             CashFlowScreenStep.DETAIL -> CashFlowDetailStep(
                 selectedDetail = uiState.selectedDetail,
-                onBackToReport = viewModel::backToReport
+                onBackToReport = onBackToReport
             )
         }
     }
@@ -278,10 +299,11 @@ private fun CashFlowDetailStep(
         Spacer(modifier = Modifier.height(12.dp))
 
         ReportCardContainer {
-            ReportTableHeader(
+            ReportTableHeaderWithFourColumns(
                 firstLabel = "Periodo",
                 secondLabel = "Servico",
-                thirdLabel = "Total"
+                thirdLabel = "Qtd.",
+                fourthLabel = "Total"
             )
             HorizontalDivider(color = Color(0xFFE5E7EB))
 
@@ -306,6 +328,10 @@ private fun CashFlowDetailStep(
                         )
                         Text(
                             text = service.name,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = service.quantity.toString(),
                             modifier = Modifier.weight(1f)
                         )
                         Text(
@@ -349,6 +375,47 @@ private fun ReportTableHeader(
         )
         Text(
             text = thirdLabel,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ReportTableHeaderWithFourColumns(
+    firstLabel: String,
+    secondLabel: String,
+    thirdLabel: String,
+    fourthLabel: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3F4F6))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = firstLabel,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151),
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = secondLabel,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151),
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = thirdLabel,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF374151),
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = fourthLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
             modifier = Modifier.weight(1f)

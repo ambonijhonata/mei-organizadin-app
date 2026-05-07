@@ -4,6 +4,7 @@ import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
+import com.tcc.androidnative.feature.reports.data.CashFlowServiceModel
 import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.RevenueReportModel
@@ -159,7 +160,13 @@ private class FakeReportsRepository(
                 CashFlowEntryModel(
                     date = startDate,
                     total = BigDecimal("10.00"),
-                    services = emptyList()
+                    services = listOf(
+                        CashFlowServiceModel(
+                            name = "Sobrancelha",
+                            quantity = 1,
+                            total = BigDecimal("10.00")
+                        )
+                    )
                 )
             ),
             startDate = startDate,

@@ -10,6 +10,7 @@ data class SyncMetadataDto(
 
 data class ServiceEntryDto(
     val name: String,
+    val quantity: Int,
     val total: BigDecimal
 )
 
@@ -32,4 +33,3 @@ data class RevenueReportDto(
     val endDate: String,
     val syncMetadata: SyncMetadataDto
 )
-

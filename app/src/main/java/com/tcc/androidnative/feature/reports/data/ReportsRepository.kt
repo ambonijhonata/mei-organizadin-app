@@ -15,6 +15,7 @@ data class SyncMetadataModel(
 
 data class CashFlowServiceModel(
     val name: String,
+    val quantity: Int,
     val total: BigDecimal
 )
 
@@ -77,7 +78,11 @@ class ReportsRepositoryImpl @Inject constructor(
                     date = DateFormats.parseApiDate(entry.date),
                     total = entry.total,
                     services = entry.services.map { service ->
-                        CashFlowServiceModel(name = service.name, total = service.total)
+                        CashFlowServiceModel(
+                            name = service.name,
+                            quantity = service.quantity,
+                            total = service.total
+                        )
                     }
                 )
             },
