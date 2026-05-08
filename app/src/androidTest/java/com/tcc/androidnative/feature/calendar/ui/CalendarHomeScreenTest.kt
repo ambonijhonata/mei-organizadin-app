@@ -20,6 +20,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +64,8 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithContentDescription("Ir para proximo dia").assertIsDisplayed()
         composeRule.onNodeWithText("04/04/2026").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Selecionar data da agenda").assertIsDisplayed()
+        composeRule.onNodeWithText("Data da última sincronização: Nunca sincronizado").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Sincronizar agenda agora").assertIsDisplayed()
         composeRule.onAllNodesWithText("00:00 - Livre").assertCountEquals(0)
         composeRule.onNodeWithText("14:30").assertIsDisplayed()
         composeRule.onNodeWithText("Reuniao com Cliente").assertIsDisplayed()
@@ -332,5 +335,32 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithTag("appointment_card_88").performClick()
         assertTrue(clickedEventId == 88L)
         assertTrue(clickedServiceTotal == BigDecimal("65.00"))
+    }
+
+    @Test
+    fun home_should_trigger_manual_sync_from_last_sync_strip() {
+        var syncRequests = 0
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(
+                        selectedDate = LocalDate.of(2026, 4, 4),
+                        lastSyncDisplayValue = "08/05/2026 12:30"
+                    ),
+                    onPreviousDay = {},
+                    onNextDay = {},
+                    onDateSelected = {},
+                    onReauthenticateRequested = {},
+                    onSyncRequested = { syncRequests += 1 }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar_last_sync_strip").assertIsDisplayed()
+        composeRule.onNodeWithTag("calendar_last_sync_label").assertIsDisplayed()
+        composeRule.onNodeWithText("Data da última sincronização: 08/05/2026 12:30").assertIsDisplayed()
+        composeRule.onNodeWithTag("calendar_last_sync_refresh").performClick()
+        assertEquals(1, syncRequests)
     }
 }

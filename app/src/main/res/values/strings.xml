@@ -8,7 +8,7 @@
     <string name="login_google_button_loading">Entrando...</string>
     <string name="login_google_button_description">Entrar com Google</string>
     <string name="drawer_app_title">MEI ORGANIZADINHO</string>
-    <string name="drawer_menu_home">Inicio</string>
+    <string name="drawer_menu_home">Início</string>
     <string name="drawer_menu_registers">Cadastros</string>
     <string name="drawer_menu_clients">Clientes</string>
     <string name="drawer_menu_services">Serviços</string>
@@ -76,6 +76,8 @@
     <string name="calendar_date_picker_open">Selecionar data da agenda</string>
     <string name="calendar_date_picker_confirm">Selecionar</string>
     <string name="calendar_date_picker_cancel">Cancelar</string>
+    <string name="calendar_last_sync_label">Data da última sincronização: %1$s</string>
+    <string name="calendar_last_sync_refresh">Sincronizar agenda agora</string>
 
     <string name="settings_title">Configurações</string>
     <string name="settings_sync_section_title">Sincronização</string>

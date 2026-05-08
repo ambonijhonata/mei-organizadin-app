@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
@@ -106,6 +107,7 @@ fun CalendarHomeScreen(
             viewModel.onDateSelected(date)
         },
         onReauthenticateRequested = onReauthenticateRequested,
+        onSyncRequested = viewModel::synchronizeNow,
         onAppointmentClick = onAppointmentClick,
         listState = listState,
         allowInitialAutoFocus = allowInitialAutoFocus,
@@ -122,6 +124,7 @@ internal fun CalendarHomeContent(
     onNextDay: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onReauthenticateRequested: () -> Unit,
+    onSyncRequested: () -> Unit = {},
     onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
     listState: LazyListState? = null,
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
@@ -143,6 +146,8 @@ internal fun CalendarHomeContent(
     val nextDayContentDescription = stringResource(R.string.calendar_next_day)
     val headerContentDescription = stringResource(R.string.calendar_header_content_description)
     val reauthActionLabel = stringResource(R.string.feedback_calendar_reauth_action)
+    val lastSyncLabel = stringResource(R.string.calendar_last_sync_label, uiState.lastSyncDisplayValue)
+    val lastSyncRefreshDescription = stringResource(R.string.calendar_last_sync_refresh)
     val isDatePickerVisible = rememberSaveable { mutableStateOf(false) }
     var initialAutoFocusConsumed by rememberSaveable { mutableStateOf(false) }
     var consumedAutoFocusRequestId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -286,6 +291,37 @@ internal fun CalendarHomeContent(
                 Text(
                     text = DateFormats.toUiDate(uiState.selectedDate),
                     color = Color(0xFF374151)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("calendar_last_sync_strip"),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = lastSyncLabel,
+                color = Color(0xFF4B5563),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("calendar_last_sync_label")
+            )
+            IconButton(
+                onClick = onSyncRequested,
+                enabled = !uiState.isRefreshing,
+                modifier = Modifier
+                    .testTag("calendar_last_sync_refresh")
+                    .semantics { contentDescription = lastSyncRefreshDescription }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = LoginBrandBlue
                 )
             }
         }

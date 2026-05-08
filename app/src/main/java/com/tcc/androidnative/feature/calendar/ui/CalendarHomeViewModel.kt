@@ -7,6 +7,7 @@ import com.tcc.androidnative.R
 import com.tcc.androidnative.core.network.isLikelyTransientNetworkFailure
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
+import com.tcc.androidnative.feature.calendar.data.CalendarIntegrationStatus
 import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.calendar.data.CalendarRepository
 import com.tcc.androidnative.feature.calendar.data.CalendarSyncOutcome
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
+private const val defaultLastSyncNotAvailableLabel = "Nunca sincronizado"
+
 data class CalendarAgendaItem(
     val eventId: Long,
     val eventStart: Instant,
@@ -47,6 +50,7 @@ data class CalendarHomeUiState(
     val selectedDate: LocalDate = LocalDate.now(ZoneOffset.UTC),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val lastSyncDisplayValue: String = defaultLastSyncNotAvailableLabel,
     val items: List<CalendarAgendaItem> = emptyList(),
     val errorMessage: TransientMessage? = null,
     val syncWarningMessage: TransientMessage? = null,
@@ -59,6 +63,7 @@ class CalendarHomeViewModel @Inject constructor(
     private val calendarSyncSettingsStore: CalendarSyncSettingsStore
 ) : ViewModel() {
     private val hourFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val lastSyncFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
     private val zoneResolver: () -> ZoneId = { ZoneId.systemDefault() }
     private val selectedDateFlow = MutableStateFlow(LocalDate.now(ZoneOffset.UTC))
     private var requestCounter: Long = 0L
@@ -120,6 +125,7 @@ class CalendarHomeViewModel @Inject constructor(
             logInfo(
                 "calendar_pipeline_success requestId=$requestId date=$selectedDate items=${items.size} render_ms=${elapsedMs(renderStart)}"
             )
+            launchLastSyncMetadataRefresh()
             launchBackgroundSyncIfDue()
         } catch (error: CancellationException) {
             logInfo("calendar_pipeline_cancelled requestId=$requestId date=$selectedDate")
@@ -188,7 +194,7 @@ class CalendarHomeViewModel @Inject constructor(
             return
         }
         backgroundSyncJob = viewModelScope.launch {
-            runBackgroundSync()
+            runSync(trigger = SYNC_TRIGGER_BACKGROUND)
         }
     }
 
@@ -196,30 +202,47 @@ class CalendarHomeViewModel @Inject constructor(
         return backgroundSyncJob?.isActive != true
     }
 
-    private suspend fun runBackgroundSync() {
+    fun synchronizeNow() {
+        if (!shouldTriggerBackgroundSync()) {
+            logInfo("calendar_manual_sync_skipped reason=sync_running")
+            return
+        }
+        backgroundSyncJob = viewModelScope.launch {
+            runSync(trigger = SYNC_TRIGGER_MANUAL)
+        }
+    }
+
+    private suspend fun runSync(trigger: String) {
         val syncStart = System.nanoTime()
         _uiState.update { state ->
             state.copy(isRefreshing = true)
         }
-        logInfo("calendar_background_sync_start")
+        logInfo("calendar_sync_start trigger=$trigger")
 
         val settings = calendarSyncSettingsStore.getSettings()
         val syncStartDate = if (settings.useStartDateFilter) settings.startDate else null
         val syncOutcome = calendarRepository.sync(startDate = syncStartDate)
-        val (syncWarningMessage, reauthRequired) = resolveSyncFeedback(syncOutcome)
+        val integrationStatus = loadIntegrationStatusSafely()
+        val (syncWarningMessage, reauthRequired) = resolveSyncFeedback(syncOutcome, integrationStatus)
+        val lastSyncDisplayValue = integrationStatus?.let { formatLastSyncDisplayValue(it.lastSyncAt) }
         val shouldReloadSelectedDate = syncOutcome is CalendarSyncOutcome.Success && hasDelta(syncOutcome.result)
         logInfo(
-            "calendar_background_sync_result outcome=${syncOutcome::class.simpleName} reload_selected_date=$shouldReloadSelectedDate sync_ms=${elapsedMs(syncStart)}"
+            "calendar_sync_result trigger=$trigger outcome=${syncOutcome::class.simpleName} reload_selected_date=$shouldReloadSelectedDate sync_ms=${elapsedMs(syncStart)}"
         )
 
         if (shouldReloadSelectedDate) {
-            reloadSelectedDateAfterSyncDelta(syncWarningMessage, reauthRequired)
+            reloadSelectedDateAfterSyncDelta(
+                syncWarningMessage = syncWarningMessage,
+                reauthRequired = reauthRequired,
+                lastSyncDisplayValue = lastSyncDisplayValue
+            )
             return
         }
 
         _uiState.update { state ->
             state.copy(
                 isRefreshing = false,
+                lastSyncDisplayValue = lastSyncDisplayValue ?: state.lastSyncDisplayValue,
                 syncWarningMessage = syncWarningMessage,
                 isReauthRequired = reauthRequired
             )
@@ -228,7 +251,8 @@ class CalendarHomeViewModel @Inject constructor(
 
     private suspend fun reloadSelectedDateAfterSyncDelta(
         syncWarningMessage: TransientMessage?,
-        reauthRequired: Boolean
+        reauthRequired: Boolean,
+        lastSyncDisplayValue: String?
     ) {
         val selectedDate = selectedDateFlow.value
         val requestId = nextRequestId()
@@ -241,6 +265,7 @@ class CalendarHomeViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     isRefreshing = false,
+                    lastSyncDisplayValue = lastSyncDisplayValue ?: it.lastSyncDisplayValue,
                     items = items,
                     selectedDate = selectedDate,
                     errorMessage = null,
@@ -383,13 +408,15 @@ class CalendarHomeViewModel @Inject constructor(
         return result.created > 0 || result.updated > 0 || result.deleted > 0
     }
 
-    private suspend fun resolveSyncFeedback(syncOutcome: CalendarSyncOutcome): Pair<TransientMessage?, Boolean> {
+    private suspend fun resolveSyncFeedback(
+        syncOutcome: CalendarSyncOutcome,
+        integrationStatus: CalendarIntegrationStatus?
+    ): Pair<TransientMessage?, Boolean> {
         return when (syncOutcome) {
             is CalendarSyncOutcome.Success -> null to false
             is CalendarSyncOutcome.ReauthRequired -> reauthRequiredMessage() to true
             is CalendarSyncOutcome.RecoverableFailure -> {
-                val reauthStatus = runCatching { calendarRepository.integrationStatus() }
-                    .getOrNull()
+                val reauthStatus = integrationStatus
                     ?.isReauthRequired()
                     ?: false
 
@@ -400,6 +427,25 @@ class CalendarHomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun launchLastSyncMetadataRefresh() {
+        viewModelScope.launch {
+            val integrationStatus = loadIntegrationStatusSafely() ?: return@launch
+            _uiState.update { state ->
+                state.copy(
+                    lastSyncDisplayValue = formatLastSyncDisplayValue(integrationStatus.lastSyncAt)
+                )
+            }
+        }
+    }
+
+    private suspend fun loadIntegrationStatusSafely(): CalendarIntegrationStatus? {
+        return runCatching { calendarRepository.integrationStatus() }
+            .onFailure { error ->
+                logError("calendar_status_load_error message=${error.message}", error)
+            }
+            .getOrNull()
     }
 
     private fun reauthRequiredMessage(): TransientMessage {
@@ -506,9 +552,26 @@ class CalendarHomeViewModel @Inject constructor(
         return "${hours}h ${remainingMinutes}min"
     }
 
+    internal fun formatLastSyncDisplayValue(
+        lastSyncAt: String?,
+        zoneResolver: () -> ZoneId = this.zoneResolver
+    ): String {
+        if (lastSyncAt.isNullOrBlank()) {
+            return LAST_SYNC_NOT_AVAILABLE_LABEL
+        }
+
+        val instant = runCatching { Instant.parse(lastSyncAt) }
+            .getOrElse { return LAST_SYNC_NOT_AVAILABLE_LABEL }
+        val zone = runCatching { zoneResolver() }.getOrElse { ZoneOffset.UTC }
+        return instant.atZone(zone).format(lastSyncFormatter)
+    }
+
     companion object {
         const val TAG = "CalendarHomeViewModel"
         const val UNKNOWN_DURATION_LABEL = "Duracao nao informada"
+        const val LAST_SYNC_NOT_AVAILABLE_LABEL = defaultLastSyncNotAvailableLabel
         const val HTTP_UNAUTHORIZED = 401
+        private const val SYNC_TRIGGER_BACKGROUND = "background"
+        private const val SYNC_TRIGGER_MANUAL = "manual"
     }
 }
