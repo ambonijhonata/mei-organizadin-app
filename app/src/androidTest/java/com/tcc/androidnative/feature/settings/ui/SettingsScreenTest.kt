@@ -386,7 +386,7 @@ class SettingsScreenTest {
         }
 
         composeRule.onNodeWithText("Sincronizacao").assertIsDisplayed()
-        composeRule.onNodeWithText("Relatorios").assertIsDisplayed()
+        composeRule.onNodeWithText("Relatórios").assertIsDisplayed()
         composeRule.onNodeWithText("Configuracoes gravadas com sucesso").assertIsDisplayed()
         composeRule.onNodeWithText("Considerar nos relatórios somente agendamentos pagos.").assertIsDisplayed()
     }

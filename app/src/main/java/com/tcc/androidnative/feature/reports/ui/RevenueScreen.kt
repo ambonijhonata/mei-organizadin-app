@@ -86,7 +86,7 @@ private fun RevenueFormStep(
     ReportCardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Emitir relatorio",
+                text = "Emitir relatório",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF374151)
@@ -118,7 +118,7 @@ private fun RevenueFormStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .semantics { contentDescription = "Emitir relatorio de faturamento" },
+                    .semantics { contentDescription = "Emitir relatório de faturamento" },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LoginBrandBlue,
@@ -151,7 +151,7 @@ private fun RevenueReportStep(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Relatorio de faturamento",
+                text = "Relatório de faturamento",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF374151),

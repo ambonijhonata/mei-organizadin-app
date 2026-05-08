@@ -53,9 +53,9 @@ class AppShellScaffoldTest {
         }
 
         composeRule.onNodeWithContentDescription("Abrir menu hamburguer").performClick()
-        composeRule.onNodeWithContentDescription("Expandir submenu Relatorios").assertIsDisplayed()
-        composeRule.onNodeWithText("Relatorios").performClick()
-        composeRule.onNodeWithContentDescription("Recolher submenu Relatorios").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Expandir submenu Relatórios").assertIsDisplayed()
+        composeRule.onNodeWithText("Relatórios").performClick()
+        composeRule.onNodeWithContentDescription("Recolher submenu Relatórios").assertIsDisplayed()
         composeRule.onNodeWithText("Fluxo de Caixa").assertIsDisplayed()
         composeRule.onNodeWithText("Faturamento").assertIsDisplayed()
     }

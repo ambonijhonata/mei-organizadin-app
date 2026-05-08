@@ -140,7 +140,7 @@ class CalendarRepositoryImplTest {
                         eventStart = "2026-01-01T10:00:00Z",
                         eventEnd = "2026-01-01T11:00:00Z",
                         identified = true,
-                        serviceDescription = "Servico",
+                        serviceDescription = "Serviço",
                         serviceValue = BigDecimal("10.00"),
                         paymentSummary = CalendarPaymentSummaryDto(
                             paidAmount = BigDecimal("5.00"),
@@ -171,7 +171,7 @@ private class FakeCalendarApi(
             eventStart = "2026-01-01T10:00:00Z",
             eventEnd = "2026-01-01T11:00:00Z",
             identified = true,
-            serviceDescription = "Servico",
+            serviceDescription = "Serviço",
             serviceValue = BigDecimal("10.00")
         )
     ),

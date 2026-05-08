@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter
 
 object DateFormats {
     private val uiFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    private val shortYearUiFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yy")
     private val apiFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
     fun toApiDate(date: LocalDate): String = date.format(apiFormatter)
@@ -14,6 +15,8 @@ object DateFormats {
     fun parseApiDate(date: String): LocalDate = LocalDate.parse(date, apiFormatter)
 
     fun toUiDate(date: LocalDate): String = date.format(uiFormatter)
+
+    fun toShortYearUiDate(date: LocalDate): String = date.format(shortYearUiFormatter)
 
     fun parseUiDate(date: String): LocalDate = LocalDate.parse(date, uiFormatter)
 

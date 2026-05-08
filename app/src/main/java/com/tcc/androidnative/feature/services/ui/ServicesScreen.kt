@@ -85,7 +85,7 @@ fun ServicesScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Servicos",
+                text = "Serviços",
                 style = MaterialTheme.typography.headlineMedium,
                 color = DrawerMenuIconBlue,
                 fontWeight = FontWeight.SemiBold
@@ -124,12 +124,12 @@ fun ServicesScreen(
             OutlinedTextField(
                 value = uiState.filterDescription,
                 onValueChange = viewModel::onFilterDescriptionChange,
-                label = { Text("Filtrar por descricao") },
+                label = { Text("Filtrar por descriçao") },
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Button(
-                modifier = Modifier.semantics { contentDescription = "Filtrar servicos por descricao" },
+                modifier = Modifier.semantics { contentDescription = "Filtrar serviços por descriçao" },
                 onClick = viewModel::applyFilter,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LoginBrandBlue,
@@ -162,7 +162,7 @@ fun ServicesScreen(
                 ) {
                     Checkbox(
                         modifier = Modifier.semantics {
-                            contentDescription = "Selecionar todos os servicos visiveis"
+                            contentDescription = "Selecionar todos os serviços visiveis"
                         },
                         checked = allVisibleSelected,
                         onCheckedChange = { checked -> viewModel.toggleHeaderSelection(checked) }
@@ -172,7 +172,7 @@ fun ServicesScreen(
                         IconButton(
                             modifier = Modifier
                                 .size(32.dp)
-                                .semantics { contentDescription = "Cadastrar servico" },
+                                .semantics { contentDescription = "Cadastrar serviço" },
                             onClick = viewModel::openCreateForm
                         ) {
                             Icon(
@@ -183,7 +183,7 @@ fun ServicesScreen(
                         IconButton(
                             modifier = Modifier
                                 .size(32.dp)
-                                .semantics { contentDescription = "Editar servico selecionado" },
+                                .semantics { contentDescription = "Editar serviço selecionado" },
                             enabled = uiState.selectedIds.size == 1,
                             onClick = viewModel::openEditForm
                         ) {
@@ -195,7 +195,7 @@ fun ServicesScreen(
                         IconButton(
                             modifier = Modifier
                                 .size(32.dp)
-                                .semantics { contentDescription = "Excluir servicos selecionados" },
+                                .semantics { contentDescription = "Excluir serviços selecionados" },
                             enabled = uiState.selectedIds.isNotEmpty(),
                             onClick = viewModel::deleteSelection
                         ) {
@@ -218,7 +218,7 @@ fun ServicesScreen(
                 ) {
                     Box(modifier = Modifier.width(44.dp))
                     Text(
-                        text = "Descricao",
+                        text = "Descrição",
                         modifier = Modifier.weight(1f),
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF374151)
@@ -261,7 +261,7 @@ fun ServicesScreen(
                     if (uiState.items.isEmpty() && !uiState.isLoading) {
                         item {
                             Text(
-                                text = "Nenhum servico cadastrado",
+                                text = "Nenhum serviço cadastrado",
                                 color = Color(0xFF6B7280),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -273,7 +273,7 @@ fun ServicesScreen(
                     if (uiState.isAppending) {
                         item {
                             Text(
-                                text = "Carregando mais servicos...",
+                                text = "Carregando mais serviços...",
                                 modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp)
                             )
                         }
@@ -317,7 +317,7 @@ private fun ServiceFormDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (mode == ServiceFormMode.CREATE) "Cadastro de servico" else "Edicao de servico")
+            Text(if (mode == ServiceFormMode.CREATE) "Cadastro de serviço" else "Edicao de serviço")
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -327,7 +327,7 @@ private fun ServiceFormDialog(
                 OutlinedTextField(
                     value = formState.description,
                     onValueChange = onDescriptionChange,
-                    label = { Text("Descricao") },
+                    label = { Text("Descrição") },
                     isError = formState.fieldErrors.containsKey("description"),
                     supportingText = {
                         formState.fieldErrors["description"]?.let { Text(resolveFormMessageText(it)) }

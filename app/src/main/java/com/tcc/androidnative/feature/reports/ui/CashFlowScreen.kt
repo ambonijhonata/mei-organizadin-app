@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,6 +40,11 @@ import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.LocalDate
+
+private const val DETAIL_PERIOD_WEIGHT = 1.1f
+private const val DETAIL_SERVICE_WEIGHT = 1.35f
+private const val DETAIL_QUANTITY_WEIGHT = 0.45f
+private const val DETAIL_TOTAL_WEIGHT = 0.9f
 
 @Composable
 fun CashFlowScreen(
@@ -115,7 +121,7 @@ private fun CashFlowFormStep(
     ReportCardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Emitir relatorio",
+                text = "Emitir relatório",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF374151)
@@ -147,7 +153,7 @@ private fun CashFlowFormStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .semantics { contentDescription = "Emitir relatorio de fluxo de caixa" },
+                    .semantics { contentDescription = "Emitir relatório de fluxo de caixa" },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LoginBrandBlue,
@@ -179,7 +185,7 @@ private fun CashFlowReportStep(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Relatorio de fluxo de caixa",
+                text = "Relatório de fluxo de caixa",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF374151),
@@ -206,7 +212,7 @@ private fun CashFlowReportStep(
             ReportTableHeader(
                 firstLabel = "Periodo",
                 secondLabel = "Total",
-                thirdLabel = "Servicos"
+                thirdLabel = "Serviços"
             )
             HorizontalDivider(color = Color(0xFFE5E7EB))
 
@@ -280,7 +286,7 @@ private fun CashFlowDetailStep(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Detalhamento de servicos",
+                text = "Detalhamento de serviços",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF374151),
@@ -289,7 +295,7 @@ private fun CashFlowDetailStep(
             OutlinedButton(
                 onClick = onBackToReport,
                 modifier = Modifier.semantics {
-                    contentDescription = "Voltar para relatorio de fluxo de caixa"
+                    contentDescription = "Voltar para relatório de fluxo de caixa"
                 }
             ) {
                 Text("Voltar")
@@ -301,7 +307,7 @@ private fun CashFlowDetailStep(
         ReportCardContainer {
             ReportTableHeaderWithFourColumns(
                 firstLabel = "Periodo",
-                secondLabel = "Servico",
+                secondLabel = "Serviço",
                 thirdLabel = "Qtd.",
                 fourthLabel = "Total"
             )
@@ -310,7 +316,7 @@ private fun CashFlowDetailStep(
             val detail = selectedDetail
             if (detail == null || detail.services.isEmpty()) {
                 Text(
-                    text = "Nenhum servico para detalhar.",
+                    text = "Nenhum serviço para detalhar.",
                     color = Color(0xFF6B7280),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
                 )
@@ -323,20 +329,21 @@ private fun CashFlowDetailStep(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = DateFormats.toUiDate(detail.date),
-                            modifier = Modifier.weight(1f)
+                            text = DateFormats.toShortYearUiDate(detail.date),
+                            modifier = Modifier.weight(DETAIL_PERIOD_WEIGHT)
                         )
                         Text(
                             text = service.name,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(DETAIL_SERVICE_WEIGHT)
                         )
                         Text(
                             text = service.quantity.toString(),
-                            modifier = Modifier.weight(1f)
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(DETAIL_QUANTITY_WEIGHT)
                         )
                         Text(
                             text = CurrencyFormats.formatForUi(service.total),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(DETAIL_TOTAL_WEIGHT)
                         )
                     }
                     if (index < detail.services.lastIndex) {
@@ -400,25 +407,26 @@ private fun ReportTableHeaderWithFourColumns(
             text = firstLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(DETAIL_PERIOD_WEIGHT)
         )
         Text(
             text = secondLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(DETAIL_SERVICE_WEIGHT)
         )
         Text(
             text = thirdLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(DETAIL_QUANTITY_WEIGHT)
         )
         Text(
             text = fourthLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(DETAIL_TOTAL_WEIGHT)
         )
     }
 }

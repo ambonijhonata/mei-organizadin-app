@@ -113,7 +113,7 @@ fun OnboardingStep2Screen(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Cadastrar servicos",
+                text = "Cadastrar serviços",
                 color = Color(0xFF374151),
                 style = MaterialTheme.typography.bodyMedium
             )

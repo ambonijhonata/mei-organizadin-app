@@ -65,6 +65,7 @@ class CashFlowScreenTest {
         }
 
         composeRule.onNodeWithText("Qtd.").assertIsDisplayed()
+        composeRule.onNodeWithText("07/05/26").assertIsDisplayed()
         composeRule.onNodeWithText("Sobrancelha").assertIsDisplayed()
         composeRule.onNodeWithText("Buco").assertIsDisplayed()
         composeRule.onNodeWithText("2").assertIsDisplayed()
