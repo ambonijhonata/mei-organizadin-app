@@ -1,13 +1,20 @@
 package com.tcc.androidnative.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -136,5 +143,29 @@ class AppShellScaffoldTest {
         composeRule.onNodeWithText("Faturamento por método de pagamento").assertIsSelected()
         composeRule.onNodeWithText("Relatórios").assertIsNotSelected()
         composeRule.onNodeWithContentDescription("Recolher submenu Relatórios").assertIsDisplayed()
+    }
+    @Test
+    fun drawer_gesture_should_remain_available_on_other_authenticated_screens() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.Clients.route,
+                    onNavigate = {},
+                    onLogout = {}
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("scaffold_content")
+                    ) {
+                        Text("Conteudo")
+                    }
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("scaffold_content").performTouchInput { swipeRight() }
+        composeRule.onNodeWithText("MEI ORGANIZADINHO").assertIsDisplayed()
+        composeRule.onNodeWithText("Clientes").assertIsDisplayed()
     }
 }

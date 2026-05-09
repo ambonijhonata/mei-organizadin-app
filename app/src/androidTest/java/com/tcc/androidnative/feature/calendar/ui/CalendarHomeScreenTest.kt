@@ -5,14 +5,20 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
@@ -335,6 +341,127 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithTag("appointment_card_88").performClick()
         assertTrue(clickedEventId == 88L)
         assertTrue(clickedServiceTotal == BigDecimal("65.00"))
+    }
+
+    @Test
+    fun home_should_go_to_previous_day_when_swiping_right_over_agenda() {
+        var selectedDate by mutableStateOf(LocalDate.of(2026, 4, 4))
+        var previousDayCalls = 0
+        var nextDayCalls = 0
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = selectedDate),
+                    onPreviousDay = {
+                        previousDayCalls += 1
+                        selectedDate = selectedDate.minusDays(1)
+                    },
+                    onNextDay = {
+                        nextDayCalls += 1
+                        selectedDate = selectedDate.plusDays(1)
+                    },
+                    onDateSelected = {},
+                    onReauthenticateRequested = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar_agenda_container").performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+
+        assertEquals(1, previousDayCalls)
+        assertEquals(0, nextDayCalls)
+        composeRule.onNodeWithText("03/04/2026").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_go_to_next_day_when_swiping_left_over_agenda() {
+        var selectedDate by mutableStateOf(LocalDate.of(2026, 4, 4))
+        var previousDayCalls = 0
+        var nextDayCalls = 0
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = selectedDate),
+                    onPreviousDay = {
+                        previousDayCalls += 1
+                        selectedDate = selectedDate.minusDays(1)
+                    },
+                    onNextDay = {
+                        nextDayCalls += 1
+                        selectedDate = selectedDate.plusDays(1)
+                    },
+                    onDateSelected = {},
+                    onReauthenticateRequested = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar_agenda_container").performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        assertEquals(0, previousDayCalls)
+        assertEquals(1, nextDayCalls)
+        composeRule.onNodeWithText("05/04/2026").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_not_change_day_when_swiping_outside_agenda() {
+        var selectedDate by mutableStateOf(LocalDate.of(2026, 4, 4))
+        var previousDayCalls = 0
+        var nextDayCalls = 0
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = selectedDate),
+                    onPreviousDay = {
+                        previousDayCalls += 1
+                        selectedDate = selectedDate.minusDays(1)
+                    },
+                    onNextDay = {
+                        nextDayCalls += 1
+                        selectedDate = selectedDate.plusDays(1)
+                    },
+                    onDateSelected = {},
+                    onReauthenticateRequested = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar_header_container").performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        assertEquals(0, previousDayCalls)
+        assertEquals(0, nextDayCalls)
+        composeRule.onNodeWithText("04/04/2026").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_should_keep_vertical_scroll_inside_agenda_without_day_navigation() {
+        var previousDayCalls = 0
+        var nextDayCalls = 0
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = LocalDate.of(2026, 4, 4)),
+                    onPreviousDay = { previousDayCalls += 1 },
+                    onNextDay = { nextDayCalls += 1 },
+                    onDateSelected = {},
+                    onReauthenticateRequested = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar_agenda_container").performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+
+        assertEquals(0, previousDayCalls)
+        assertEquals(0, nextDayCalls)
+        composeRule.onNodeWithTag("calendar_agenda_list").assert(hasScrollToIndexAction())
     }
 
     @Test

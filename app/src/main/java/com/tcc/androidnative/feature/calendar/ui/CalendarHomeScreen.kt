@@ -2,6 +2,7 @@ package com.tcc.androidnative.feature.calendar.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,11 +50,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,6 +80,8 @@ import java.util.Locale
 
 private val slotFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val localePtBr = Locale("pt", "BR")
+private const val agendaHorizontalSwipeThresholdFraction = 0.25f
+private const val agendaHorizontalSwipeThresholdMinPx = 72f
 
 @Composable
 fun CalendarHomeScreen(
@@ -151,6 +157,7 @@ internal fun CalendarHomeContent(
     val isDatePickerVisible = rememberSaveable { mutableStateOf(false) }
     var initialAutoFocusConsumed by rememberSaveable { mutableStateOf(false) }
     var consumedAutoFocusRequestId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var agendaContainerSize by remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(
         allowInitialAutoFocus,
@@ -230,6 +237,7 @@ internal fun CalendarHomeContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("calendar_header_container")
                 .semantics { contentDescription = headerContentDescription },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -369,13 +377,39 @@ internal fun CalendarHomeContent(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .testTag("calendar_agenda_container")
+                .weight(1f)
+                .onSizeChanged { agendaContainerSize = it }
+                .pointerInput(onPreviousDay, onNextDay, agendaContainerSize) {
+                    var accumulatedHorizontalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { accumulatedHorizontalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            accumulatedHorizontalDrag += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            val threshold = resolveAgendaSwipeThresholdPx(agendaContainerSize.width)
+                            when {
+                                accumulatedHorizontalDrag >= threshold -> onPreviousDay()
+                                accumulatedHorizontalDrag <= -threshold -> onNextDay()
+                            }
+                            accumulatedHorizontalDrag = 0f
+                        },
+                        onDragCancel = {
+                            accumulatedHorizontalDrag = 0f
+                        }
+                    )
+                }
+                .semantics { contentDescription = "Agenda do dia" },
             border = BorderStroke(1.dp, Color(0xFFE4E7EC)),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             LazyColumn(
                 state = resolvedListState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("calendar_agenda_list")
             ) {
                 itemsIndexed(timeSlots) { index, slot ->
                     val label = slot.format(slotFormatter)
@@ -407,6 +441,11 @@ internal fun CalendarHomeContent(
             }
         }
     }
+}
+
+private fun resolveAgendaSwipeThresholdPx(containerWidthPx: Int): Float {
+    val proportionalThreshold = containerWidthPx * agendaHorizontalSwipeThresholdFraction
+    return maxOf(agendaHorizontalSwipeThresholdMinPx, proportionalThreshold)
 }
 
 @Composable
