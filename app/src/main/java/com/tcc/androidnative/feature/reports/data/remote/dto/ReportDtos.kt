@@ -33,3 +33,15 @@ data class RevenueReportDto(
     val endDate: String,
     val syncMetadata: SyncMetadataDto
 )
+
+data class PaymentMethodRevenueEntryDto(
+    val paymentType: String,
+    val total: BigDecimal
+)
+
+data class PaymentMethodRevenueReportDto(
+    val entries: List<PaymentMethodRevenueEntryDto>,
+    val startDate: String,
+    val endDate: String,
+    val syncMetadata: SyncMetadataDto
+)

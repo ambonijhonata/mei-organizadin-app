@@ -1,6 +1,7 @@
 package com.tcc.androidnative.feature.reports.data
 
 import com.tcc.androidnative.core.util.DateFormats
+import com.tcc.androidnative.feature.payments.ui.PaymentMethod
 import com.tcc.androidnative.feature.reports.data.remote.ReportApi
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -39,6 +40,18 @@ data class RevenueReportModel(
     val syncMetadata: SyncMetadataModel
 )
 
+data class PaymentMethodRevenueEntryModel(
+    val method: PaymentMethod,
+    val total: BigDecimal
+)
+
+data class PaymentMethodRevenueReportModel(
+    val entries: List<PaymentMethodRevenueEntryModel>,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val syncMetadata: SyncMetadataModel
+)
+
 enum class ReportPaymentScope {
     ALL,
     PAID_ONLY
@@ -56,6 +69,11 @@ interface ReportsRepository {
         endDate: LocalDate,
         paymentScope: ReportPaymentScope = ReportPaymentScope.ALL
     ): RevenueReportModel
+
+    suspend fun paymentMethodRevenue(
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): PaymentMethodRevenueReportModel
 }
 
 @Singleton
@@ -108,6 +126,31 @@ class ReportsRepositoryImpl @Inject constructor(
         )
         return RevenueReportModel(
             totalRevenue = response.totalRevenue,
+            startDate = DateFormats.parseApiDate(response.startDate),
+            endDate = DateFormats.parseApiDate(response.endDate),
+            syncMetadata = SyncMetadataModel(
+                dataUpToDate = response.syncMetadata.dataUpToDate,
+                lastSyncAt = response.syncMetadata.lastSyncAt,
+                reauthRequired = response.syncMetadata.reauthRequired
+            )
+        )
+    }
+
+    override suspend fun paymentMethodRevenue(
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): PaymentMethodRevenueReportModel {
+        val response = api.paymentMethodRevenue(
+            startDate = DateFormats.toApiDate(startDate),
+            endDate = DateFormats.toApiDate(endDate)
+        )
+        return PaymentMethodRevenueReportModel(
+            entries = response.entries.map { entry ->
+                PaymentMethodRevenueEntryModel(
+                    method = PaymentMethod.valueOf(entry.paymentType.uppercase()),
+                    total = entry.total
+                )
+            },
             startDate = DateFormats.parseApiDate(response.startDate),
             endDate = DateFormats.parseApiDate(response.endDate),
             syncMetadata = SyncMetadataModel(

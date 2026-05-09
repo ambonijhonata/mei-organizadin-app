@@ -26,6 +26,7 @@ import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep2Screen
 import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep4Screen
 import com.tcc.androidnative.feature.payments.ui.PaymentsScreen
 import com.tcc.androidnative.feature.reports.ui.CashFlowScreen
+import com.tcc.androidnative.feature.reports.ui.PaymentMethodRevenueScreen
 import com.tcc.androidnative.feature.reports.ui.RevenueScreen
 import com.tcc.androidnative.feature.services.ui.ServicesScreen
 import com.tcc.androidnative.feature.settings.ui.SettingsScreen
@@ -254,6 +255,16 @@ fun AppNavHost() {
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) { RevenueScreen() }
+        }
+        composable(AppDestination.PaymentMethodRevenue.route) {
+            AppShellScaffold(
+                currentRoute = AppDestination.PaymentMethodRevenue.route,
+                onNavigate = ::navigateTo,
+                onLogout = sessionViewModel::logout,
+                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitleColor = DrawerMenuIconBlue,
+                topBarIconColor = DrawerMenuIconBlue
+            ) { PaymentMethodRevenueScreen() }
         }
         composable(AppDestination.Settings.route) {
             AppShellScaffold(

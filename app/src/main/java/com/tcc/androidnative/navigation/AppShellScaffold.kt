@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -75,6 +76,7 @@ fun AppShellScaffold(
     val relatoriosLabel = stringResource(R.string.drawer_menu_reports)
     val cashFlowLabel = stringResource(R.string.drawer_menu_cash_flow)
     val revenueLabel = stringResource(R.string.drawer_menu_revenue)
+    val paymentMethodRevenueLabel = stringResource(R.string.drawer_menu_payment_method_revenue)
     val settingsLabel = stringResource(R.string.drawer_menu_settings)
     val logoutLabel = stringResource(R.string.drawer_menu_logout)
     val drawerTitle = stringResource(R.string.drawer_app_title)
@@ -96,7 +98,11 @@ fun AppShellScaffold(
     )
 
     val cadastrosChildRoutes = setOf(AppDestination.Clients.route, AppDestination.Services.route)
-    val relatoriosChildRoutes = setOf(AppDestination.CashFlow.route, AppDestination.Revenue.route)
+    val relatoriosChildRoutes = setOf(
+        AppDestination.CashFlow.route,
+        AppDestination.Revenue.route,
+        AppDestination.PaymentMethodRevenue.route
+    )
 
     var cadastrosExpanded by rememberSaveable { mutableStateOf(false) }
     var relatoriosExpanded by rememberSaveable { mutableStateOf(false) }
@@ -291,6 +297,19 @@ fun AppShellScaffold(
                             },
                             selected = currentRoute == AppDestination.Revenue.route,
                             onClick = { navigateOrClose(AppDestination.Revenue.route) },
+                            colors = drawerChildItemColors
+                        )
+                        NavigationDrawerItem(
+                            modifier = Modifier.padding(start = 24.dp),
+                            label = { Text(paymentMethodRevenueLabel) },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_payment_method_report),
+                                    contentDescription = null
+                                )
+                            },
+                            selected = currentRoute == AppDestination.PaymentMethodRevenue.route,
+                            onClick = { navigateOrClose(AppDestination.PaymentMethodRevenue.route) },
                             colors = drawerChildItemColors
                         )
                     }

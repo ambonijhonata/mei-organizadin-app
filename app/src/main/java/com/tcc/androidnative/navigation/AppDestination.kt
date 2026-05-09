@@ -13,6 +13,7 @@ sealed class AppDestination(val route: String) {
     data object ServicesOnboarding : AppDestination("services_onboarding")
     data object CashFlow : AppDestination("cashflow")
     data object Revenue : AppDestination("revenue")
+    data object PaymentMethodRevenue : AppDestination("payment-method-revenue")
     data object Settings : AppDestination("settings")
     data object Payments : AppDestination(
         "payments/{eventId}?totalServiceValue={totalServiceValue}&preloadPayments={preloadPayments}"

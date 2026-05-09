@@ -5,10 +5,13 @@ import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
 import com.tcc.androidnative.feature.reports.data.CashFlowServiceModel
+import com.tcc.androidnative.feature.reports.data.PaymentMethodRevenueEntryModel
+import com.tcc.androidnative.feature.reports.data.PaymentMethodRevenueReportModel
 import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.RevenueReportModel
 import com.tcc.androidnative.feature.reports.data.SyncMetadataModel
+import com.tcc.androidnative.feature.payments.ui.PaymentMethod
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettings
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import com.tcc.androidnative.testutil.MainDispatcherRule
@@ -188,6 +191,32 @@ private class FakeReportsRepository(
         if (shouldFail) throw IllegalStateException("revenue failure")
         return RevenueReportModel(
             totalRevenue = BigDecimal("100.00"),
+            startDate = startDate,
+            endDate = endDate,
+            syncMetadata = SyncMetadataModel(
+                dataUpToDate = true,
+                lastSyncAt = null,
+                reauthRequired = false
+            )
+        )
+    }
+
+    override suspend fun paymentMethodRevenue(
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): PaymentMethodRevenueReportModel {
+        if (shouldFail) throw IllegalStateException("payment method revenue failure")
+        return PaymentMethodRevenueReportModel(
+            entries = listOf(
+                PaymentMethodRevenueEntryModel(
+                    method = PaymentMethod.DINHEIRO,
+                    total = BigDecimal("60.00")
+                ),
+                PaymentMethodRevenueEntryModel(
+                    method = PaymentMethod.PIX,
+                    total = BigDecimal("40.00")
+                )
+            ),
             startDate = startDate,
             endDate = endDate,
             syncMetadata = SyncMetadataModel(

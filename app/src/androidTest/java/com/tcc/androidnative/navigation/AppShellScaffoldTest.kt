@@ -58,6 +58,7 @@ class AppShellScaffoldTest {
         composeRule.onNodeWithContentDescription("Recolher submenu Relatórios").assertIsDisplayed()
         composeRule.onNodeWithText("Fluxo de Caixa").assertIsDisplayed()
         composeRule.onNodeWithText("Faturamento").assertIsDisplayed()
+        composeRule.onNodeWithText("Faturamento por método de pagamento").assertIsDisplayed()
     }
 
     @Test
@@ -115,5 +116,25 @@ class AppShellScaffoldTest {
         composeRule.runOnIdle {
             assertEquals(AppDestination.Home.route, navigatedRoute)
         }
+    }
+
+    @Test
+    fun drawer_should_highlight_payment_method_revenue_child_only() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.PaymentMethodRevenue.route,
+                    onNavigate = {},
+                    onLogout = {}
+                ) {
+                    Text("Conteudo")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Abrir menu hamburguer").performClick()
+        composeRule.onNodeWithText("Faturamento por método de pagamento").assertIsSelected()
+        composeRule.onNodeWithText("Relatórios").assertIsNotSelected()
+        composeRule.onNodeWithContentDescription("Recolher submenu Relatórios").assertIsDisplayed()
     }
 }

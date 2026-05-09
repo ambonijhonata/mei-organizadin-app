@@ -1,6 +1,7 @@
 package com.tcc.androidnative.feature.reports.data.remote
 
 import com.tcc.androidnative.feature.reports.data.remote.dto.CashFlowReportDto
+import com.tcc.androidnative.feature.reports.data.remote.dto.PaymentMethodRevenueReportDto
 import com.tcc.androidnative.feature.reports.data.remote.dto.RevenueReportDto
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -20,4 +21,10 @@ interface ReportApi {
         @Query("endDate") endDate: String,
         @Query("paymentScope") paymentScope: String
     ): RevenueReportDto
+
+    @GET("/api/reports/revenue-by-payment-method")
+    suspend fun paymentMethodRevenue(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): PaymentMethodRevenueReportDto
 }

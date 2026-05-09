@@ -15,6 +15,7 @@
     <string name="drawer_menu_reports">Relatórios</string>
     <string name="drawer_menu_cash_flow">Fluxo de Caixa</string>
     <string name="drawer_menu_revenue">Faturamento</string>
+    <string name="drawer_menu_payment_method_revenue">Faturamento por m&#233;todo de pagamento</string>
     <string name="drawer_menu_settings">Configuracões</string>
     <string name="drawer_menu_logout">Sair</string>
     <string name="drawer_expand_submenu">Expandir submenu %1$s</string>
@@ -67,6 +68,7 @@
     <string name="feedback_cash_flow_period_limit">Relatório de fluxo de caixa permitido somente para um periodo de até 1 mes</string>
     <string name="feedback_report_generate_error">Erro ao gerar relatório</string>
     <string name="feedback_report_stale_data">Dados desatualizados</string>
+    <string name="payment_method_revenue_title">Faturamento por m&#233;todo de pagamento</string>
     <string name="feedback_settings_save_success">Configurações gravadas com sucesso</string>
     <string name="feedback_settings_save_error">Erro ao gravar configurações</string>
 
