@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -305,7 +306,8 @@ fun AppShellScaffold(
                             icon = {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_payment_method_report),
-                                    contentDescription = null
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             },
                             selected = currentRoute == AppDestination.PaymentMethodRevenue.route,
