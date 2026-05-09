@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DrawerValue
@@ -43,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -305,9 +305,8 @@ fun AppShellScaffold(
                             label = { Text(paymentMethodRevenueLabel) },
                             icon = {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_payment_method_report),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    imageVector = Icons.Outlined.Payments,
+                                    contentDescription = null
                                 )
                             },
                             selected = currentRoute == AppDestination.PaymentMethodRevenue.route,
