@@ -33,8 +33,8 @@ import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +62,7 @@ private const val DETAIL_PERIOD_WEIGHT = 1.1f
 private const val DETAIL_SERVICE_WEIGHT = 1.35f
 private const val DETAIL_QUANTITY_WEIGHT = 0.45f
 private const val DETAIL_TOTAL_WEIGHT = 0.9f
+private val CASH_FLOW_REPORT_COLUMN_SPACING = 12.dp
 private val CASH_FLOW_COMPACT_BREAKPOINT = 360.dp
 
 private enum class CashFlowLayoutMode {
@@ -313,6 +314,7 @@ internal fun CashFlowPeriodPickerDialog(
     ) {
         DateRangePicker(
             state = dateRangePickerState,
+            title = {},
             showModeToggle = false,
             modifier = Modifier.testTag("cashflow-period-picker")
         )
@@ -385,6 +387,7 @@ private fun CashFlowReportStep(
                                 horizontal = layoutSpec.horizontalPadding,
                                 vertical = layoutSpec.rowVerticalPadding
                             ),
+                        horizontalArrangement = Arrangement.spacedBy(CASH_FLOW_REPORT_COLUMN_SPACING),
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
@@ -402,7 +405,9 @@ private fun CashFlowReportStep(
                             softWrap = false
                         )
                         Column(
-                            modifier = Modifier.weight(layoutSpec.servicesWeight),
+                            modifier = Modifier
+                                .weight(layoutSpec.servicesWeight)
+                                .padding(start = 4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             if (entry.services.isEmpty()) {
@@ -558,6 +563,7 @@ private fun ReportTableHeader(
                 horizontal = layoutSpec.horizontalPadding,
                 vertical = layoutSpec.rowVerticalPadding
             ),
+        horizontalArrangement = Arrangement.spacedBy(CASH_FLOW_REPORT_COLUMN_SPACING),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -581,7 +587,9 @@ private fun ReportTableHeader(
             text = thirdLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(layoutSpec.servicesWeight),
+            modifier = Modifier
+                .weight(layoutSpec.servicesWeight)
+                .padding(start = 4.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
