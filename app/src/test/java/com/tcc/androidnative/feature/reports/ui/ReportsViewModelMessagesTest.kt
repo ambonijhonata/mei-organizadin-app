@@ -35,8 +35,10 @@ class ReportsViewModelMessagesTest {
             repository = FakeReportsRepository(),
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("03/05/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 5, 3)
+        )
 
         viewModel.emitReport()
         runCurrent()
@@ -53,8 +55,10 @@ class ReportsViewModelMessagesTest {
             repository = repository,
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("01/05/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 5, 1)
+        )
 
         viewModel.emitReport()
         runCurrent()
@@ -107,8 +111,10 @@ class ReportsViewModelMessagesTest {
                 considerPaidOnlyInReports = false
             )
         )
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("02/04/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 4, 2)
+        )
 
         viewModel.emitReport()
         runCurrent()
@@ -117,17 +123,35 @@ class ReportsViewModelMessagesTest {
     }
 
     @Test
-    fun `cash flow should sanitize and mask date inputs`() = runTest {
+    fun `cash flow should require a confirmed period before emission`() = runTest {
         val viewModel = CashFlowViewModel(
             repository = FakeReportsRepository(),
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
 
-        viewModel.onStartDateChange("2a/6b-1_2@2#0$2%6")
-        viewModel.onEndDateChange("26122026123")
+        viewModel.emitReport()
+        runCurrent()
 
-        assertEquals("26/12/2026", viewModel.uiState.value.startDateInput)
-        assertEquals("26/12/2026", viewModel.uiState.value.endDateInput)
+        val message = viewModel.uiState.value.transientMessage
+        assertEquals(R.string.feedback_cash_flow_period_invalid, message?.textResId)
+        assertEquals(MessageTone.ERROR, message?.tone)
+    }
+
+    @Test
+    fun `cash flow should normalize selected period order`() = runTest {
+        val viewModel = CashFlowViewModel(
+            repository = FakeReportsRepository(),
+            calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+        )
+
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 5, 7),
+            endDate = LocalDate.of(2026, 5, 1)
+        )
+
+        assertEquals("01/05/2026 - 07/05/2026", viewModel.uiState.value.periodInput)
+        assertEquals(LocalDate.of(2026, 5, 1), viewModel.uiState.value.selectedStartDate)
+        assertEquals(LocalDate.of(2026, 5, 7), viewModel.uiState.value.selectedEndDate)
     }
 
     @Test

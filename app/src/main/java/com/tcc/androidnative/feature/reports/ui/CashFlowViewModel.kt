@@ -8,7 +8,6 @@ import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.DateFormats
-import com.tcc.androidnative.core.util.InputMasks
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
 import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
@@ -16,7 +15,6 @@ import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import java.time.ZoneOffset
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,8 +30,9 @@ enum class CashFlowScreenStep {
 }
 
 data class CashFlowUiState(
-    val startDateInput: String = DateFormats.toUiDate(LocalDate.now(ZoneOffset.UTC).minusDays(1)),
-    val endDateInput: String = DateFormats.toUiDate(LocalDate.now(ZoneOffset.UTC)),
+    val periodInput: String = "",
+    val selectedStartDate: LocalDate? = null,
+    val selectedEndDate: LocalDate? = null,
     val step: CashFlowScreenStep = CashFlowScreenStep.FORM,
     val isLoading: Boolean = false,
     val report: CashFlowReportModel? = null,
@@ -50,29 +49,23 @@ class CashFlowViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CashFlowUiState())
     val uiState: StateFlow<CashFlowUiState> = _uiState.asStateFlow()
 
-    fun onStartDateChange(value: String) {
-        _uiState.update { it.copy(startDateInput = InputMasks.formatBirthDateInput(value)) }
-    }
-
-    fun onEndDateChange(value: String) {
-        _uiState.update { it.copy(endDateInput = InputMasks.formatBirthDateInput(value)) }
+    fun onPeriodSelected(startDate: LocalDate, endDate: LocalDate) {
+        val normalizedStart = minOf(startDate, endDate)
+        val normalizedEnd = maxOf(startDate, endDate)
+        _uiState.update {
+            it.copy(
+                periodInput = formatPeriod(normalizedStart, normalizedEnd),
+                selectedStartDate = normalizedStart,
+                selectedEndDate = normalizedEnd
+            )
+        }
     }
 
     fun emitReport() {
-        val start = runCatching { DateFormats.parseUiDate(_uiState.value.startDateInput) }.getOrNull()
-        if (start == null) {
-            showMessage(R.string.feedback_report_start_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
-            return
-        }
-
-        val end = runCatching { DateFormats.parseUiDate(_uiState.value.endDateInput) }.getOrNull()
-        if (end == null) {
-            showMessage(R.string.feedback_report_end_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
-            return
-        }
-
-        if (start.isAfter(end)) {
-            showMessage(R.string.feedback_report_start_before_end, MessageTone.ERROR, MessageDurations.SHORT_3S)
+        val start = _uiState.value.selectedStartDate
+        val end = _uiState.value.selectedEndDate
+        if (start == null || end == null) {
+            showMessage(R.string.feedback_cash_flow_period_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
@@ -121,6 +114,10 @@ class CashFlowViewModel @Inject constructor(
                     )
                 }
         }
+    }
+
+    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String {
+        return "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
     }
 
     fun openDetail(entry: CashFlowEntryModel) {

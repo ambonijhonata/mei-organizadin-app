@@ -3,10 +3,16 @@ package com.tcc.androidnative.feature.reports.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
@@ -59,8 +65,7 @@ class CashFlowScreenTest {
                         ),
                         selectedDetail = detailEntry
                     ),
-                    onStartDateChange = {},
-                    onEndDateChange = {},
+                    onPeriodSelected = { _, _ -> },
                     onEmit = {},
                     onBackToForm = {},
                     onOpenDetail = {},
@@ -112,8 +117,7 @@ class CashFlowScreenTest {
                                 )
                             )
                         ),
-                        onStartDateChange = {},
-                        onEndDateChange = {},
+                        onPeriodSelected = { _, _ -> },
                         onEmit = {},
                         onBackToForm = {},
                         onOpenDetail = {},
@@ -161,8 +165,7 @@ class CashFlowScreenTest {
                             ),
                             selectedDetail = detailEntry
                         ),
-                        onStartDateChange = {},
-                        onEndDateChange = {},
+                        onPeriodSelected = { _, _ -> },
                         onEmit = {},
                         onBackToForm = {},
                         onOpenDetail = {},
@@ -175,5 +178,98 @@ class CashFlowScreenTest {
         composeRule.onNodeWithTag("cashflow-detail-compact-header").assertIsDisplayed()
         composeRule.onNodeWithText("Qtd.: 2").assertIsDisplayed()
         composeRule.onNodeWithText("R$\u00a048,00").assertIsDisplayed()
+    }
+
+    @Test
+    fun cashFlowForm_should_render_single_period_field() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CashFlowScreenContent(
+                    uiState = CashFlowUiState(),
+                    onPeriodSelected = { _, _ -> },
+                    onEmit = {},
+                    onBackToForm = {},
+                    onOpenDetail = {},
+                    onBackToReport = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Periodo (dd/MM/yyyy)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Periodo do filtro de fluxo de caixa").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Data inicial (dd/MM/yyyy)").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Data final (dd/MM/yyyy)").assertCountEquals(0)
+    }
+
+    @Test
+    fun cashFlowForm_should_open_period_picker_from_calendar_icon() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CashFlowScreenContent(
+                    uiState = CashFlowUiState(),
+                    onPeriodSelected = { _, _ -> },
+                    onEmit = {},
+                    onBackToForm = {},
+                    onOpenDetail = {},
+                    onBackToReport = {}
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Abrir calendario do periodo do fluxo de caixa")
+            .performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("cashflow-period-picker").assertIsDisplayed()
+        composeRule.onNodeWithTag("cashflow-period-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun cashFlowPeriodPicker_should_disable_confirm_when_only_one_date_is_selected() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CashFlowPeriodPickerDialog(
+                    initialSelectedStartDate = LocalDate.of(2026, 5, 9),
+                    initialSelectedEndDate = null,
+                    onDismiss = {},
+                    onConfirm = { _, _ -> }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("cashflow-period-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun cashFlowPeriodPicker_should_enable_confirm_for_valid_one_month_range() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CashFlowPeriodPickerDialog(
+                    initialSelectedStartDate = LocalDate.of(2026, 5, 9),
+                    initialSelectedEndDate = LocalDate.of(2026, 6, 9),
+                    onDismiss = {},
+                    onConfirm = { _, _ -> }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("cashflow-period-confirm").assertIsEnabled()
+    }
+
+    @Test
+    fun cashFlowPeriodPicker_should_disable_confirm_for_range_greater_than_one_month() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CashFlowPeriodPickerDialog(
+                    initialSelectedStartDate = LocalDate.of(2026, 5, 9),
+                    initialSelectedEndDate = LocalDate.of(2026, 6, 10),
+                    onDismiss = {},
+                    onConfirm = { _, _ -> }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("cashflow-period-confirm").assertIsNotEnabled()
     }
 }

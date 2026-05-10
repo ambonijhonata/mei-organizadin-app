@@ -14,17 +14,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -34,9 +48,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.testTag
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.core.util.DateFormats
@@ -104,8 +117,7 @@ fun CashFlowScreen(
 
     CashFlowScreenContent(
         uiState = uiState,
-        onStartDateChange = viewModel::onStartDateChange,
-        onEndDateChange = viewModel::onEndDateChange,
+        onPeriodSelected = viewModel::onPeriodSelected,
         onEmit = viewModel::emitReport,
         onBackToForm = viewModel::backToForm,
         onOpenDetail = viewModel::openDetail,
@@ -116,8 +128,7 @@ fun CashFlowScreen(
 @Composable
 internal fun CashFlowScreenContent(
     uiState: CashFlowUiState,
-    onStartDateChange: (String) -> Unit,
-    onEndDateChange: (String) -> Unit,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     onEmit: () -> Unit,
     onBackToForm: () -> Unit,
     onOpenDetail: (CashFlowEntryModel) -> Unit,
@@ -148,8 +159,7 @@ internal fun CashFlowScreenContent(
             when (uiState.step) {
                 CashFlowScreenStep.FORM -> CashFlowFormStep(
                     uiState = uiState,
-                    onStartDateChange = onStartDateChange,
-                    onEndDateChange = onEndDateChange,
+                    onPeriodSelected = onPeriodSelected,
                     onEmit = onEmit
                 )
                 CashFlowScreenStep.REPORT -> CashFlowReportStep(
@@ -171,8 +181,7 @@ internal fun CashFlowScreenContent(
 @Composable
 private fun CashFlowFormStep(
     uiState: CashFlowUiState,
-    onStartDateChange: (String) -> Unit,
-    onEndDateChange: (String) -> Unit,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     onEmit: () -> Unit
 ) {
     ReportCardContainer {
@@ -184,23 +193,11 @@ private fun CashFlowFormStep(
                 color = Color(0xFF374151)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ReportDateInputField(
-                value = uiState.startDateInput,
-                label = "Data inicial (dd/MM/yyyy)",
-                fieldDescription = "Data inicial do filtro de fluxo de caixa",
-                calendarDescription = "Abrir calendario da data inicial do fluxo de caixa",
-                onValueChange = onStartDateChange,
-                onDateSelected = { date: LocalDate -> onStartDateChange(DateFormats.toUiDate(date)) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ReportDateInputField(
-                value = uiState.endDateInput,
-                label = "Data final (dd/MM/yyyy)",
-                fieldDescription = "Data final do filtro de fluxo de caixa",
-                calendarDescription = "Abrir calendario da data final do fluxo de caixa",
-                onValueChange = onEndDateChange,
-                onDateSelected = { date: LocalDate -> onEndDateChange(DateFormats.toUiDate(date)) },
+            CashFlowPeriodInputField(
+                value = uiState.periodInput,
+                selectedStartDate = uiState.selectedStartDate,
+                selectedEndDate = uiState.selectedEndDate,
+                onPeriodSelected = onPeriodSelected,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -222,6 +219,103 @@ private fun CashFlowFormStep(
                 Text(if (uiState.isLoading) "Emitindo..." else "Emitir")
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CashFlowPeriodInputField(
+    value: String,
+    selectedStartDate: LocalDate?,
+    selectedEndDate: LocalDate?,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isDatePickerVisible by rememberSaveable { mutableStateOf(false) }
+
+    if (isDatePickerVisible) {
+        CashFlowPeriodPickerDialog(
+            initialSelectedStartDate = selectedStartDate ?: LocalDate.now(),
+            initialSelectedEndDate = selectedEndDate,
+            onDismiss = { isDatePickerVisible = false },
+            onConfirm = { startDate, endDate ->
+                onPeriodSelected(startDate, endDate)
+                isDatePickerVisible = false
+            }
+        )
+    }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        label = { Text("Periodo (dd/MM/yyyy)") },
+        readOnly = true,
+        singleLine = true,
+        trailingIcon = {
+            IconButton(
+                onClick = { isDatePickerVisible = true },
+                modifier = Modifier.semantics {
+                    contentDescription = "Abrir calendario do periodo do fluxo de caixa"
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null
+                )
+            }
+        },
+        modifier = modifier.semantics {
+            contentDescription = "Periodo do filtro de fluxo de caixa"
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CashFlowPeriodPickerDialog(
+    initialSelectedStartDate: LocalDate,
+    initialSelectedEndDate: LocalDate?,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate, LocalDate) -> Unit
+) {
+    val dateRangePickerState = rememberDateRangePickerState(
+        initialSelectedStartDateMillis = DateFormats.toUtcMillis(initialSelectedStartDate),
+        initialSelectedEndDateMillis = initialSelectedEndDate?.let(DateFormats::toUtcMillis),
+        initialDisplayedMonthMillis = DateFormats.toUtcMillis(initialSelectedStartDate.withDayOfMonth(1))
+    )
+    val selectedStartDate = dateRangePickerState.selectedStartDateMillis?.let(DateFormats::fromUtcMillis)
+    val selectedEndDate = dateRangePickerState.selectedEndDateMillis?.let(DateFormats::fromUtcMillis)
+    val isRangeWithinOneMonth = selectedStartDate != null &&
+        selectedEndDate != null &&
+        !selectedEndDate.isAfter(selectedStartDate.plusMonths(1))
+    val isConfirmEnabled = selectedStartDate != null && selectedEndDate != null && isRangeWithinOneMonth
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (selectedStartDate != null && selectedEndDate != null) {
+                        onConfirm(selectedStartDate, selectedEndDate)
+                    }
+                },
+                enabled = isConfirmEnabled,
+                modifier = Modifier.testTag("cashflow-period-confirm")
+            ) {
+                Text(stringResource(R.string.calendar_date_picker_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.calendar_date_picker_cancel))
+            }
+        }
+    ) {
+        DateRangePicker(
+            state = dateRangePickerState,
+            showModeToggle = false,
+            modifier = Modifier.testTag("cashflow-period-picker")
+        )
     }
 }
 
