@@ -69,6 +69,21 @@ class PaymentsRepositoryImplTest {
         assertEquals("R$\u00a050,00", loaded.first().amountInput)
         assertTrue(!loaded.first().isValueTotal)
     }
+
+    @Test
+    fun `savePayments should send empty composition when payments list is empty`() = runBlocking {
+        val fakeApi = FakeCalendarApi()
+        val repository = PaymentsRepositoryImpl(fakeApi)
+
+        val response = repository.savePayments(
+            eventId = 42L,
+            payments = emptyList()
+        )
+
+        assertEquals(42L, response.eventId)
+        assertTrue(fakeApi.lastRequest != null)
+        assertTrue(fakeApi.lastRequest?.payments?.isEmpty() == true)
+    }
 }
 
 private class FakeCalendarApi : CalendarApi {

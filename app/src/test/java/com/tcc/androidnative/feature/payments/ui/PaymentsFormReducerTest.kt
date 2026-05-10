@@ -121,6 +121,35 @@ class PaymentsFormReducerTest {
     }
 
     @Test
+    fun `removing all loaded payments should keep only placeholder and mark clear-save intent`() {
+        var state = PaymentsFormReducer.withLoadedPayments(
+            eventId = 6L,
+            totalServiceValue = BigDecimal("150.00"),
+            payments = listOf(
+                PaymentEntryUiState(
+                    id = 10L,
+                    method = PaymentMethod.PIX,
+                    amountInput = "R$ 50,00",
+                    isValueTotal = false
+                ),
+                PaymentEntryUiState(
+                    id = 11L,
+                    method = PaymentMethod.DEBITO,
+                    amountInput = "R$ 100,00",
+                    isValueTotal = false
+                )
+            )
+        )
+
+        state = PaymentsFormReducer.removePayment(state, 10L)
+        state = PaymentsFormReducer.removePayment(state, 11L)
+
+        assertEquals(1, state.payments.size)
+        assertTrue(state.payments.first().amountInput.isBlank())
+        assertTrue(PaymentsFormReducer.shouldSaveAsClearedComposition(state))
+    }
+
+    @Test
     fun `unchecking total value should keep entry editable and allow adding when value goes below total`() {
         var state = PaymentsFormReducer.initial(
             eventId = 7L,
@@ -150,5 +179,26 @@ class PaymentsFormReducerTest {
         state = PaymentsFormReducer.addPayment(state)
 
         assertEquals(PaymentMethod.PIX, state.payments.last().method)
+    }
+
+    @Test
+    fun `editing placeholder after clearing loaded payments should cancel clear-save intent`() {
+        var state = PaymentsFormReducer.withLoadedPayments(
+            eventId = 9L,
+            totalServiceValue = BigDecimal("100.00"),
+            payments = listOf(
+                PaymentEntryUiState(
+                    id = 1L,
+                    method = PaymentMethod.DINHEIRO,
+                    amountInput = "R$ 100,00",
+                    isValueTotal = false
+                )
+            )
+        )
+
+        state = PaymentsFormReducer.removePayment(state, 1L)
+        state = PaymentsFormReducer.updateAmount(state, state.payments.first().id, "R$ 10,00")
+
+        assertFalse(PaymentsFormReducer.shouldSaveAsClearedComposition(state))
     }
 }

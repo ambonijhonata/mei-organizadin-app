@@ -117,7 +117,8 @@ class PaymentsViewModel @Inject constructor(
     fun savePayments() {
         val currentState = _uiState.value
         if (currentState.isSaving) return
-        if (currentState.hasPaymentWithoutAmount()) {
+        val shouldSaveAsClearedComposition = PaymentsFormReducer.shouldSaveAsClearedComposition(currentState)
+        if (!shouldSaveAsClearedComposition && currentState.hasPaymentWithoutAmount()) {
             _uiState.update {
                 it.copy(
                     isSaving = false,
@@ -140,7 +141,11 @@ class PaymentsViewModel @Inject constructor(
             runCatching {
                 paymentsRepository.savePayments(
                     eventId = currentState.eventId,
-                    payments = currentState.payments
+                    payments = if (shouldSaveAsClearedComposition) {
+                        emptyList()
+                    } else {
+                        currentState.payments
+                    }
                 )
             }.onSuccess {
                 _uiState.update {

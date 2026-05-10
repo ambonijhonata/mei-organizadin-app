@@ -163,6 +163,75 @@ class PaymentsViewModelTest {
         )
         assertTrue(viewModel.uiState.value.saveErrorMessage == null)
     }
+
+    @Test
+    fun `savePayments should allow clearing loaded payments and send empty request`() = runTest {
+        val fakeRepository = FakePaymentsRepository(
+            paymentsToLoad = listOf(
+                PaymentEntryUiState(
+                    id = 20L,
+                    method = PaymentMethod.CREDITO,
+                    amountInput = "R$ 80,00",
+                    isValueTotal = false
+                ),
+                PaymentEntryUiState(
+                    id = 21L,
+                    method = PaymentMethod.DEBITO,
+                    amountInput = "R$ 20,00",
+                    isValueTotal = false
+                )
+            )
+        )
+
+        val viewModel = PaymentsViewModel(
+            savedStateHandle = SavedStateHandle(
+                mapOf(
+                    AppDestination.Payments.ARG_EVENT_ID to 88L,
+                    AppDestination.Payments.ARG_TOTAL_SERVICE_VALUE to "100.00"
+                )
+            ),
+            paymentsRepository = fakeRepository
+        )
+        advanceUntilIdle()
+
+        viewModel.onRemovePaymentClick(20L)
+        viewModel.onRemovePaymentClick(21L)
+        viewModel.savePayments()
+        advanceUntilIdle()
+
+        assertEquals(88L, fakeRepository.lastEventId)
+        assertTrue(fakeRepository.lastRequest != null)
+        assertTrue(fakeRepository.lastRequest?.payments?.isEmpty() == true)
+        assertTrue(viewModel.uiState.value.saveErrorMessageResId == null)
+        assertTrue(viewModel.uiState.value.isSaving.not())
+    }
+
+    @Test
+    fun `savePayments should still block placeholder when preload finds no persisted payments`() = runTest {
+        val fakeRepository = FakePaymentsRepository(
+            paymentsToLoad = emptyList()
+        )
+
+        val viewModel = PaymentsViewModel(
+            savedStateHandle = SavedStateHandle(
+                mapOf(
+                    AppDestination.Payments.ARG_EVENT_ID to 88L,
+                    AppDestination.Payments.ARG_TOTAL_SERVICE_VALUE to "100.00"
+                )
+            ),
+            paymentsRepository = fakeRepository
+        )
+        advanceUntilIdle()
+
+        viewModel.savePayments()
+        advanceUntilIdle()
+
+        assertTrue(fakeRepository.lastRequest == null)
+        assertEquals(
+            R.string.payments_value_required_feedback,
+            viewModel.uiState.value.saveErrorMessageResId
+        )
+    }
 }
 
 private class FakePaymentsRepository : PaymentsRepository {

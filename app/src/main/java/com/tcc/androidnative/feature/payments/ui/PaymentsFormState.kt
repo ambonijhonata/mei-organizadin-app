@@ -27,6 +27,8 @@ data class PaymentsUiState(
     val eventId: Long = 0L,
     val totalServiceValue: BigDecimal = BigDecimal.ZERO,
     val payments: List<PaymentEntryUiState> = listOf(PaymentEntryUiState(id = 1L)),
+    val hadLoadedPersistedPayments: Boolean = false,
+    val isClearedLoadedPaymentsPlaceholder: Boolean = false,
     val totalPaid: BigDecimal = BigDecimal.ZERO,
     val paymentTypeTotals: List<PaymentMethodTotalUiState> = emptyList(),
     val canAddPayment: Boolean = true,
@@ -67,7 +69,8 @@ object PaymentsFormReducer {
             PaymentsUiState(
                 eventId = eventId,
                 totalServiceValue = totalServiceValue,
-                payments = normalizedPayments
+                payments = normalizedPayments,
+                hadLoadedPersistedPayments = payments.isNotEmpty()
             )
         )
     }
@@ -80,6 +83,7 @@ object PaymentsFormReducer {
         val suggestedMethod = nextAvailableMethod(state.payments)
         return recalculate(
             state.copy(
+                isClearedLoadedPaymentsPlaceholder = false,
                 payments = state.payments + PaymentEntryUiState(
                     id = nextId,
                     method = suggestedMethod,
@@ -96,7 +100,12 @@ object PaymentsFormReducer {
         } else {
             filtered
         }
-        return recalculate(state.copy(payments = normalized))
+        return recalculate(
+            state.copy(
+                payments = normalized,
+                isClearedLoadedPaymentsPlaceholder = filtered.isEmpty() && state.hadLoadedPersistedPayments
+            )
+        )
     }
 
     fun updateMethod(
@@ -109,6 +118,7 @@ object PaymentsFormReducer {
         }
         return recalculate(
             state.copy(
+                isClearedLoadedPaymentsPlaceholder = state.isClearedLoadedPaymentsPlaceholder,
                 payments = state.payments.map { entry ->
                     if (entry.id == paymentId) entry.copy(method = method) else entry
                 }
@@ -128,7 +138,10 @@ object PaymentsFormReducer {
         val updatedPayments = state.payments.map { entry ->
             if (entry.id == paymentId) entry.copy(amountInput = amountInput) else entry
         }
-        val updatedState = state.copy(payments = updatedPayments)
+        val updatedState = state.copy(
+            payments = updatedPayments,
+            isClearedLoadedPaymentsPlaceholder = state.isClearedLoadedPaymentsPlaceholder && amountInput.isBlank()
+        )
         val hasTotalValueSelection = updatedPayments.any { it.isValueTotal }
         if (!hasTotalValueSelection && calculatePartialTotal(updatedPayments) > state.totalServiceValue) {
             return state
@@ -156,7 +169,19 @@ object PaymentsFormReducer {
             }
         }
 
-        return recalculate(state.copy(payments = updatedPayments))
+        return recalculate(
+            state.copy(
+                payments = updatedPayments,
+                isClearedLoadedPaymentsPlaceholder = false
+            )
+        )
+    }
+
+    fun shouldSaveAsClearedComposition(state: PaymentsUiState): Boolean {
+        return state.isClearedLoadedPaymentsPlaceholder &&
+            state.payments.size == 1 &&
+            state.payments.first().amountInput.isBlank() &&
+            !state.payments.first().isValueTotal
     }
 
     private fun recalculate(state: PaymentsUiState): PaymentsUiState {
