@@ -26,47 +26,52 @@ class PaymentMethodRevenueViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `should validate invalid start date`() = runTest {
+    fun `should require a confirmed period`() = runTest {
         val viewModel = PaymentMethodRevenueViewModel(FakePaymentMethodRevenueReportsRepository())
-        viewModel.onStartDateChange("99")
-        viewModel.onEndDateChange("02/04/2026")
 
         viewModel.emitReport()
         runCurrent()
 
-        assertEquals(R.string.feedback_report_start_date_invalid, viewModel.uiState.value.transientMessage?.textResId)
+        assertEquals(R.string.feedback_report_period_invalid, viewModel.uiState.value.transientMessage?.textResId)
         assertEquals(MessageTone.ERROR, viewModel.uiState.value.transientMessage?.tone)
     }
 
     @Test
-    fun `should validate invalid end date`() = runTest {
+    fun `should validate one month period limit`() = runTest {
         val viewModel = PaymentMethodRevenueViewModel(FakePaymentMethodRevenueReportsRepository())
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("99")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 5, 3)
+        )
 
         viewModel.emitReport()
         runCurrent()
 
-        assertEquals(R.string.feedback_report_end_date_invalid, viewModel.uiState.value.transientMessage?.textResId)
+        assertEquals(R.string.feedback_report_period_limit, viewModel.uiState.value.transientMessage?.textResId)
+        assertEquals(MessageTone.WARNING, viewModel.uiState.value.transientMessage?.tone)
     }
 
     @Test
-    fun `should validate start date before end date`() = runTest {
+    fun `should normalize selected period order`() = runTest {
         val viewModel = PaymentMethodRevenueViewModel(FakePaymentMethodRevenueReportsRepository())
-        viewModel.onStartDateChange("03/04/2026")
-        viewModel.onEndDateChange("02/04/2026")
 
-        viewModel.emitReport()
-        runCurrent()
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 5, 9),
+            endDate = LocalDate.of(2026, 5, 2)
+        )
 
-        assertEquals(R.string.feedback_report_start_before_end, viewModel.uiState.value.transientMessage?.textResId)
+        assertEquals("02/05/2026 - 09/05/2026", viewModel.uiState.value.periodInput)
+        assertEquals(LocalDate.of(2026, 5, 2), viewModel.uiState.value.selectedStartDate)
+        assertEquals(LocalDate.of(2026, 5, 9), viewModel.uiState.value.selectedEndDate)
     }
 
     @Test
     fun `should load report and move to report step`() = runTest {
         val viewModel = PaymentMethodRevenueViewModel(FakePaymentMethodRevenueReportsRepository())
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("02/04/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 4, 2)
+        )
 
         viewModel.emitReport()
         runCurrent()

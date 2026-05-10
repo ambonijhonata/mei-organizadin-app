@@ -8,12 +8,10 @@ import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.DateFormats
-import com.tcc.androidnative.core.util.InputMasks
 import com.tcc.androidnative.feature.reports.data.PaymentMethodRevenueReportModel
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import java.time.ZoneOffset
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +26,9 @@ enum class PaymentMethodRevenueScreenStep {
 }
 
 data class PaymentMethodRevenueUiState(
-    val startDateInput: String = DateFormats.toUiDate(LocalDate.now(ZoneOffset.UTC).minusMonths(1)),
-    val endDateInput: String = DateFormats.toUiDate(LocalDate.now(ZoneOffset.UTC)),
+    val periodInput: String = "",
+    val selectedStartDate: LocalDate? = null,
+    val selectedEndDate: LocalDate? = null,
     val step: PaymentMethodRevenueScreenStep = PaymentMethodRevenueScreenStep.FORM,
     val isLoading: Boolean = false,
     val report: PaymentMethodRevenueReportModel? = null,
@@ -44,29 +43,28 @@ class PaymentMethodRevenueViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PaymentMethodRevenueUiState())
     val uiState: StateFlow<PaymentMethodRevenueUiState> = _uiState.asStateFlow()
 
-    fun onStartDateChange(value: String) {
-        _uiState.update { it.copy(startDateInput = InputMasks.formatBirthDateInput(value)) }
-    }
-
-    fun onEndDateChange(value: String) {
-        _uiState.update { it.copy(endDateInput = InputMasks.formatBirthDateInput(value)) }
+    fun onPeriodSelected(startDate: LocalDate, endDate: LocalDate) {
+        val normalizedStart = minOf(startDate, endDate)
+        val normalizedEnd = maxOf(startDate, endDate)
+        _uiState.update {
+            it.copy(
+                periodInput = formatPeriod(normalizedStart, normalizedEnd),
+                selectedStartDate = normalizedStart,
+                selectedEndDate = normalizedEnd
+            )
+        }
     }
 
     fun emitReport() {
-        val start = runCatching { DateFormats.parseUiDate(_uiState.value.startDateInput) }.getOrNull()
-        if (start == null) {
-            showMessage(R.string.feedback_report_start_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
+        val start = _uiState.value.selectedStartDate
+        val end = _uiState.value.selectedEndDate
+        if (start == null || end == null) {
+            showMessage(R.string.feedback_report_period_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
             return
         }
 
-        val end = runCatching { DateFormats.parseUiDate(_uiState.value.endDateInput) }.getOrNull()
-        if (end == null) {
-            showMessage(R.string.feedback_report_end_date_invalid, MessageTone.ERROR, MessageDurations.SHORT_3S)
-            return
-        }
-
-        if (start.isAfter(end)) {
-            showMessage(R.string.feedback_report_start_before_end, MessageTone.ERROR, MessageDurations.SHORT_3S)
+        if (end.isAfter(start.plusMonths(1))) {
+            showMessage(R.string.feedback_report_period_limit, MessageTone.WARNING, MessageDurations.SHORT_3S)
             return
         }
 
@@ -104,6 +102,10 @@ class PaymentMethodRevenueViewModel @Inject constructor(
                     )
                 }
         }
+    }
+
+    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String {
+        return "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
     }
 
     fun backToForm() {

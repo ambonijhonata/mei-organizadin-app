@@ -18,9 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DateRangePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +26,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -223,7 +219,6 @@ private fun CashFlowFormStep(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CashFlowPeriodInputField(
     value: String,
@@ -232,46 +227,19 @@ private fun CashFlowPeriodInputField(
     onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isDatePickerVisible by rememberSaveable { mutableStateOf(false) }
-
-    if (isDatePickerVisible) {
-        CashFlowPeriodPickerDialog(
-            initialSelectedStartDate = selectedStartDate ?: LocalDate.now(),
-            initialSelectedEndDate = selectedEndDate,
-            onDismiss = { isDatePickerVisible = false },
-            onConfirm = { startDate, endDate ->
-                onPeriodSelected(startDate, endDate)
-                isDatePickerVisible = false
-            }
-        )
-    }
-
-    OutlinedTextField(
+    ReportPeriodInputField(
         value = value,
-        onValueChange = {},
-        label = { Text("Periodo (dd/MM/yyyy)") },
-        readOnly = true,
-        singleLine = true,
-        trailingIcon = {
-            IconButton(
-                onClick = { isDatePickerVisible = true },
-                modifier = Modifier.semantics {
-                    contentDescription = "Abrir calendario do periodo do fluxo de caixa"
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarMonth,
-                    contentDescription = null
-                )
-            }
-        },
-        modifier = modifier.semantics {
-            contentDescription = "Periodo do filtro de fluxo de caixa"
-        }
+        selectedStartDate = selectedStartDate,
+        selectedEndDate = selectedEndDate,
+        fieldDescription = "Periodo do filtro de fluxo de caixa",
+        calendarDescription = "Abrir calendario do periodo do fluxo de caixa",
+        pickerTestTag = "cashflow-period-picker",
+        confirmButtonTag = "cashflow-period-confirm",
+        onPeriodSelected = onPeriodSelected,
+        modifier = modifier
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CashFlowPeriodPickerDialog(
     initialSelectedStartDate: LocalDate,
@@ -279,46 +247,14 @@ internal fun CashFlowPeriodPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (LocalDate, LocalDate) -> Unit
 ) {
-    val dateRangePickerState = rememberDateRangePickerState(
-        initialSelectedStartDateMillis = DateFormats.toUtcMillis(initialSelectedStartDate),
-        initialSelectedEndDateMillis = initialSelectedEndDate?.let(DateFormats::toUtcMillis),
-        initialDisplayedMonthMillis = DateFormats.toUtcMillis(initialSelectedStartDate.withDayOfMonth(1))
+    ReportPeriodPickerDialog(
+        initialSelectedStartDate = initialSelectedStartDate,
+        initialSelectedEndDate = initialSelectedEndDate,
+        pickerTestTag = "cashflow-period-picker",
+        confirmButtonTag = "cashflow-period-confirm",
+        onDismiss = onDismiss,
+        onConfirm = onConfirm
     )
-    val selectedStartDate = dateRangePickerState.selectedStartDateMillis?.let(DateFormats::fromUtcMillis)
-    val selectedEndDate = dateRangePickerState.selectedEndDateMillis?.let(DateFormats::fromUtcMillis)
-    val isRangeWithinOneMonth = selectedStartDate != null &&
-        selectedEndDate != null &&
-        !selectedEndDate.isAfter(selectedStartDate.plusMonths(1))
-    val isConfirmEnabled = selectedStartDate != null && selectedEndDate != null && isRangeWithinOneMonth
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (selectedStartDate != null && selectedEndDate != null) {
-                        onConfirm(selectedStartDate, selectedEndDate)
-                    }
-                },
-                enabled = isConfirmEnabled,
-                modifier = Modifier.testTag("cashflow-period-confirm")
-            ) {
-                Text(stringResource(R.string.calendar_date_picker_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.calendar_date_picker_cancel))
-            }
-        }
-    ) {
-        DateRangePicker(
-            state = dateRangePickerState,
-            title = {},
-            showModeToggle = false,
-            modifier = Modifier.testTag("cashflow-period-picker")
-        )
-    }
 }
 
 @Composable

@@ -43,6 +43,21 @@ fun RevenueScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    RevenueScreenContent(
+        uiState = uiState,
+        onPeriodSelected = viewModel::onPeriodSelected,
+        onEmit = viewModel::emitReport,
+        onBackToForm = viewModel::backToForm
+    )
+}
+
+@Composable
+internal fun RevenueScreenContent(
+    uiState: RevenueUiState,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
+    onEmit: () -> Unit,
+    onBackToForm: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -64,13 +79,12 @@ fun RevenueScreen(
         when (uiState.step) {
             RevenueScreenStep.FORM -> RevenueFormStep(
                 uiState = uiState,
-                onStartDateChange = viewModel::onStartDateChange,
-                onEndDateChange = viewModel::onEndDateChange,
-                onEmit = viewModel::emitReport
+                onPeriodSelected = onPeriodSelected,
+                onEmit = onEmit
             )
             RevenueScreenStep.REPORT -> RevenueReportStep(
                 uiState = uiState,
-                onBackToForm = viewModel::backToForm
+                onBackToForm = onBackToForm
             )
         }
     }
@@ -79,8 +93,7 @@ fun RevenueScreen(
 @Composable
 private fun RevenueFormStep(
     uiState: RevenueUiState,
-    onStartDateChange: (String) -> Unit,
-    onEndDateChange: (String) -> Unit,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     onEmit: () -> Unit
 ) {
     ReportCardContainer {
@@ -92,23 +105,15 @@ private fun RevenueFormStep(
                 color = Color(0xFF374151)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ReportDateInputField(
-                value = uiState.startDateInput,
-                label = "Data inicial (dd/MM/yyyy)",
-                fieldDescription = "Data inicial do filtro de faturamento",
-                calendarDescription = "Abrir calendario da data inicial do faturamento",
-                onValueChange = onStartDateChange,
-                onDateSelected = { date: LocalDate -> onStartDateChange(DateFormats.toUiDate(date)) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ReportDateInputField(
-                value = uiState.endDateInput,
-                label = "Data final (dd/MM/yyyy)",
-                fieldDescription = "Data final do filtro de faturamento",
-                calendarDescription = "Abrir calendario da data final do faturamento",
-                onValueChange = onEndDateChange,
-                onDateSelected = { date: LocalDate -> onEndDateChange(DateFormats.toUiDate(date)) },
+            ReportPeriodInputField(
+                value = uiState.periodInput,
+                selectedStartDate = uiState.selectedStartDate,
+                selectedEndDate = uiState.selectedEndDate,
+                fieldDescription = "Periodo do filtro de faturamento",
+                calendarDescription = "Abrir calendario do periodo do faturamento",
+                pickerTestTag = "revenue-period-picker",
+                confirmButtonTag = "revenue-period-confirm",
+                onPeriodSelected = onPeriodSelected,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(14.dp))

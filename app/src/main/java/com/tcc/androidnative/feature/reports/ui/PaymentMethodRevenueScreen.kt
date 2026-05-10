@@ -46,8 +46,7 @@ fun PaymentMethodRevenueScreen(
 
     PaymentMethodRevenueScreenContent(
         uiState = uiState,
-        onStartDateChange = viewModel::onStartDateChange,
-        onEndDateChange = viewModel::onEndDateChange,
+        onPeriodSelected = viewModel::onPeriodSelected,
         onEmit = viewModel::emitReport,
         onBackToForm = viewModel::backToForm
     )
@@ -56,8 +55,7 @@ fun PaymentMethodRevenueScreen(
 @Composable
 internal fun PaymentMethodRevenueScreenContent(
     uiState: PaymentMethodRevenueUiState,
-    onStartDateChange: (String) -> Unit,
-    onEndDateChange: (String) -> Unit,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     onEmit: () -> Unit,
     onBackToForm: () -> Unit
 ) {
@@ -82,8 +80,7 @@ internal fun PaymentMethodRevenueScreenContent(
         when (uiState.step) {
             PaymentMethodRevenueScreenStep.FORM -> PaymentMethodRevenueFormStep(
                 uiState = uiState,
-                onStartDateChange = onStartDateChange,
-                onEndDateChange = onEndDateChange,
+                onPeriodSelected = onPeriodSelected,
                 onEmit = onEmit
             )
             PaymentMethodRevenueScreenStep.REPORT -> PaymentMethodRevenueReportStep(
@@ -97,8 +94,7 @@ internal fun PaymentMethodRevenueScreenContent(
 @Composable
 private fun PaymentMethodRevenueFormStep(
     uiState: PaymentMethodRevenueUiState,
-    onStartDateChange: (String) -> Unit,
-    onEndDateChange: (String) -> Unit,
+    onPeriodSelected: (LocalDate, LocalDate) -> Unit,
     onEmit: () -> Unit
 ) {
     ReportCardContainer {
@@ -110,23 +106,15 @@ private fun PaymentMethodRevenueFormStep(
                 color = Color(0xFF374151)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ReportDateInputField(
-                value = uiState.startDateInput,
-                label = "Data inicial (dd/MM/yyyy)",
-                fieldDescription = "Data inicial do filtro de faturamento por método de pagamento",
-                calendarDescription = "Abrir calendario da data inicial do faturamento por método de pagamento",
-                onValueChange = onStartDateChange,
-                onDateSelected = { date: LocalDate -> onStartDateChange(DateFormats.toUiDate(date)) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ReportDateInputField(
-                value = uiState.endDateInput,
-                label = "Data final (dd/MM/yyyy)",
-                fieldDescription = "Data final do filtro de faturamento por método de pagamento",
-                calendarDescription = "Abrir calendario da data final do faturamento por método de pagamento",
-                onValueChange = onEndDateChange,
-                onDateSelected = { date: LocalDate -> onEndDateChange(DateFormats.toUiDate(date)) },
+            ReportPeriodInputField(
+                value = uiState.periodInput,
+                selectedStartDate = uiState.selectedStartDate,
+                selectedEndDate = uiState.selectedEndDate,
+                fieldDescription = "Periodo do filtro de faturamento por método de pagamento",
+                calendarDescription = "Abrir calendario do periodo do faturamento por método de pagamento",
+                pickerTestTag = "payment-method-period-picker",
+                confirmButtonTag = "payment-method-period-confirm",
+                onPeriodSelected = onPeriodSelected,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(14.dp))

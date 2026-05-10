@@ -73,8 +73,10 @@ class ReportsViewModelMessagesTest {
             repository = FakeReportsRepository(shouldFail = true),
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("02/04/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 4, 2)
+        )
 
         viewModel.emitReport()
         runCurrent()
@@ -93,8 +95,10 @@ class ReportsViewModelMessagesTest {
                 considerPaidOnlyInReports = true
             )
         )
-        viewModel.onStartDateChange("01/04/2026")
-        viewModel.onEndDateChange("02/04/2026")
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 4, 2)
+        )
 
         viewModel.emitReport()
         runCurrent()
@@ -155,17 +159,69 @@ class ReportsViewModelMessagesTest {
     }
 
     @Test
-    fun `revenue should sanitize and mask date inputs`() = runTest {
+    fun `revenue should require a confirmed period before emission`() = runTest {
         val viewModel = RevenueViewModel(
             repository = FakeReportsRepository(),
             calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
         )
 
-        viewModel.onStartDateChange("26-12-2026")
-        viewModel.onEndDateChange("2612202")
+        viewModel.emitReport()
+        runCurrent()
 
-        assertEquals("26/12/2026", viewModel.uiState.value.startDateInput)
-        assertEquals("26/12/202", viewModel.uiState.value.endDateInput)
+        val message = viewModel.uiState.value.transientMessage
+        assertEquals(R.string.feedback_report_period_invalid, message?.textResId)
+        assertEquals(MessageTone.ERROR, message?.tone)
+    }
+
+    @Test
+    fun `revenue should validate period limit with generic message`() = runTest {
+        val viewModel = RevenueViewModel(
+            repository = FakeReportsRepository(),
+            calendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
+        )
+
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 5, 3)
+        )
+        viewModel.emitReport()
+        runCurrent()
+
+        val message = viewModel.uiState.value.transientMessage
+        assertEquals(R.string.feedback_report_period_limit, message?.textResId)
+        assertEquals(MessageTone.WARNING, message?.tone)
+    }
+
+    @Test
+    fun `payment method revenue should require a confirmed period before emission`() = runTest {
+        val viewModel = PaymentMethodRevenueViewModel(
+            repository = FakeReportsRepository()
+        )
+
+        viewModel.emitReport()
+        runCurrent()
+
+        val message = viewModel.uiState.value.transientMessage
+        assertEquals(R.string.feedback_report_period_invalid, message?.textResId)
+        assertEquals(MessageTone.ERROR, message?.tone)
+    }
+
+    @Test
+    fun `payment method revenue should validate period limit with generic message`() = runTest {
+        val viewModel = PaymentMethodRevenueViewModel(
+            repository = FakeReportsRepository()
+        )
+
+        viewModel.onPeriodSelected(
+            startDate = LocalDate.of(2026, 4, 1),
+            endDate = LocalDate.of(2026, 5, 3)
+        )
+        viewModel.emitReport()
+        runCurrent()
+
+        val message = viewModel.uiState.value.transientMessage
+        assertEquals(R.string.feedback_report_period_limit, message?.textResId)
+        assertEquals(MessageTone.WARNING, message?.tone)
     }
 }
 
