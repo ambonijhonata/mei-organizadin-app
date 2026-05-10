@@ -2,6 +2,7 @@ package com.tcc.androidnative.feature.reports.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,9 +31,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.testTag
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.core.util.DateFormats
@@ -45,6 +49,52 @@ private const val DETAIL_PERIOD_WEIGHT = 1.1f
 private const val DETAIL_SERVICE_WEIGHT = 1.35f
 private const val DETAIL_QUANTITY_WEIGHT = 0.45f
 private const val DETAIL_TOTAL_WEIGHT = 0.9f
+private val CASH_FLOW_COMPACT_BREAKPOINT = 360.dp
+
+private enum class CashFlowLayoutMode {
+    DEFAULT,
+    COMPACT
+}
+
+private data class CashFlowReportLayoutSpec(
+    val mode: CashFlowLayoutMode,
+    val horizontalPadding: Dp,
+    val rowVerticalPadding: Dp,
+    val periodWeight: Float,
+    val totalWeight: Float,
+    val servicesWeight: Float,
+    val serviceMaxLines: Int
+)
+
+private fun cashFlowReportLayoutSpecFor(availableWidth: Dp): CashFlowReportLayoutSpec {
+    val mode = if (availableWidth < CASH_FLOW_COMPACT_BREAKPOINT) {
+        CashFlowLayoutMode.COMPACT
+    } else {
+        CashFlowLayoutMode.DEFAULT
+    }
+
+    return when (mode) {
+        CashFlowLayoutMode.DEFAULT -> CashFlowReportLayoutSpec(
+            mode = mode,
+            horizontalPadding = 12.dp,
+            rowVerticalPadding = 10.dp,
+            periodWeight = 1f,
+            totalWeight = 1f,
+            servicesWeight = 1f,
+            serviceMaxLines = 2
+        )
+
+        CashFlowLayoutMode.COMPACT -> CashFlowReportLayoutSpec(
+            mode = mode,
+            horizontalPadding = 8.dp,
+            rowVerticalPadding = 8.dp,
+            periodWeight = 0.9f,
+            totalWeight = 1.15f,
+            servicesWeight = 0.95f,
+            serviceMaxLines = 1
+        )
+    }
+}
 
 @Composable
 fun CashFlowScreen(
@@ -91,22 +141,29 @@ internal fun CashFlowScreenContent(
             Spacer(modifier = Modifier.height(10.dp))
         }
 
-        when (uiState.step) {
-            CashFlowScreenStep.FORM -> CashFlowFormStep(
-                uiState = uiState,
-                onStartDateChange = onStartDateChange,
-                onEndDateChange = onEndDateChange,
-                onEmit = onEmit
-            )
-            CashFlowScreenStep.REPORT -> CashFlowReportStep(
-                uiState = uiState,
-                onBackToForm = onBackToForm,
-                onOpenDetail = onOpenDetail
-            )
-            CashFlowScreenStep.DETAIL -> CashFlowDetailStep(
-                selectedDetail = uiState.selectedDetail,
-                onBackToReport = onBackToReport
-            )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val reportLayoutSpec = cashFlowReportLayoutSpecFor(maxWidth)
+            val detailLayoutMode = reportLayoutSpec.mode
+
+            when (uiState.step) {
+                CashFlowScreenStep.FORM -> CashFlowFormStep(
+                    uiState = uiState,
+                    onStartDateChange = onStartDateChange,
+                    onEndDateChange = onEndDateChange,
+                    onEmit = onEmit
+                )
+                CashFlowScreenStep.REPORT -> CashFlowReportStep(
+                    uiState = uiState,
+                    layoutSpec = reportLayoutSpec,
+                    onBackToForm = onBackToForm,
+                    onOpenDetail = onOpenDetail
+                )
+                CashFlowScreenStep.DETAIL -> CashFlowDetailStep(
+                    selectedDetail = uiState.selectedDetail,
+                    layoutMode = detailLayoutMode,
+                    onBackToReport = onBackToReport
+                )
+            }
         }
     }
 }
@@ -171,6 +228,7 @@ private fun CashFlowFormStep(
 @Composable
 private fun CashFlowReportStep(
     uiState: CashFlowUiState,
+    layoutSpec: CashFlowReportLayoutSpec,
     onBackToForm: () -> Unit,
     onOpenDetail: (CashFlowEntryModel) -> Unit
 ) {
@@ -210,6 +268,7 @@ private fun CashFlowReportStep(
 
         ReportCardContainer {
             ReportTableHeader(
+                layoutSpec = layoutSpec,
                 firstLabel = "Periodo",
                 secondLabel = "Total",
                 thirdLabel = "Serviços"
@@ -228,19 +287,28 @@ private fun CashFlowReportStep(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(
+                                horizontal = layoutSpec.horizontalPadding,
+                                vertical = layoutSpec.rowVerticalPadding
+                            ),
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
                             text = DateFormats.toUiDate(entry.date),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(layoutSpec.periodWeight),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = CurrencyFormats.formatForUi(entry.total),
-                            modifier = Modifier.weight(1f)
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.weight(layoutSpec.totalWeight),
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Column(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(layoutSpec.servicesWeight),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             if (entry.services.isEmpty()) {
@@ -251,6 +319,8 @@ private fun CashFlowReportStep(
                                         text = service.name,
                                         color = LoginBrandBlue,
                                         textDecoration = TextDecoration.Underline,
+                                        maxLines = layoutSpec.serviceMaxLines,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier
                                             .clickable { onOpenDetail(entry) }
                                             .semantics {
@@ -273,6 +343,7 @@ private fun CashFlowReportStep(
 @Composable
 private fun CashFlowDetailStep(
     selectedDetail: CashFlowEntryModel?,
+    layoutMode: CashFlowLayoutMode,
     onBackToReport: () -> Unit
 ) {
     Column(
@@ -305,12 +376,16 @@ private fun CashFlowDetailStep(
         Spacer(modifier = Modifier.height(12.dp))
 
         ReportCardContainer {
-            ReportTableHeaderWithFourColumns(
-                firstLabel = "Periodo",
-                secondLabel = "Serviço",
-                thirdLabel = "Qtd.",
-                fourthLabel = "Total"
-            )
+            if (layoutMode == CashFlowLayoutMode.COMPACT) {
+                CompactCashFlowDetailHeader()
+            } else {
+                ReportTableHeaderWithFourColumns(
+                    firstLabel = "Periodo",
+                    secondLabel = "Serviço",
+                    thirdLabel = "Qtd.",
+                    fourthLabel = "Total"
+                )
+            }
             HorizontalDivider(color = Color(0xFFE5E7EB))
 
             val detail = selectedDetail
@@ -322,29 +397,48 @@ private fun CashFlowDetailStep(
                 )
             } else {
                 detail.services.forEachIndexed { index, service ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = DateFormats.toShortYearUiDate(detail.date),
-                            modifier = Modifier.weight(DETAIL_PERIOD_WEIGHT)
+                    if (layoutMode == CashFlowLayoutMode.COMPACT) {
+                        CompactCashFlowDetailRow(
+                            dateLabel = DateFormats.toShortYearUiDate(detail.date),
+                            serviceName = service.name,
+                            quantityLabel = service.quantity.toString(),
+                            totalLabel = CurrencyFormats.formatForUi(service.total)
                         )
-                        Text(
-                            text = service.name,
-                            modifier = Modifier.weight(DETAIL_SERVICE_WEIGHT)
-                        )
-                        Text(
-                            text = service.quantity.toString(),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.weight(DETAIL_QUANTITY_WEIGHT)
-                        )
-                        Text(
-                            text = CurrencyFormats.formatForUi(service.total),
-                            modifier = Modifier.weight(DETAIL_TOTAL_WEIGHT)
-                        )
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = DateFormats.toShortYearUiDate(detail.date),
+                                modifier = Modifier.weight(DETAIL_PERIOD_WEIGHT),
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = service.name,
+                                modifier = Modifier.weight(DETAIL_SERVICE_WEIGHT),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = service.quantity.toString(),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(DETAIL_QUANTITY_WEIGHT),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Text(
+                                text = CurrencyFormats.formatForUi(service.total),
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.weight(DETAIL_TOTAL_WEIGHT),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
                     if (index < detail.services.lastIndex) {
                         HorizontalDivider(color = Color(0xFFF3F4F6))
@@ -357,6 +451,7 @@ private fun CashFlowDetailStep(
 
 @Composable
 private fun ReportTableHeader(
+    layoutSpec: CashFlowReportLayoutSpec,
     firstLabel: String,
     secondLabel: String,
     thirdLabel: String
@@ -365,26 +460,36 @@ private fun ReportTableHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFFF3F4F6))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(
+                horizontal = layoutSpec.horizontalPadding,
+                vertical = layoutSpec.rowVerticalPadding
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = firstLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(layoutSpec.periodWeight),
+            maxLines = 1,
+            softWrap = false
         )
         Text(
             text = secondLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(layoutSpec.totalWeight),
+            maxLines = 1,
+            softWrap = false
         )
         Text(
             text = thirdLabel,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF374151),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(layoutSpec.servicesWeight),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -428,5 +533,115 @@ private fun ReportTableHeaderWithFourColumns(
             color = Color(0xFF374151),
             modifier = Modifier.weight(DETAIL_TOTAL_WEIGHT)
         )
+    }
+}
+
+@Composable
+private fun CompactCashFlowDetailHeader() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3F4F6))
+            .padding(horizontal = 8.dp, vertical = 10.dp)
+            .testTag("cashflow-detail-compact-header")
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Periodo",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false
+            )
+            Text(
+                text = "Total",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151),
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Serviço",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "Qtd.",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF374151),
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactCashFlowDetailRow(
+    dateLabel: String,
+    serviceName: String,
+    quantityLabel: String,
+    totalLabel: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = dateLabel,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = totalLabel,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = serviceName,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "Qtd.: $quantityLabel",
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
     }
 }
