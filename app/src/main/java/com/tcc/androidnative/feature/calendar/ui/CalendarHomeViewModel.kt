@@ -158,7 +158,7 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logError(
-                "calendar_pipeline_list_error requestId=$requestId date=$selectedDate message=${error.message}",
+                "calendar_pipeline_list_error requestId=$requestId date=$selectedDate error_type=${error::class.java.simpleName}",
                 error
             )
         } catch (error: Throwable) {
@@ -182,7 +182,7 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logError(
-                "calendar_pipeline_list_error requestId=$requestId date=$selectedDate message=${error.message}",
+                "calendar_pipeline_list_error requestId=$requestId date=$selectedDate error_type=${error::class.java.simpleName}",
                 error
             )
         }
@@ -295,7 +295,7 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logError(
-                "calendar_background_sync_reload_error requestId=$requestId date=$selectedDate message=${error.message}",
+                "calendar_background_sync_reload_error requestId=$requestId date=$selectedDate error_type=${error::class.java.simpleName}",
                 error
             )
         } catch (error: Throwable) {
@@ -307,7 +307,7 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logError(
-                "calendar_background_sync_reload_error requestId=$requestId date=$selectedDate message=${error.message}",
+                "calendar_background_sync_reload_error requestId=$requestId date=$selectedDate error_type=${error::class.java.simpleName}",
                 error
             )
         }
@@ -443,7 +443,7 @@ class CalendarHomeViewModel @Inject constructor(
     private suspend fun loadIntegrationStatusSafely(): CalendarIntegrationStatus? {
         return runCatching { calendarRepository.integrationStatus() }
             .onFailure { error ->
-                logError("calendar_status_load_error message=${error.message}", error)
+                logError("calendar_status_load_error error_type=${error::class.java.simpleName}", error)
             }
             .getOrNull()
     }

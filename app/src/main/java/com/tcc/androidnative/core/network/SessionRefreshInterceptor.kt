@@ -66,7 +66,7 @@ class SessionRefreshInterceptor @Inject constructor(
             is RefreshOutcome.RecoverableFailure -> {
                 logWarn(
                     "session_refresh_recoverable_failure path=${request.url.encodedPath} " +
-                        "message=${refreshOutcome.message}"
+                        "reason=${refreshOutcome.message ?: "recoverable_failure"}"
                 )
                 response
             }

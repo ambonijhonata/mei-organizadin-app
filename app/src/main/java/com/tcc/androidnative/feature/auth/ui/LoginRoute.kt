@@ -22,19 +22,13 @@ fun LoginRoute(
     ) { result ->
         when {
             result.resultCode == Activity.RESULT_CANCELED -> {
-                logInfo(
-                    "auth_login_google_result canceled resultCode=${result.resultCode} dataPresent=${result.data != null}"
-                )
+                logInfo("auth_login_google_result status=canceled resultCode=${result.resultCode}")
             }
             result.data == null -> {
-                logWarn(
-                    "auth_login_google_result empty_intent resultCode=${result.resultCode} dataPresent=false"
-                )
+                logWarn("auth_login_google_result status=empty_intent resultCode=${result.resultCode}")
             }
             else -> {
-                logInfo(
-                    "auth_login_google_result received resultCode=${result.resultCode} dataPresent=true"
-                )
+                logInfo("auth_login_google_result status=received resultCode=${result.resultCode}")
             }
         }
         viewModel.onGoogleSignInResult(result.data)

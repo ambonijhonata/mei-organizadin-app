@@ -44,12 +44,7 @@ class GoogleSignInGatewayImpl @Inject constructor(
 
     override fun extractTokens(data: Intent?): Result<GoogleAuthTokens> {
         logInfo(
-            buildString {
-                append("auth_google_extract_start ")
-                append("dataPresent=${data != null} ")
-                append("webClientIdPresent=${GoogleAuthConfig.webClientId.isNotBlank()} ")
-                append("webClientIdLength=${GoogleAuthConfig.webClientId.length}")
-            }
+            "auth_google_extract_start data_present=${data != null} web_client_id_configured=${GoogleAuthConfig.webClientId.isNotBlank()}"
         )
 
         if (GoogleAuthConfig.webClientId.isBlank()) {
@@ -61,20 +56,10 @@ class GoogleSignInGatewayImpl @Inject constructor(
             val idToken = account.idToken
             val authorizationCode = account.serverAuthCode
             if (idToken.isNullOrBlank()) {
-                logWarn(
-                    "auth_google_extract_failed reason=missing_id_token authorizationCodePresent=${!authorizationCode.isNullOrBlank()}"
-                )
+                logWarn("auth_google_extract_failed reason=missing_id_token")
                 Result.failure(IllegalStateException("Google nao retornou idToken."))
             } else {
-                logInfo(
-                    buildString {
-                        append("auth_google_extract_success ")
-                        append("idTokenPresent=true ")
-                        append("idTokenLength=${idToken.length} ")
-                        append("authorizationCodePresent=${!authorizationCode.isNullOrBlank()} ")
-                        append("authorizationCodeLength=${authorizationCode?.length ?: 0}")
-                    }
-                )
+                logInfo("auth_google_extract_success has_authorization_code=${!authorizationCode.isNullOrBlank()}")
                 Result.success(
                     GoogleAuthTokens(
                         idToken = idToken,
@@ -91,14 +76,14 @@ class GoogleSignInGatewayImpl @Inject constructor(
     private fun logExtractionFailure(ex: Exception) {
         if (ex is ApiException) {
             logError(
-                "auth_google_extract_failed reason=api_exception statusCode=${ex.statusCode} message=${ex.message}",
+                "auth_google_extract_failed reason=api_exception statusCode=${ex.statusCode}",
                 ex
             )
             return
         }
 
         logError(
-            "auth_google_extract_failed reason=unexpected_exception exceptionClass=${ex::class.java.simpleName} message=${ex.message}",
+            "auth_google_extract_failed reason=unexpected_exception error_type=${ex::class.java.simpleName}",
             ex
         )
     }

@@ -24,15 +24,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager
 ) : AuthRepository {
     override suspend fun login(idToken: String, authorizationCode: String): UserSession {
-        logInfo(
-            buildString {
-                append("auth_login_request_start ")
-                append("idTokenPresent=${idToken.isNotBlank()} ")
-                append("idTokenLength=${idToken.length} ")
-                append("authorizationCodePresent=${authorizationCode.isNotBlank()} ")
-                append("authorizationCodeLength=${authorizationCode.length}")
-            }
-        )
+        logInfo("auth_login_request_start")
 
         return try {
             val response = api.login(
@@ -51,17 +43,17 @@ class AuthRepositoryImpl @Inject constructor(
                 refreshTokenExpiresAtEpochSeconds = parseEpochSeconds(response.refreshTokenExpiresAt)
             )
             sessionManager.saveSession(session)
-            logInfo("auth_login_request_success userId=${session.userId}")
+            logInfo("auth_login_request_success")
             session
         } catch (error: HttpException) {
             logError(
-                "auth_login_request_failed httpStatus=${error.code()} errorBody=${error.response()?.errorBody()?.string()?.take(240)}",
+                "auth_login_request_failed failure_category=http status=${error.code()}",
                 error
             )
             throw error
         } catch (error: Throwable) {
             logError(
-                "auth_login_request_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                "auth_login_request_failed failure_category=unexpected error_type=${error::class.java.simpleName}",
                 error
             )
             throw error
@@ -92,7 +84,7 @@ class AuthRepositoryImpl @Inject constructor(
             }
         }.onFailure { error ->
             logError(
-                "auth_logout_remote_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                "auth_logout_remote_failed error_type=${error::class.java.simpleName}",
                 error
             )
         }

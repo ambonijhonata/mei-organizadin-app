@@ -226,7 +226,7 @@ internal class AndroidSessionFallbackLogger : SessionFallbackLogger {
             if (error != null) {
                 Log.w(
                     "SecureSessionManager",
-                    "event=$event exceptionClass=${error.javaClass.simpleName} message=${error.message}",
+                    "event=$event error_type=${error.javaClass.simpleName}",
                     error
                 )
             } else {

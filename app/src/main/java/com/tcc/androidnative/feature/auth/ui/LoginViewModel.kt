@@ -43,20 +43,12 @@ class LoginViewModel @Inject constructor(
     fun onGoogleSignInResult(data: Intent?) {
         googleSignInGateway.extractTokens(data)
             .onSuccess { tokens ->
-                logInfo(
-                    buildString {
-                        append("auth_login_tokens_received ")
-                        append("idTokenPresent=${tokens.idToken.isNotBlank()} ")
-                        append("idTokenLength=${tokens.idToken.length} ")
-                        append("authorizationCodePresent=${tokens.authorizationCode.isNotBlank()} ")
-                        append("authorizationCodeLength=${tokens.authorizationCode.length}")
-                    }
-                )
+                logInfo("auth_login_tokens_received")
                 onGoogleTokensReceived(tokens)
             }
             .onFailure { error ->
                 logWarn(
-                    "auth_login_token_extraction_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                    "auth_login_token_extraction_failed error_type=${error::class.java.simpleName}",
                     error
                 )
                 showLoginError()
@@ -65,15 +57,7 @@ class LoginViewModel @Inject constructor(
 
     fun onGoogleTokensReceived(tokens: GoogleAuthTokens) {
         viewModelScope.launch {
-            logInfo(
-                buildString {
-                    append("auth_login_backend_start ")
-                    append("idTokenPresent=${tokens.idToken.isNotBlank()} ")
-                    append("idTokenLength=${tokens.idToken.length} ")
-                    append("authorizationCodePresent=${tokens.authorizationCode.isNotBlank()} ")
-                    append("authorizationCodeLength=${tokens.authorizationCode.length}")
-                }
-            )
+            logInfo("auth_login_backend_start")
             _uiState.update { it.copy(isLoading = true, transientMessage = null) }
             runCatching {
                 authRepository.login(
@@ -92,7 +76,7 @@ class LoginViewModel @Inject constructor(
                 _loginSuccessEvents.tryEmit(Unit)
             }.onFailure { error ->
                 logError(
-                    "auth_login_backend_failed exceptionClass=${error::class.java.simpleName} message=${error.message}",
+                    "auth_login_backend_failed error_type=${error::class.java.simpleName}",
                     error
                 )
                 showLoginError()

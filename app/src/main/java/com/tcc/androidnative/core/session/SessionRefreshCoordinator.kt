@@ -141,7 +141,7 @@ class SessionRefreshCoordinator @Inject constructor(
                     if (terminalCode != null) {
                         logWarn(
                             "session_refresh_terminal_failure trigger=${trigger.value} " +
-                                "code=${terminalCode.value} message=${error.message}"
+                                "code=${terminalCode.value}"
                         )
                         RefreshExecutionResult.TerminalFailure(
                             code = terminalCode,
@@ -151,11 +151,11 @@ class SessionRefreshCoordinator @Inject constructor(
                         val retryableCode = extractRetryableRefreshCode(error)
                         logWarn(
                             "session_refresh_retryable_failure trigger=${trigger.value} " +
-                                "attempt=${attempt + 1} code=$retryableCode message=${error.message}"
+                                "attempt=${attempt + 1} code=$retryableCode"
                         )
                         RefreshExecutionResult.RecoverableFailure(error.message, retryable = true)
                     } else {
-                        logWarn("session_refresh_recoverable_failure trigger=${trigger.value} message=${error.message}")
+                        logWarn("session_refresh_recoverable_failure trigger=${trigger.value} error_type=${error::class.java.simpleName}")
                         RefreshExecutionResult.RecoverableFailure(error.message, retryable = false)
                     }
                 }

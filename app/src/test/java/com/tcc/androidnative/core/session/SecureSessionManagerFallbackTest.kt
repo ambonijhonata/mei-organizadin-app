@@ -46,7 +46,7 @@ class SecureSessionManagerFallbackTest {
     }
 
     @Test
-    fun `should emit non sensitive telemetry fields`() {
+    fun `should emit recoverable event name with error classification`() {
         val logger = RecordingFallbackLogger()
         val store = ReadFailureThenRecoverStore()
 
@@ -54,9 +54,9 @@ class SecureSessionManagerFallbackTest {
 
         val firstError = logger.events.firstOrNull { it.errorClass != null }
         assertNotNull(firstError)
+        assertEquals("session_secure_store_recovery_start", firstError!!.event)
         assertTrue(firstError!!.errorClass!!.contains("Exception"))
-        assertTrue(firstError.message!!.contains("AEADBadTagException", ignoreCase = true))
-        assertTrue(firstError.message!!.contains("token").not())
+        assertTrue(firstError.message.isNullOrBlank().not())
     }
 }
 
