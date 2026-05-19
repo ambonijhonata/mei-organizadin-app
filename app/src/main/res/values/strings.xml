@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TCC Android Native</string>
+    <string name="app_name">MEI-ORGANIZADIN</string>
     <string name="login_brand_line_one">MEI</string>
     <string name="login_brand_line_two">ORGANIZADINHO</string>
     <string name="login_subtitle">Organize seus agendamentos</string>
@@ -7,7 +7,7 @@
     <string name="login_google_button">Entrar com Google</string>
     <string name="login_google_button_loading">Entrando...</string>
     <string name="login_google_button_description">Entrar com Google</string>
-    <string name="drawer_app_title">MEI ORGANIZADINHO</string>
+    <string name="drawer_app_title">MEI-ORGANIZADIN</string>
     <string name="drawer_menu_home">Início</string>
     <string name="drawer_menu_registers">Cadastros</string>
     <string name="drawer_menu_clients">Clientes</string>

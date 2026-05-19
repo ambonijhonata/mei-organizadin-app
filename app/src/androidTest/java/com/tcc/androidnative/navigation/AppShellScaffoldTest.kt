@@ -39,7 +39,7 @@ class AppShellScaffoldTest {
         }
 
         composeRule.onNodeWithContentDescription("Abrir menu hamburguer").performClick()
-        composeRule.onNodeWithText("MEI ORGANIZADINHO").assertIsDisplayed()
+        composeRule.onNodeWithText("MEI-ORGANIZADIN").assertIsDisplayed()
         composeRule.onNodeWithText("Clientes").assertIsSelected()
         composeRule.onNodeWithText("Cadastros").assertIsNotSelected()
         composeRule.onNodeWithContentDescription("Recolher submenu Cadastros").assertIsDisplayed()
@@ -82,7 +82,7 @@ class AppShellScaffoldTest {
             }
         }
 
-        composeRule.onNodeWithText("MEI ORGANIZADINHO").assertIsDisplayed()
+        composeRule.onNodeWithText("MEI-ORGANIZADIN").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ir para tela inicial").assertIsDisplayed()
     }
 
@@ -165,7 +165,7 @@ class AppShellScaffoldTest {
         }
 
         composeRule.onNodeWithTag("scaffold_content").performTouchInput { swipeRight() }
-        composeRule.onNodeWithText("MEI ORGANIZADINHO").assertIsDisplayed()
+        composeRule.onNodeWithText("MEI-ORGANIZADIN").assertIsDisplayed()
         composeRule.onNodeWithText("Clientes").assertIsDisplayed()
     }
 }

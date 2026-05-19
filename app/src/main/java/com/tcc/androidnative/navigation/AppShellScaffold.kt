@@ -61,7 +61,7 @@ fun AppShellScaffold(
     currentRoute: String,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit,
-    topBarTitle: String = "MEI ORGANIZADINHO",
+    topBarTitle: String = "MEI-ORGANIZADIN",
     topBarTitleColor: Color = DrawerMenuIconBlue,
     topBarIconColor: Color = DrawerMenuIconBlue,
     isNavigationLocked: Boolean = false,

@@ -52,7 +52,7 @@ fun OnboardingStep1Screen(
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Automatico e inteligente",
+            text = "Automático e inteligente",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF111827)
@@ -64,7 +64,7 @@ fun OnboardingStep1Screen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Visao completa do negocio",
+            text = "Visão completa do negócio",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF111827)

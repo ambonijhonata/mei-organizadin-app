@@ -163,7 +163,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Home.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) {
@@ -192,7 +192,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Clients.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) { ClientsScreen() }
@@ -202,7 +202,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Services.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) {
@@ -221,7 +221,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Services.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) {
@@ -241,7 +241,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.CashFlow.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) { CashFlowScreen() }
@@ -251,7 +251,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Revenue.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) { RevenueScreen() }
@@ -261,7 +261,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.PaymentMethodRevenue.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) { PaymentMethodRevenueScreen() }
@@ -271,7 +271,7 @@ fun AppNavHost() {
                 currentRoute = AppDestination.Settings.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) {
@@ -313,7 +313,7 @@ fun AppNavHost() {
                     }
                 },
                 onLogout = sessionViewModel::logout,
-                topBarTitle = "MEI ORGANIZADINHO",
+                topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue
             ) {
