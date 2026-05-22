@@ -70,6 +70,7 @@ fun AppShellScaffold(
     topBarTitleColor: Color = DrawerMenuIconBlue,
     topBarIconColor: Color = DrawerMenuIconBlue,
     isNavigationLocked: Boolean = false,
+    onHomeClick: (() -> Unit)? = null,
     onCreateAppointment: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
@@ -132,6 +133,20 @@ fun AppShellScaffold(
         }
     }
 
+    fun navigateHome() {
+        if (isNavigationLocked) {
+            return
+        }
+        scope.launch {
+            drawerState.close()
+            onHomeClick?.invoke() ?: run {
+                if (currentRoute != AppDestination.Home.route) {
+                    onNavigate(AppDestination.Home.route)
+                }
+            }
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -150,7 +165,7 @@ fun AppShellScaffold(
                         )
                         IconButton(
                             enabled = !isNavigationLocked,
-                            onClick = { navigateOrClose(AppDestination.Home.route) }
+                            onClick = ::navigateHome
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Home,
@@ -169,7 +184,7 @@ fun AppShellScaffold(
                             )
                         },
                         selected = currentRoute == AppDestination.Home.route,
-                        onClick = { navigateOrClose(AppDestination.Home.route) },
+                        onClick = ::navigateHome,
                         colors = drawerParentItemColors
                     )
 
@@ -411,7 +426,7 @@ fun AppShellScaffold(
                         IconButton(
                             modifier = Modifier.semantics { contentDescription = "Ir para tela inicial" },
                             enabled = !isNavigationLocked,
-                            onClick = { navigateOrClose(AppDestination.Home.route) }
+                            onClick = ::navigateHome
                         ) {
                             Icon(Icons.Outlined.Home, contentDescription = "Home")
                         }

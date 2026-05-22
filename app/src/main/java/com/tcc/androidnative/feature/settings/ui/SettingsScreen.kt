@@ -14,23 +14,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,23 +37,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
+import com.tcc.androidnative.core.ui.form.DatePickerField
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
 import kotlinx.coroutines.delay
 
 private const val TOOLTIP_VISIBLE_MILLIS = 10_000L
 private const val SAVE_SUCCESS_NAVIGATION_DELAY_MILLIS = 300L
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -80,46 +69,14 @@ fun SettingsScreen(
         }
     }
 
-    if (isDatePickerVisible) {
-        val selectedDateMillis = localDateToUtcMillis(uiState.startDate)
-        val displayedMonthMillis = localDateToUtcMillis(uiState.startDate.withDayOfMonth(1))
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDateMillis,
-            initialDisplayedMonthMillis = displayedMonthMillis
-        )
-        DatePickerDialog(
-            onDismissRequest = { isDatePickerVisible = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis
-                            ?.let(::utcMillisToLocalDate)
-                            ?.let(viewModel::onStartDateSelected)
-                        isDatePickerVisible = false
-                    }
-                ) {
-                    Text(stringResource(R.string.calendar_date_picker_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { isDatePickerVisible = false }) {
-                    Text(stringResource(R.string.calendar_date_picker_cancel))
-                }
-            }
-        ) {
-            DatePicker(
-                state = datePickerState,
-                showModeToggle = false
-            )
-        }
-    }
-
     SettingsContent(
         uiState = uiState,
         onUseStartDateFilterChanged = viewModel::onUseStartDateFilterChanged,
         onConsiderPaidAppointmentsOnlyInReportsChanged = viewModel::onConsiderPaidAppointmentsOnlyInReportsChanged,
         onStartDateInputChanged = viewModel::onStartDateInputChanged,
-        onDateFieldClick = { isDatePickerVisible = true },
+        isDatePickerVisible = isDatePickerVisible,
+        onDatePickerVisibilityChange = { isDatePickerVisible = it },
+        onStartDateSelected = viewModel::onStartDateSelected,
         onStartDateTooltipClick = viewModel::showStartDateTooltip,
         onStartDateTooltipClose = viewModel::hideStartDateTooltip,
         onSaveClick = viewModel::save,
@@ -137,7 +94,10 @@ internal fun SettingsContent(
     onUseStartDateFilterChanged: (Boolean) -> Unit,
     onConsiderPaidAppointmentsOnlyInReportsChanged: (Boolean) -> Unit,
     onStartDateInputChanged: (String) -> Unit,
-    onDateFieldClick: () -> Unit,
+    isDatePickerVisible: Boolean = false,
+    onDatePickerVisibilityChange: (Boolean) -> Unit = {},
+    onStartDateSelected: (java.time.LocalDate) -> Unit = {},
+    onDateFieldClick: (() -> Unit)? = null,
     onStartDateTooltipClick: () -> Unit,
     onStartDateTooltipClose: () -> Unit,
     onSaveClick: () -> Unit,
@@ -279,39 +239,31 @@ internal fun SettingsContent(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                OutlinedTextField(
+                DatePickerField(
                     value = uiState.startDateInput,
                     onValueChange = onStartDateInputChanged,
-                    enabled = uiState.useStartDateFilter,
-                    readOnly = false,
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.settings_start_date_field_label)) },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = onDateFieldClick,
-                            enabled = uiState.useStartDateFilter,
-                            modifier = Modifier.semantics {
-                                contentDescription = startDateCalendarDescription
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = null
-                            )
+                    selectedDate = uiState.startDate,
+                    onDateSelected = onStartDateSelected,
+                    isDatePickerVisible = isDatePickerVisible,
+                    onDatePickerVisibilityChange = { visible ->
+                        if (visible) {
+                            onDateFieldClick?.invoke() ?: onDatePickerVisibilityChange(true)
+                        } else {
+                            onDatePickerVisibilityChange(false)
                         }
                     },
+                    enabled = uiState.useStartDateFilter,
+                    readOnly = false,
+                    label = stringResource(R.string.settings_start_date_field_label),
+                    fieldContentDescription = startDateFieldDescription,
+                    calendarActionContentDescription = startDateCalendarDescription,
                     isError = uiState.startDateInputErrorResId != null,
                     supportingText = {
                         uiState.startDateInputErrorResId?.let { errorResId ->
                             Text(stringResource(errorResId))
                         }
                     },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics {
-                            contentDescription = startDateFieldDescription
-                        }
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -372,12 +324,4 @@ internal fun SettingsContent(
             }
         }
     }
-}
-
-internal fun utcMillisToLocalDate(utcMillis: Long): LocalDate {
-    return Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
-}
-
-private fun localDateToUtcMillis(date: LocalDate): Long {
-    return date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 }

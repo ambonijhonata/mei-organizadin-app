@@ -152,6 +152,30 @@ class AppShellScaffoldTest {
     }
 
     @Test
+    fun topbar_home_should_prefer_custom_home_action_when_provided() {
+        var navigatedRoute: String? = null
+        var customHomeClicked = false
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.AppointmentForm.route,
+                    onNavigate = { route -> navigatedRoute = route },
+                    onLogout = {},
+                    onHomeClick = { customHomeClicked = true }
+                ) {
+                    Text("Conteudo")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Ir para tela inicial").performClick()
+        composeRule.runOnIdle {
+            assertEquals(true, customHomeClicked)
+            assertEquals(null, navigatedRoute)
+        }
+    }
+
+    @Test
     fun drawer_should_highlight_payment_method_revenue_child_only() {
         composeRule.setContent {
             AndroidNativeTheme {

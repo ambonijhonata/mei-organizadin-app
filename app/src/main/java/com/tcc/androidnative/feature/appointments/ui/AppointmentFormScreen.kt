@@ -51,12 +51,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
+import com.tcc.androidnative.core.ui.form.DatePickerField
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 
@@ -76,6 +79,8 @@ fun AppointmentFormScreen(
         onServiceFilterDescriptionChange = viewModel::onServiceFilterDescriptionChange,
         onServiceSelectorClick = viewModel::onServiceSelectorClick,
         onServiceOptionRendered = viewModel::onServiceOptionRendered,
+        onAppointmentDateChange = viewModel::updateAppointmentDate,
+        onAppointmentDateSelected = viewModel::selectAppointmentDate,
         onStartTimeChange = viewModel::updateStartTime,
         onEndTimeChange = viewModel::updateEndTime,
         onServiceToggled = viewModel::toggleService,
@@ -94,6 +99,8 @@ fun AppointmentFormContent(
     onServiceFilterDescriptionChange: (String) -> Unit = {},
     onServiceSelectorClick: () -> Unit = {},
     onServiceOptionRendered: (Int) -> Unit = {},
+    onAppointmentDateChange: (String) -> Unit = {},
+    onAppointmentDateSelected: (java.time.LocalDate) -> Unit = {},
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
     onServiceToggled: (Long) -> Unit,
@@ -102,6 +109,13 @@ fun AppointmentFormContent(
 ) {
     var clientMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var servicesMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var isAppointmentDatePickerVisible by rememberSaveable { mutableStateOf(false) }
+    var startTimeFieldValue by remember {
+        mutableStateOf(timeFieldValueFromMasked(uiState.startTime))
+    }
+    var endTimeFieldValue by remember {
+        mutableStateOf(timeFieldValueFromMasked(uiState.endTime))
+    }
     val clientFieldInteractionSource = remember { MutableInteractionSource() }
     val serviceFieldInteractionSource = remember { MutableInteractionSource() }
     val selectedServices = uiState.selectedServiceOptions.values.toList()
@@ -151,6 +165,18 @@ fun AppointmentFormContent(
             if (interaction is PressInteraction.Press) {
                 toggleServicesMenu()
             }
+        }
+    }
+
+    LaunchedEffect(uiState.startTime) {
+        if (startTimeFieldValue.text != uiState.startTime) {
+            startTimeFieldValue = timeFieldValueFromMasked(uiState.startTime)
+        }
+    }
+
+    LaunchedEffect(uiState.endTime) {
+        if (endTimeFieldValue.text != uiState.endTime) {
+            endTimeFieldValue = timeFieldValueFromMasked(uiState.endTime)
         }
     }
 
@@ -293,6 +319,27 @@ fun AppointmentFormContent(
                     }
                 }
 
+                DatePickerField(
+                    value = uiState.appointmentDateInput,
+                    onValueChange = onAppointmentDateChange,
+                    selectedDate = uiState.appointmentDate,
+                    onDateSelected = onAppointmentDateSelected,
+                    isDatePickerVisible = isAppointmentDatePickerVisible,
+                    onDatePickerVisibilityChange = { isAppointmentDatePickerVisible = it },
+                    label = stringResource(R.string.appointment_date_field_label),
+                    fieldContentDescription = stringResource(R.string.appointment_date_field_description),
+                    calendarActionContentDescription = stringResource(R.string.appointment_date_calendar_icon_description),
+                    isError = uiState.appointmentDateInputErrorResId != null,
+                    supportingText = {
+                        uiState.appointmentDateInputErrorResId?.let { errorResId ->
+                            Text(stringResource(errorResId))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("appointment-date-field")
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -301,8 +348,12 @@ fun AppointmentFormContent(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("appointment-start-time"),
-                        value = uiState.startTime,
-                        onValueChange = { onStartTimeChange(maskTimeInput(it)) },
+                        value = startTimeFieldValue,
+                        onValueChange = {
+                            val maskedValue = maskTimeInput(it)
+                            startTimeFieldValue = maskedValue
+                            onStartTimeChange(maskedValue.text)
+                        },
                         label = { Text(stringResource(R.string.appointment_start_time_label)) },
                         placeholder = { Text("00:00") },
                         singleLine = true,
@@ -312,8 +363,12 @@ fun AppointmentFormContent(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("appointment-end-time"),
-                        value = uiState.endTime,
-                        onValueChange = { onEndTimeChange(maskTimeInput(it)) },
+                        value = endTimeFieldValue,
+                        onValueChange = {
+                            val maskedValue = maskTimeInput(it)
+                            endTimeFieldValue = maskedValue
+                            onEndTimeChange(maskedValue.text)
+                        },
                         label = { Text(stringResource(R.string.appointment_end_time_label)) },
                         placeholder = { Text("00:00") },
                         singleLine = true,
@@ -452,10 +507,43 @@ fun AppointmentFormContent(
     }
 }
 
-private fun maskTimeInput(input: String): String {
-    val digits = input.filter { it.isDigit() }.take(4)
-    return when {
+private fun maskTimeInput(input: TextFieldValue): TextFieldValue {
+    val digitsBeforeCursor = input.text
+        .take(input.selection.end.coerceIn(0, input.text.length))
+        .count { it.isDigit() }
+    val digits = input.text.filter { it.isDigit() }.take(4)
+    val masked = when {
         digits.length <= 2 -> digits
         else -> "${digits.take(2)}:${digits.drop(2)}"
     }
+    val cursor = maskedCursorPosition(
+        digitsCountBeforeCursor = digitsBeforeCursor.coerceAtMost(digits.length),
+        maskedText = masked
+    )
+    return TextFieldValue(
+        text = masked,
+        selection = TextRange(cursor)
+    )
+}
+
+private fun maskedCursorPosition(digitsCountBeforeCursor: Int, maskedText: String): Int {
+    if (digitsCountBeforeCursor <= 0) return 0
+
+    var digitsSeen = 0
+    maskedText.forEachIndexed { index, char ->
+        if (char.isDigit()) {
+            digitsSeen++
+            if (digitsSeen == digitsCountBeforeCursor) {
+                return index + 1
+            }
+        }
+    }
+    return maskedText.length
+}
+
+private fun timeFieldValueFromMasked(maskedTime: String): TextFieldValue {
+    return TextFieldValue(
+        text = maskedTime,
+        selection = TextRange(maskedTime.length)
+    )
 }

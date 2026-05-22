@@ -11,6 +11,7 @@ import com.tcc.androidnative.feature.services.data.ServicesPage
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import com.tcc.androidnative.testutil.MainDispatcherRule
 import java.math.BigDecimal
+import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceTimeBy
@@ -80,7 +81,7 @@ class AppointmentFormViewModelTest {
         viewModel.selectClient(1)
         viewModel.onClientFilterNameChange("Cliente 2")
 
-        assertEquals(null, viewModel.uiState.value.selectedClientId)
+        assertEquals(1L, viewModel.uiState.value.selectedClientId)
         assertEquals(
             listOf("Cliente 2", "Cliente 20", "Cliente 21"),
             viewModel.uiState.value.clients.take(3).map { it.name }
@@ -126,6 +127,25 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
+    fun `client selector click should preserve selected client until another option is chosen`() = runTest {
+        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.selectClient(1)
+        assertEquals(1L, viewModel.uiState.value.selectedClientId)
+
+        viewModel.onClientSelectorClick()
+        assertEquals(1L, viewModel.uiState.value.selectedClientId)
+
+        viewModel.onClientFilterNameChange("Cliente 2")
+        runCurrent()
+        assertEquals(1L, viewModel.uiState.value.selectedClientId)
+
+        viewModel.selectClient(2)
+        assertEquals(2L, viewModel.uiState.value.selectedClientId)
+    }
+
+    @Test
     fun `stale client filter response should not override newest query`() = runTest {
         val clientsRepository = FakeClientsRepository(
             delayByName = mapOf(
@@ -164,6 +184,31 @@ class AppointmentFormViewModelTest {
         viewModel.toggleService(1)
 
         assertEquals(setOf(2L), viewModel.uiState.value.selectedServiceIds)
+    }
+
+    @Test
+    fun `select appointment date should update date and formatted input`() = runTest {
+        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.selectAppointmentDate(LocalDate.of(2026, 6, 3))
+
+        assertEquals(LocalDate.of(2026, 6, 3), viewModel.uiState.value.appointmentDate)
+        assertEquals("03/06/2026", viewModel.uiState.value.appointmentDateInput)
+        assertEquals(null, viewModel.uiState.value.appointmentDateInputErrorResId)
+    }
+
+    @Test
+    fun `update appointment date should validate manual input`() = runTest {
+        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.updateAppointmentDate("99/99/9999")
+        assertEquals(R.string.appointment_date_invalid, viewModel.uiState.value.appointmentDateInputErrorResId)
+
+        viewModel.updateAppointmentDate("03/06/2026")
+        assertEquals(LocalDate.of(2026, 6, 3), viewModel.uiState.value.appointmentDate)
+        assertEquals(null, viewModel.uiState.value.appointmentDateInputErrorResId)
     }
 
     @Test

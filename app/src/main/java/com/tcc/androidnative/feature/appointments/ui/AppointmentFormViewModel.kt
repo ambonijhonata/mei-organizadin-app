@@ -6,11 +6,13 @@ import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
+import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +32,9 @@ data class AppointmentFormUiState(
     val selectedClientId: Long? = null,
     val clientFilterName: String = "",
     val serviceFilterDescription: String = "",
+    val appointmentDate: LocalDate = LocalDate.now(),
+    val appointmentDateInput: String = DateFormats.toUiDate(LocalDate.now()),
+    val appointmentDateInputErrorResId: Int? = null,
     val startTime: String = "",
     val endTime: String = "",
     val selectedServiceIds: Set<Long> = emptySet(),
@@ -80,7 +85,6 @@ class AppointmentFormViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 clientFilterName = value,
-                selectedClientId = null,
                 clients = filterClientsByPrefix(state.clientSeedOptions, value),
                 clientPageIndex = if (value.isBlank()) state.clientSeedPageIndex else 0,
                 clientTotalPages = if (value.isBlank()) state.clientSeedTotalPages else 1,
@@ -106,7 +110,6 @@ class AppointmentFormViewModel @Inject constructor(
             val keepCurrentUnfilteredItems = state.clientFilterName.isBlank() && state.clients.isNotEmpty()
             state.copy(
                 clientFilterName = "",
-                selectedClientId = null,
                 clients = if (keepCurrentUnfilteredItems) state.clients else state.clientSeedOptions,
                 clientPageIndex = if (keepCurrentUnfilteredItems) state.clientPageIndex else state.clientSeedPageIndex,
                 clientTotalPages = if (keepCurrentUnfilteredItems) state.clientTotalPages else state.clientSeedTotalPages,
@@ -470,6 +473,49 @@ class AppointmentFormViewModel @Inject constructor(
         _uiState.update { it.copy(startTime = value, feedbackMessage = null) }
     }
 
+    fun updateAppointmentDate(value: String) {
+        val parsedDate = runCatching { DateFormats.parseUiDate(value) }.getOrNull()
+        _uiState.update { state ->
+            when {
+                value.isBlank() -> {
+                    state.copy(
+                        appointmentDateInput = value,
+                        appointmentDateInputErrorResId = R.string.appointment_date_invalid,
+                        feedbackMessage = null
+                    )
+                }
+
+                parsedDate != null -> {
+                    state.copy(
+                        appointmentDate = parsedDate,
+                        appointmentDateInput = value,
+                        appointmentDateInputErrorResId = null,
+                        feedbackMessage = null
+                    )
+                }
+
+                else -> {
+                    state.copy(
+                        appointmentDateInput = value,
+                        appointmentDateInputErrorResId = R.string.appointment_date_invalid,
+                        feedbackMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    fun selectAppointmentDate(date: LocalDate) {
+        _uiState.update {
+            it.copy(
+                appointmentDate = date,
+                appointmentDateInput = DateFormats.toUiDate(date),
+                appointmentDateInputErrorResId = null,
+                feedbackMessage = null
+            )
+        }
+    }
+
     fun updateEndTime(value: String) {
         _uiState.update { it.copy(endTime = value, feedbackMessage = null) }
     }
@@ -498,6 +544,8 @@ class AppointmentFormViewModel @Inject constructor(
     fun saveLocalOnly() {
         val state = _uiState.value
         if (state.selectedClientId == null ||
+            state.appointmentDateInput.isBlank() ||
+            state.appointmentDateInputErrorResId != null ||
             state.startTime.isBlank() ||
             state.endTime.isBlank() ||
             state.selectedServiceIds.isEmpty()

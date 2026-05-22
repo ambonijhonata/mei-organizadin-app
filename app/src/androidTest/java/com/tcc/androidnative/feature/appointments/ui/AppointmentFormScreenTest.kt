@@ -16,6 +16,7 @@ import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme
 import java.math.BigDecimal
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -42,6 +43,7 @@ class AppointmentFormScreenTest {
 
         composeRule.onNodeWithText("Cadastrar agendamento").assertIsDisplayed()
         composeRule.onNodeWithText("Cliente").assertIsDisplayed()
+        composeRule.onNodeWithText("Data do agendamento").assertIsDisplayed()
         composeRule.onNodeWithText("Horário inicial").assertIsDisplayed()
         composeRule.onNodeWithText("Horário final").assertIsDisplayed()
         composeRule.onNodeWithText("Serviços").assertIsDisplayed()
@@ -258,6 +260,35 @@ class AppointmentFormScreenTest {
     }
 
     @Test
+    fun form_should_keep_last_two_digits_in_order_for_start_time() {
+        var startTime = ""
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(startTime = startTime),
+                        onClientSelected = {},
+                        onStartTimeChange = {
+                            startTime = it
+                            render()
+                        },
+                        onEndTimeChange = {},
+                        onServiceToggled = {},
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule.onNodeWithTag("appointment-start-time").performTextInput("1210")
+        composeRule.onNodeWithTag("appointment-start-time").assertTextEquals("12:10")
+    }
+
+    @Test
     fun form_should_mask_end_time_and_ignore_non_digits() {
         var endTime = ""
 
@@ -286,8 +317,62 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithTag("appointment-end-time").assertTextEquals("98:76")
     }
 
+    @Test
+    fun form_should_keep_last_two_digits_in_order_for_end_time() {
+        var endTime = ""
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(endTime = endTime),
+                        onClientSelected = {},
+                        onStartTimeChange = {},
+                        onEndTimeChange = {
+                            endTime = it
+                            render()
+                        },
+                        onServiceToggled = {},
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule.onNodeWithTag("appointment-end-time").performTextInput("1210")
+        composeRule.onNodeWithTag("appointment-end-time").assertTextEquals("12:10")
+    }
+
+    @Test
+    fun form_should_open_appointment_date_picker() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppointmentFormContent(
+                    uiState = sampleState(),
+                    onClientSelected = {},
+                    onStartTimeChange = {},
+                    onEndTimeChange = {},
+                    onServiceToggled = {},
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Abrir calendario de data do agendamento")
+            .performClick()
+
+        composeRule.onNodeWithText("Selecionar").assertIsDisplayed()
+    }
+
     private fun sampleState(
         selectedServiceIds: Set<Long> = emptySet(),
+        appointmentDate: LocalDate = LocalDate.of(2026, 5, 22),
+        appointmentDateInput: String = "22/05/2026",
         startTime: String = "",
         endTime: String = ""
     ): AppointmentFormUiState {
@@ -302,6 +387,8 @@ class AppointmentFormScreenTest {
                 ClientModel(2, "Maria Santos", null, null, null, null)
             ),
             services = services,
+            appointmentDate = appointmentDate,
+            appointmentDateInput = appointmentDateInput,
             startTime = startTime,
             endTime = endTime,
             selectedServiceIds = selectedServiceIds,

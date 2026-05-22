@@ -200,7 +200,12 @@ fun AppNavHost() {
                 onLogout = sessionViewModel::logout,
                 topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
-                topBarIconColor = DrawerMenuIconBlue
+                topBarIconColor = DrawerMenuIconBlue,
+                onHomeClick = {
+                    if (!navController.popBackStack()) {
+                        navigateTo(AppDestination.Home.route)
+                    }
+                }
             ) {
                 AppointmentFormScreen(
                     onCancelClick = {
