@@ -84,6 +84,21 @@
     <string name="calendar_last_sync_label">Data da última sincronização: %1$s</string>
     <string name="calendar_last_sync_refresh">Sincronizar agenda agora</string>
 
+    <string name="appointment_create_action_description">Cadastrar agendamento</string>
+    <string name="appointment_form_title">Cadastrar agendamento</string>
+    <string name="appointment_client_label">Cliente</string>
+    <string name="appointment_client_placeholder">Selecione o cliente</string>
+    <string name="appointment_start_time_label">Horário inicial</string>
+    <string name="appointment_end_time_label">Horário final</string>
+    <string name="appointment_services_label">Serviços</string>
+    <string name="appointment_services_placeholder">Selecione os serviços</string>
+    <string name="appointment_selected_services_count">%1$d serviços selecionados</string>
+    <string name="appointment_save_button">Gravar</string>
+    <string name="appointment_cancel_button">Cancelar</string>
+    <string name="appointment_required_feedback">Preencha cliente, horários e pelo menos um serviço.</string>
+    <string name="appointment_local_save_feedback">Agendamento preenchido. A gravação será conectada em uma etapa futura.</string>
+    <string name="appointment_options_load_error">Erro ao carregar clientes e serviços</string>
+
     <string name="settings_title">Configurações</string>
     <string name="settings_sync_section_title">Sincronização</string>
     <string name="settings_reports_section_title">Relatórios</string>

@@ -1,12 +1,14 @@
 package com.tcc.androidnative.navigation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -14,17 +16,20 @@ import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -65,6 +70,7 @@ fun AppShellScaffold(
     topBarTitleColor: Color = DrawerMenuIconBlue,
     topBarIconColor: Color = DrawerMenuIconBlue,
     isNavigationLocked: Boolean = false,
+    onCreateAppointment: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -81,6 +87,7 @@ fun AppShellScaffold(
     val settingsLabel = stringResource(R.string.drawer_menu_settings)
     val logoutLabel = stringResource(R.string.drawer_menu_logout)
     val drawerTitle = stringResource(R.string.drawer_app_title)
+    val appointmentCreateLabel = stringResource(R.string.appointment_create_action_description)
     val drawerParentItemColors = NavigationDrawerItemDefaults.colors(
         selectedContainerColor = DrawerMenuSelectedBackground,
         selectedTextColor = DrawerMenuIconBlue,
@@ -363,6 +370,44 @@ fun AppShellScaffold(
                         }
                     },
                     actions = {
+                        if (currentRoute == AppDestination.Home.route && onCreateAppointment != null) {
+                            IconButton(
+                                modifier = Modifier.semantics {
+                                    contentDescription = appointmentCreateLabel
+                                },
+                                enabled = !isNavigationLocked,
+                                onClick = onCreateAppointment
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(28.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .size(24.dp),
+                                        imageVector = Icons.Outlined.DateRange,
+                                        contentDescription = null
+                                    )
+                                    Surface(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .size(14.dp),
+                                        shape = CircleShape,
+                                        color = topBarIconColor
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier
+                                                .padding(1.dp)
+                                                .size(12.dp),
+                                            imageVector = Icons.Outlined.Add,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         IconButton(
                             modifier = Modifier.semantics { contentDescription = "Ir para tela inicial" },
                             enabled = !isNavigationLocked,

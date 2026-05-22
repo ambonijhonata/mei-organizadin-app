@@ -8,8 +8,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -84,6 +86,30 @@ class AppShellScaffoldTest {
 
         composeRule.onNodeWithText("MEI-ORGANIZADIN").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ir para tela inicial").assertIsDisplayed()
+        composeRule.onAllNodesWithContentDescription("Cadastrar agendamento").assertCountEquals(0)
+    }
+
+    @Test
+    fun topbar_should_show_appointment_action_only_on_home() {
+        var appointmentClicked = false
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppShellScaffold(
+                    currentRoute = AppDestination.Home.route,
+                    onNavigate = {},
+                    onLogout = {},
+                    onCreateAppointment = { appointmentClicked = true }
+                ) {
+                    Text("Conteudo")
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Cadastrar agendamento").assertIsDisplayed().performClick()
+        composeRule.onNodeWithContentDescription("Ir para tela inicial").assertIsDisplayed()
+        composeRule.runOnIdle {
+            assertEquals(true, appointmentClicked)
+        }
     }
 
     @Test

@@ -10,6 +10,7 @@ sealed class AppDestination(val route: String) {
     data object Onboarding4 : AppDestination("onboarding4")
     data object Clients : AppDestination("clients")
     data object Services : AppDestination("services")
+    data object AppointmentForm : AppDestination("appointment-form")
     data object ServicesOnboarding : AppDestination("services_onboarding")
     data object CashFlow : AppDestination("cashflow")
     data object Revenue : AppDestination("revenue")

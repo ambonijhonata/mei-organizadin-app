@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tcc.androidnative.feature.appointments.ui.AppointmentFormScreen
 import com.tcc.androidnative.feature.auth.ui.LoginRoute
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeScreen
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeViewModel
@@ -165,7 +166,12 @@ fun AppNavHost() {
                 onLogout = sessionViewModel::logout,
                 topBarTitle = "MEI-ORGANIZADIN",
                 topBarTitleColor = DrawerMenuIconBlue,
-                topBarIconColor = DrawerMenuIconBlue
+                topBarIconColor = DrawerMenuIconBlue,
+                onCreateAppointment = {
+                    navController.navigate(AppDestination.AppointmentForm.route) {
+                        launchSingleTop = true
+                    }
+                }
             ) {
                 CalendarHomeScreen(
                     viewModel = calendarHomeViewModel,
@@ -182,6 +188,24 @@ fun AppNavHost() {
                             )
                         ) {
                             launchSingleTop = true
+                        }
+                    }
+                )
+            }
+        }
+        composable(AppDestination.AppointmentForm.route) {
+            AppShellScaffold(
+                currentRoute = AppDestination.AppointmentForm.route,
+                onNavigate = ::navigateTo,
+                onLogout = sessionViewModel::logout,
+                topBarTitle = "MEI-ORGANIZADIN",
+                topBarTitleColor = DrawerMenuIconBlue,
+                topBarIconColor = DrawerMenuIconBlue
+            ) {
+                AppointmentFormScreen(
+                    onCancelClick = {
+                        if (!navController.popBackStack()) {
+                            navigateTo(AppDestination.Home.route)
                         }
                     }
                 )
