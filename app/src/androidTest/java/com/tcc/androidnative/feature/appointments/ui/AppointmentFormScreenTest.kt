@@ -1,9 +1,11 @@
 package com.tcc.androidnative.feature.appointments.ui
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -95,7 +97,7 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithTag("appointment-client-field").performClick()
         composeRule.onNodeWithTag("appointment-client-options").assertIsDisplayed()
         composeRule.onNodeWithTag("appointment-client-field").performClick()
-        composeRule.onNodeWithTag("appointment-client-options").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("appointment-client-options").assertCountEquals(0)
     }
 
     @Test
@@ -117,7 +119,7 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithTag("appointment-services-field").performClick()
         composeRule.onNodeWithTag("appointment-services-options").assertIsDisplayed()
         composeRule.onNodeWithTag("appointment-services-field").performClick()
-        composeRule.onNodeWithTag("appointment-services-options").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("appointment-services-options").assertCountEquals(0)
     }
 
     @Test
@@ -139,12 +141,12 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithTag("appointment-client-field").performClick()
         composeRule.onNodeWithTag("appointment-client-options").assertIsDisplayed()
         composeRule.onNodeWithTag("appointment-save").performTouchInput { click(center) }
-        composeRule.onNodeWithTag("appointment-client-options").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("appointment-client-options").assertCountEquals(0)
 
         composeRule.onNodeWithTag("appointment-services-field").performClick()
         composeRule.onNodeWithTag("appointment-services-options").assertIsDisplayed()
         composeRule.onNodeWithTag("appointment-save").performTouchInput { click(center) }
-        composeRule.onNodeWithTag("appointment-services-options").assertDoesNotExist()
+        composeRule.onAllNodesWithTag("appointment-services-options").assertCountEquals(0)
     }
 
     @Test

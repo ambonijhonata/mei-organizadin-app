@@ -233,7 +233,6 @@ fun AppointmentFormContent(
                                 modifier = Modifier.clickable { toggleClientMenu() }
                             )
                         },
-                        enabled = !uiState.isLoadingServices,
                         interactionSource = clientFieldInteractionSource,
                         singleLine = true
                     )
@@ -275,6 +274,14 @@ fun AppointmentFormContent(
                                 }
 
                                 if (uiState.isAppendingClients) {
+                                    item {
+                                        LinearProgressIndicator(
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+
+                                if (uiState.isLoadingClients && uiState.clients.isEmpty()) {
                                     item {
                                         LinearProgressIndicator(
                                             modifier = Modifier.fillMaxWidth()
@@ -340,7 +347,6 @@ fun AppointmentFormContent(
                                 modifier = Modifier.clickable { toggleServicesMenu() }
                             )
                         },
-                        enabled = !uiState.isLoadingClients,
                         interactionSource = serviceFieldInteractionSource,
                         singleLine = true
                     )
@@ -384,6 +390,14 @@ fun AppointmentFormContent(
                                 }
 
                                 if (uiState.isAppendingServices) {
+                                    item {
+                                        LinearProgressIndicator(
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+
+                                if (uiState.isLoadingServices && uiState.services.isEmpty()) {
                                     item {
                                         LinearProgressIndicator(
                                             modifier = Modifier.fillMaxWidth()

@@ -12,8 +12,10 @@ import com.tcc.androidnative.feature.services.data.ServicesRepository
 import com.tcc.androidnative.testutil.MainDispatcherRule
 import java.math.BigDecimal
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,10 +39,12 @@ class AppointmentFormViewModelTest {
         advanceUntilIdle()
 
         assertEquals(25, viewModel.uiState.value.clients.size)
+        assertEquals(25, viewModel.uiState.value.clientSeedOptions.size)
         assertEquals("Cliente 1", viewModel.uiState.value.clients.first().name)
         assertEquals("Cliente 25", viewModel.uiState.value.clients.last().name)
         assertEquals(listOf(ClientListCall(name = null, pageIndex = 1, itemsPerPage = 25)), clientsRepository.listCalls)
         assertEquals(25, viewModel.uiState.value.services.size)
+        assertEquals(25, viewModel.uiState.value.serviceSeedOptions.size)
         assertEquals("Servico 1", viewModel.uiState.value.services.first().description)
         assertEquals("Servico 25", viewModel.uiState.value.services.last().description)
         assertEquals(listOf(ServiceListCall(description = null, pageIndex = 1, pageSize = 25)), servicesRepository.listCalls)
@@ -68,47 +72,86 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
-    fun `client selector should filter by typed name with debounce`() = runTest {
-        val clientsRepository = FakeClientsRepository()
+    fun `client selector should filter from cached items immediately and request remote in parallel`() = runTest {
+        val clientsRepository = FakeClientsRepository(delayByName = mapOf("Cliente 2" to 1_000L))
         val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.selectClient(1)
-        viewModel.onClientFilterNameChange("Cliente 5")
-        advanceTimeBy(499)
+        viewModel.onClientFilterNameChange("Cliente 2")
 
-        assertEquals(1, clientsRepository.listCalls.size)
         assertEquals(null, viewModel.uiState.value.selectedClientId)
+        assertEquals(
+            listOf("Cliente 2", "Cliente 20", "Cliente 21"),
+            viewModel.uiState.value.clients.take(3).map { it.name }
+        )
 
-        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(
+            ClientListCall(name = "Cliente 2", pageIndex = 1, itemsPerPage = 25),
+            clientsRepository.listCalls.last()
+        )
+        assertEquals(
+            listOf("Cliente 2", "Cliente 20", "Cliente 21"),
+            viewModel.uiState.value.clients.take(3).map { it.name }
+        )
+
+        advanceTimeBy(1_000L)
         advanceUntilIdle()
 
-        assertEquals("Cliente 5", viewModel.uiState.value.clientFilterName)
-        assertEquals(listOf("Cliente 5", "Cliente 50", "Cliente 51"), viewModel.uiState.value.clients.take(3).map { it.name })
-        assertEquals(ClientListCall(name = "Cliente 5", pageIndex = 1, itemsPerPage = 25), clientsRepository.listCalls.last())
+        assertEquals("Cliente 2", viewModel.uiState.value.clientFilterName)
+        assertEquals("Cliente 2", viewModel.uiState.value.clients.first().name)
     }
 
     @Test
-    fun `client selector click should clear filter and list all clients`() = runTest {
+    fun `client selector click should clear filter and list cached clients immediately`() = runTest {
         val clientsRepository = FakeClientsRepository()
         val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
         advanceUntilIdle()
 
-        viewModel.onClientFilterNameChange("Cliente 5")
-        advanceTimeBy(500)
+        viewModel.onClientFilterNameChange("Cliente 2")
+        runCurrent()
         advanceUntilIdle()
 
-        assertEquals("Cliente 5", viewModel.uiState.value.clientFilterName)
-        assertEquals(ClientListCall(name = "Cliente 5", pageIndex = 1, itemsPerPage = 25), clientsRepository.listCalls.last())
+        assertEquals("Cliente 2", viewModel.uiState.value.clientFilterName)
+        assertEquals(ClientListCall(name = "Cliente 2", pageIndex = 1, itemsPerPage = 25), clientsRepository.listCalls.last())
 
         viewModel.onClientSelectorClick()
-        advanceUntilIdle()
 
         assertEquals("", viewModel.uiState.value.clientFilterName)
         assertEquals(25, viewModel.uiState.value.clients.size)
         assertEquals("Cliente 1", viewModel.uiState.value.clients.first().name)
         assertEquals("Cliente 25", viewModel.uiState.value.clients.last().name)
-        assertEquals(ClientListCall(name = null, pageIndex = 1, itemsPerPage = 25), clientsRepository.listCalls.last())
+        assertEquals(2, clientsRepository.listCalls.size)
+    }
+
+    @Test
+    fun `stale client filter response should not override newest query`() = runTest {
+        val clientsRepository = FakeClientsRepository(
+            delayByName = mapOf(
+                "Cliente 3" to 1_000L,
+                "Cliente 21" to 10L
+            )
+        )
+        val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.onClientFilterNameChange("Cliente 3")
+        runCurrent()
+        viewModel.onClientFilterNameChange("Cliente 21")
+        runCurrent()
+
+        advanceTimeBy(10L)
+        advanceUntilIdle()
+
+        assertEquals("Cliente 21", viewModel.uiState.value.clientFilterName)
+        assertEquals(listOf("Cliente 21"), viewModel.uiState.value.clients.map { it.name })
+
+        advanceTimeBy(1_000L)
+        advanceUntilIdle()
+
+        assertEquals("Cliente 21", viewModel.uiState.value.clientFilterName)
+        assertEquals(listOf("Cliente 21"), viewModel.uiState.value.clients.map { it.name })
     }
 
     @Test
@@ -144,45 +187,51 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
-    fun `service selector should filter by typed description with debounce`() = runTest {
-        val servicesRepository = FakeServicesRepository()
+    fun `service selector should filter from cached items immediately and request remote in parallel`() = runTest {
+        val servicesRepository = FakeServicesRepository(delayByDescription = mapOf("Servico 2" to 1_000L))
         val viewModel = AppointmentFormViewModel(FakeClientsRepository(), servicesRepository)
         advanceUntilIdle()
 
-        viewModel.onServiceFilterDescriptionChange("Servico 5")
-        advanceTimeBy(499)
+        viewModel.onServiceFilterDescriptionChange("Servico 2")
 
-        assertEquals(1, servicesRepository.listCalls.size)
+        assertEquals(
+            listOf("Servico 2", "Servico 20", "Servico 21"),
+            viewModel.uiState.value.services.take(3).map { it.description }
+        )
 
-        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(
+            ServiceListCall(description = "Servico 2", pageIndex = 1, pageSize = 25),
+            servicesRepository.listCalls.last()
+        )
+
+        advanceTimeBy(1_000L)
         advanceUntilIdle()
 
-        assertEquals("Servico 5", viewModel.uiState.value.serviceFilterDescription)
-        assertEquals(listOf("Servico 5", "Servico 50", "Servico 51"), viewModel.uiState.value.services.take(3).map { it.description })
-        assertEquals(ServiceListCall(description = "Servico 5", pageIndex = 1, pageSize = 25), servicesRepository.listCalls.last())
+        assertEquals("Servico 2", viewModel.uiState.value.serviceFilterDescription)
+        assertEquals("Servico 2", viewModel.uiState.value.services.first().description)
     }
 
     @Test
-    fun `service selector click should clear filter and list all services`() = runTest {
+    fun `service selector click should clear filter and list cached services immediately`() = runTest {
         val servicesRepository = FakeServicesRepository()
         val viewModel = AppointmentFormViewModel(FakeClientsRepository(), servicesRepository)
         advanceUntilIdle()
 
-        viewModel.onServiceFilterDescriptionChange("Servico 5")
-        advanceTimeBy(500)
+        viewModel.onServiceFilterDescriptionChange("Servico 2")
+        runCurrent()
         advanceUntilIdle()
 
-        assertEquals("Servico 5", viewModel.uiState.value.serviceFilterDescription)
-        assertEquals(ServiceListCall(description = "Servico 5", pageIndex = 1, pageSize = 25), servicesRepository.listCalls.last())
+        assertEquals("Servico 2", viewModel.uiState.value.serviceFilterDescription)
+        assertEquals(ServiceListCall(description = "Servico 2", pageIndex = 1, pageSize = 25), servicesRepository.listCalls.last())
 
         viewModel.onServiceSelectorClick()
-        advanceUntilIdle()
 
         assertEquals("", viewModel.uiState.value.serviceFilterDescription)
         assertEquals(25, viewModel.uiState.value.services.size)
         assertEquals("Servico 1", viewModel.uiState.value.services.first().description)
         assertEquals("Servico 25", viewModel.uiState.value.services.last().description)
-        assertEquals(ServiceListCall(description = null, pageIndex = 1, pageSize = 25), servicesRepository.listCalls.last())
+        assertEquals(2, servicesRepository.listCalls.size)
     }
 
     @Test
@@ -222,7 +271,9 @@ private data class ServiceListCall(
     val pageSize: Int
 )
 
-private class FakeClientsRepository : ClientsRepository {
+private class FakeClientsRepository(
+    private val delayByName: Map<String, Long> = emptyMap()
+) : ClientsRepository {
     var createCalls = 0
     var updateCalls = 0
     val listCalls = mutableListOf<ClientListCall>()
@@ -233,8 +284,9 @@ private class FakeClientsRepository : ClientsRepository {
 
     override suspend fun list(name: String?, pageIndex: Int, itemsPerPage: Int): ClientsPage {
         listCalls += ClientListCall(name = name, pageIndex = pageIndex, itemsPerPage = itemsPerPage)
+        delayByName[name]?.let { delay(it) }
         val filteredItems = name?.let { filter ->
-            allItems.filter { it.name.contains(filter, ignoreCase = true) }
+            allItems.filter { it.name.startsWith(filter, ignoreCase = true) }
         } ?: allItems
         val fromIndex = ((pageIndex - 1) * itemsPerPage).coerceAtLeast(0)
         val toIndex = (fromIndex + itemsPerPage).coerceAtMost(filteredItems.size)
@@ -266,7 +318,9 @@ private class FakeClientsRepository : ClientsRepository {
     override suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int> = ids.size to 0
 }
 
-private class FakeServicesRepository : ServicesRepository {
+private class FakeServicesRepository(
+    private val delayByDescription: Map<String, Long> = emptyMap()
+) : ServicesRepository {
     var createCalls = 0
     var updateCalls = 0
     val listCalls = mutableListOf<ServiceListCall>()
@@ -277,8 +331,9 @@ private class FakeServicesRepository : ServicesRepository {
 
     override suspend fun list(description: String?, uiPageIndex: Int, pageSize: Int): ServicesPage {
         listCalls += ServiceListCall(description = description, pageIndex = uiPageIndex, pageSize = pageSize)
+        delayByDescription[description]?.let { delay(it) }
         val filteredItems = description?.let { filter ->
-            allItems.filter { it.description.contains(filter, ignoreCase = true) }
+            allItems.filter { it.description.startsWith(filter, ignoreCase = true) }
         } ?: allItems
         val fromIndex = ((uiPageIndex - 1) * pageSize).coerceAtLeast(0)
         val toIndex = (fromIndex + pageSize).coerceAtMost(filteredItems.size)
