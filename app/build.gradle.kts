@@ -56,8 +56,8 @@ abstract class CheckNoHardcodedUrlsTask : DefaultTask() {
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
 
@@ -167,6 +167,10 @@ kotlin {
     }
 }
 
+kapt {
+    correctErrorTypes = true
+}
+
 val checkNoHardcodedUrls by tasks.registering(CheckNoHardcodedUrlsTask::class) {
     group = "verification"
     description = "Fails if URL absoluta estiver hardcoded fora de ApiConfig."
@@ -202,7 +206,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     implementation("com.google.dagger:hilt-android:2.52")
-    ksp("com.google.dagger:hilt-compiler:2.52")
+    kapt("com.google.dagger:hilt-compiler:2.52")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
