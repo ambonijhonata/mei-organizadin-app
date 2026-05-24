@@ -12,6 +12,7 @@ import com.tcc.androidnative.feature.services.data.ServicesRepository
 import com.tcc.androidnative.testutil.MainDispatcherRule
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceTimeBy
@@ -50,6 +51,18 @@ class AppointmentFormViewModelTest {
         assertEquals("Servico 25", viewModel.uiState.value.services.last().description)
         assertEquals(listOf(ServiceListCall(description = null, pageIndex = 1, pageSize = 25)), servicesRepository.listCalls)
         assertFalse(viewModel.uiState.value.isLoadingOptions)
+    }
+
+    @Test
+    fun `initial appointment form state should use current time and plus thirty minutes`() {
+        val state = createInitialAppointmentFormUiState(
+            currentDate = LocalDate.of(2026, 5, 24),
+            currentTime = LocalTime.of(10, 15)
+        )
+
+        assertEquals("10:15", state.startTime)
+        assertEquals("10:45", state.endTime)
+        assertEquals("24/05/2026", state.appointmentDateInput)
     }
 
     @Test
@@ -299,27 +312,72 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
-    fun `save local only should validate required fields and not persist`() = runTest {
+    fun `save local only should validate required fields individually and not persist`() = runTest {
         val clientsRepository = FakeClientsRepository()
         val servicesRepository = FakeServicesRepository()
         val viewModel = AppointmentFormViewModel(clientsRepository, servicesRepository)
         advanceUntilIdle()
 
+        viewModel.updateAppointmentDate("")
+        viewModel.updateStartTime("")
+        viewModel.updateEndTime("")
         viewModel.saveLocalOnly()
 
-        assertEquals(R.string.appointment_required_feedback, viewModel.uiState.value.feedbackMessage?.textResId)
+        assertEquals(R.string.appointment_client_required, viewModel.uiState.value.clientErrorResId)
+        assertEquals(R.string.appointment_date_invalid, viewModel.uiState.value.appointmentDateInputErrorResId)
+        assertEquals(R.string.appointment_start_time_required, viewModel.uiState.value.startTimeErrorResId)
+        assertEquals(R.string.appointment_end_time_required, viewModel.uiState.value.endTimeErrorResId)
+        assertEquals(R.string.appointment_services_required, viewModel.uiState.value.servicesErrorResId)
+        assertEquals(null, viewModel.uiState.value.feedbackMessage?.textResId)
 
         viewModel.selectClient(1)
+        viewModel.updateAppointmentDate("03/06/2026")
         viewModel.updateStartTime("08:00")
         viewModel.updateEndTime("09:00")
         viewModel.addService(1)
         viewModel.saveLocalOnly()
 
         assertEquals(R.string.appointment_local_save_feedback, viewModel.uiState.value.feedbackMessage?.textResId)
+        assertEquals(null, viewModel.uiState.value.clientErrorResId)
+        assertEquals(null, viewModel.uiState.value.appointmentDateInputErrorResId)
+        assertEquals(null, viewModel.uiState.value.startTimeErrorResId)
+        assertEquals(null, viewModel.uiState.value.endTimeErrorResId)
+        assertEquals(null, viewModel.uiState.value.servicesErrorResId)
         assertEquals(0, clientsRepository.createCalls)
         assertEquals(0, clientsRepository.updateCalls)
         assertEquals(0, servicesRepository.createCalls)
         assertEquals(0, servicesRepository.updateCalls)
+    }
+
+    @Test
+    fun `field errors should clear independently when form values are corrected`() = runTest {
+        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.updateAppointmentDate("")
+        viewModel.updateStartTime("")
+        viewModel.updateEndTime("")
+        viewModel.saveLocalOnly()
+
+        viewModel.selectClient(1)
+        assertEquals(null, viewModel.uiState.value.clientErrorResId)
+        assertEquals(R.string.appointment_start_time_required, viewModel.uiState.value.startTimeErrorResId)
+        assertEquals(R.string.appointment_end_time_required, viewModel.uiState.value.endTimeErrorResId)
+        assertEquals(R.string.appointment_services_required, viewModel.uiState.value.servicesErrorResId)
+
+        viewModel.updateStartTime("08:00")
+        assertEquals(null, viewModel.uiState.value.startTimeErrorResId)
+        assertEquals(R.string.appointment_end_time_required, viewModel.uiState.value.endTimeErrorResId)
+
+        viewModel.updateEndTime("09:00")
+        assertEquals(null, viewModel.uiState.value.endTimeErrorResId)
+        assertEquals(R.string.appointment_services_required, viewModel.uiState.value.servicesErrorResId)
+
+        viewModel.addService(1)
+        assertEquals(null, viewModel.uiState.value.servicesErrorResId)
+
+        viewModel.updateAppointmentDate("03/06/2026")
+        assertEquals(null, viewModel.uiState.value.appointmentDateInputErrorResId)
     }
 }
 

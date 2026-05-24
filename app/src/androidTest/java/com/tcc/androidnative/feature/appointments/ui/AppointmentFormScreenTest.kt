@@ -600,13 +600,51 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithText("Selecionar").assertIsDisplayed()
     }
 
+    @Test
+    fun form_should_render_field_level_validation_messages() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppointmentFormContent(
+                    uiState = sampleState(
+                        clientErrorResId = com.tcc.androidnative.R.string.appointment_client_required,
+                        appointmentDateInput = "",
+                        appointmentDateInputErrorResId = com.tcc.androidnative.R.string.appointment_date_invalid,
+                        startTimeErrorResId = com.tcc.androidnative.R.string.appointment_start_time_required,
+                        endTimeErrorResId = com.tcc.androidnative.R.string.appointment_end_time_required,
+                        servicesErrorResId = com.tcc.androidnative.R.string.appointment_services_required
+                    ),
+                    onClientSelected = {},
+                    onStartTimeChange = {},
+                    onEndTimeChange = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Selecione um cliente").assertIsDisplayed()
+        composeRule.onNodeWithText("Data do agendamento invalida").assertIsDisplayed()
+        composeRule.onNodeWithText("Informe o horário inicial").assertIsDisplayed()
+        composeRule.onNodeWithText("Informe o horário final").assertIsDisplayed()
+        composeRule.onNodeWithTag("appointment-services-error").assertIsDisplayed()
+        composeRule.onNodeWithText("Selecione pelo menos um serviço").assertIsDisplayed()
+    }
+
     private fun sampleState(
         selectedServiceIds: Set<Long> = emptySet(),
         checkedServiceGridIds: Set<Long> = emptySet(),
         appointmentDate: LocalDate = LocalDate.of(2026, 5, 22),
         appointmentDateInput: String = "22/05/2026",
+        appointmentDateInputErrorResId: Int? = null,
         startTime: String = "",
-        endTime: String = ""
+        startTimeErrorResId: Int? = null,
+        endTime: String = "",
+        endTimeErrorResId: Int? = null,
+        clientErrorResId: Int? = null,
+        servicesErrorResId: Int? = null
     ): AppointmentFormUiState {
         val services = listOf(
             ServiceModel(1, "Design de sobrancelha", BigDecimal("50.00")),
@@ -619,13 +657,18 @@ class AppointmentFormScreenTest {
                 ClientModel(2, "Maria Santos", null, null, null, null)
             ),
             services = services,
+            clientErrorResId = clientErrorResId,
             appointmentDate = appointmentDate,
             appointmentDateInput = appointmentDateInput,
+            appointmentDateInputErrorResId = appointmentDateInputErrorResId,
             startTime = startTime,
+            startTimeErrorResId = startTimeErrorResId,
             endTime = endTime,
+            endTimeErrorResId = endTimeErrorResId,
             selectedServiceIds = selectedServiceIds,
             selectedServiceOptions = services.filter { it.id in selectedServiceIds }.associateBy { it.id },
-            checkedServiceGridIds = checkedServiceGridIds
+            checkedServiceGridIds = checkedServiceGridIds,
+            servicesErrorResId = servicesErrorResId
         )
     }
 }

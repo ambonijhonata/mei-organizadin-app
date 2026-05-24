@@ -13,6 +13,7 @@ import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,16 +31,20 @@ data class AppointmentFormUiState(
     val clientSeedOptions: List<ClientModel> = emptyList(),
     val serviceSeedOptions: List<ServiceModel> = emptyList(),
     val selectedClientId: Long? = null,
+    val clientErrorResId: Int? = null,
     val clientFilterName: String = "",
     val serviceFilterDescription: String = "",
     val appointmentDate: LocalDate = LocalDate.now(),
     val appointmentDateInput: String = DateFormats.toUiDate(LocalDate.now()),
     val appointmentDateInputErrorResId: Int? = null,
     val startTime: String = "",
+    val startTimeErrorResId: Int? = null,
     val endTime: String = "",
+    val endTimeErrorResId: Int? = null,
     val selectedServiceIds: Set<Long> = emptySet(),
     val selectedServiceOptions: Map<Long, ServiceModel> = emptyMap(),
     val checkedServiceGridIds: Set<Long> = emptySet(),
+    val servicesErrorResId: Int? = null,
     val clientPageIndex: Int = 0,
     val clientTotalPages: Int = 1,
     val servicePageIndex: Int = 0,
@@ -66,7 +71,7 @@ class AppointmentFormViewModel @Inject constructor(
     private val clientsRepository: ClientsRepository,
     private val servicesRepository: ServicesRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(AppointmentFormUiState())
+    private val _uiState = MutableStateFlow(createInitialAppointmentFormUiState())
     val uiState: StateFlow<AppointmentFormUiState> = _uiState.asStateFlow()
 
     private var clientRemoteSearchJob: Job? = null
@@ -469,6 +474,7 @@ class AppointmentFormViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 selectedClientId = clientId,
+                clientErrorResId = null,
                 clientFilterName = state.clients.firstOrNull { it.id == clientId }?.name ?: state.clientFilterName,
                 feedbackMessage = null
             )
@@ -476,7 +482,13 @@ class AppointmentFormViewModel @Inject constructor(
     }
 
     fun updateStartTime(value: String) {
-        _uiState.update { it.copy(startTime = value, feedbackMessage = null) }
+        _uiState.update {
+            it.copy(
+                startTime = value,
+                startTimeErrorResId = if (value.isNotBlank()) null else it.startTimeErrorResId,
+                feedbackMessage = null
+            )
+        }
     }
 
     fun updateAppointmentDate(value: String) {
@@ -523,7 +535,13 @@ class AppointmentFormViewModel @Inject constructor(
     }
 
     fun updateEndTime(value: String) {
-        _uiState.update { it.copy(endTime = value, feedbackMessage = null) }
+        _uiState.update {
+            it.copy(
+                endTime = value,
+                endTimeErrorResId = if (value.isNotBlank()) null else it.endTimeErrorResId,
+                feedbackMessage = null
+            )
+        }
     }
 
     fun addService(serviceId: Long) {
@@ -543,6 +561,7 @@ class AppointmentFormViewModel @Inject constructor(
                 selectedServiceIds = selected,
                 selectedServiceOptions = selectedOptions,
                 checkedServiceGridIds = state.checkedServiceGridIds - serviceId,
+                servicesErrorResId = if (selected.isNotEmpty()) null else state.servicesErrorResId,
                 feedbackMessage = null
             )
         }
@@ -594,20 +613,30 @@ class AppointmentFormViewModel @Inject constructor(
 
     fun saveLocalOnly() {
         val state = _uiState.value
-        if (state.selectedClientId == null ||
-            state.appointmentDateInput.isBlank() ||
-            state.appointmentDateInputErrorResId != null ||
-            state.startTime.isBlank() ||
-            state.endTime.isBlank() ||
-            state.selectedServiceIds.isEmpty()
+        val clientErrorResId = if (state.selectedClientId == null) R.string.appointment_client_required else null
+        val dateErrorResId = when {
+            state.appointmentDateInput.isBlank() -> R.string.appointment_date_invalid
+            state.appointmentDateInputErrorResId != null -> state.appointmentDateInputErrorResId
+            else -> null
+        }
+        val startTimeErrorResId = if (state.startTime.isBlank()) R.string.appointment_start_time_required else null
+        val endTimeErrorResId = if (state.endTime.isBlank()) R.string.appointment_end_time_required else null
+        val servicesErrorResId = if (state.selectedServiceIds.isEmpty()) R.string.appointment_services_required else null
+
+        if (clientErrorResId != null ||
+            dateErrorResId != null ||
+            startTimeErrorResId != null ||
+            endTimeErrorResId != null ||
+            servicesErrorResId != null
         ) {
             _uiState.update {
                 it.copy(
-                    feedbackMessage = TransientMessage(
-                        textResId = R.string.appointment_required_feedback,
-                        tone = MessageTone.ERROR,
-                        durationMillis = MessageDurations.SHORT_3S
-                    )
+                    clientErrorResId = clientErrorResId,
+                    appointmentDateInputErrorResId = dateErrorResId,
+                    startTimeErrorResId = startTimeErrorResId,
+                    endTimeErrorResId = endTimeErrorResId,
+                    servicesErrorResId = servicesErrorResId,
+                    feedbackMessage = null
                 )
             }
             return
@@ -615,6 +644,11 @@ class AppointmentFormViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
+                clientErrorResId = null,
+                appointmentDateInputErrorResId = null,
+                startTimeErrorResId = null,
+                endTimeErrorResId = null,
+                servicesErrorResId = null,
                 feedbackMessage = TransientMessage(
                     textResId = R.string.appointment_local_save_feedback,
                     tone = MessageTone.SUCCESS,
@@ -635,4 +669,20 @@ class AppointmentFormViewModel @Inject constructor(
         if (normalizedQuery.isBlank()) return items
         return items.filter { it.description.startsWith(normalizedQuery, ignoreCase = true) }
     }
+}
+
+internal fun createInitialAppointmentFormUiState(
+    currentDate: LocalDate = LocalDate.now(),
+    currentTime: LocalTime = LocalTime.now()
+): AppointmentFormUiState {
+    return AppointmentFormUiState(
+        appointmentDate = currentDate,
+        appointmentDateInput = DateFormats.toUiDate(currentDate),
+        startTime = formatAppointmentTime(currentTime),
+        endTime = formatAppointmentTime(currentTime.plusMinutes(30))
+    )
+}
+
+private fun formatAppointmentTime(time: LocalTime): String {
+    return "%02d:%02d".format(time.hour, time.minute)
 }

@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -261,6 +262,12 @@ fun AppointmentFormContent(
                         readOnly = false,
                         label = { Text(stringResource(R.string.appointment_client_label)) },
                         placeholder = { Text(stringResource(R.string.appointment_client_placeholder)) },
+                        isError = uiState.clientErrorResId != null,
+                        supportingText = uiState.clientErrorResId?.let { errorResId ->
+                            {
+                                Text(stringResource(errorResId))
+                            }
+                        },
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Outlined.ArrowDropDown,
@@ -365,7 +372,19 @@ fun AppointmentFormContent(
                         },
                         isTimePickerVisible = isStartTimePickerVisible,
                         onTimePickerVisibilityChange = { isStartTimePickerVisible = it },
-                        label = { Text(stringResource(R.string.appointment_start_time_label)) },
+                        label = {
+                            Text(
+                                text = stringResource(R.string.appointment_start_time_label),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        isError = uiState.startTimeErrorResId != null,
+                        supportingText = uiState.startTimeErrorResId?.let { errorResId ->
+                            {
+                                Text(stringResource(errorResId))
+                            }
+                        },
                         fieldContentDescription = stringResource(R.string.appointment_start_time_field_description),
                         clockActionContentDescription = stringResource(R.string.appointment_start_time_clock_icon_description),
                         dialogTestTag = "appointment-start-time-picker-dialog"
@@ -382,7 +401,19 @@ fun AppointmentFormContent(
                         },
                         isTimePickerVisible = isEndTimePickerVisible,
                         onTimePickerVisibilityChange = { isEndTimePickerVisible = it },
-                        label = { Text(stringResource(R.string.appointment_end_time_label)) },
+                        label = {
+                            Text(
+                                text = stringResource(R.string.appointment_end_time_label),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        isError = uiState.endTimeErrorResId != null,
+                        supportingText = uiState.endTimeErrorResId?.let { errorResId ->
+                            {
+                                Text(stringResource(errorResId))
+                            }
+                        },
                         fieldContentDescription = stringResource(R.string.appointment_end_time_field_description),
                         clockActionContentDescription = stringResource(R.string.appointment_end_time_clock_icon_description),
                         dialogTestTag = "appointment-end-time-picker-dialog"
@@ -561,6 +592,17 @@ fun AppointmentFormContent(
                                 }
                             }
                         }
+                    }
+
+                    uiState.servicesErrorResId?.let { errorResId ->
+                        Text(
+                            text = stringResource(errorResId),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(top = 8.dp, start = 12.dp)
+                                .testTag("appointment-services-error")
+                        )
                     }
                 }
             }
