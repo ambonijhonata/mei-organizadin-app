@@ -1,5 +1,6 @@
 package com.tcc.androidnative.feature.appointments.ui
 
+import androidx.lifecycle.SavedStateHandle
 import com.tcc.androidnative.R
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsPage
@@ -9,6 +10,7 @@ import com.tcc.androidnative.feature.services.data.DeleteServiceOutcome
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesPage
 import com.tcc.androidnative.feature.services.data.ServicesRepository
+import com.tcc.androidnative.navigation.AppDestination
 import com.tcc.androidnative.testutil.MainDispatcherRule
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -34,6 +36,7 @@ class AppointmentFormViewModelTest {
         val clientsRepository = FakeClientsRepository()
         val servicesRepository = FakeServicesRepository()
         val viewModel = AppointmentFormViewModel(
+            savedStateHandle = SavedStateHandle(),
             clientsRepository = clientsRepository,
             servicesRepository = servicesRepository
         )
@@ -66,9 +69,46 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
+    fun `initial appointment form state should use calendar slot arguments when provided`() {
+        val state = createInitialAppointmentFormUiState(
+            prefilledDate = LocalDate.of(2026, 5, 19),
+            prefilledStartTime = LocalTime.of(14, 0),
+            prefilledEndTime = LocalTime.of(14, 30),
+            currentDate = LocalDate.of(2026, 5, 24),
+            currentTime = LocalTime.of(10, 15)
+        )
+
+        assertEquals("19/05/2026", state.appointmentDateInput)
+        assertEquals("14:00", state.startTime)
+        assertEquals("14:30", state.endTime)
+    }
+
+    @Test
+    fun `view model should initialize from calendar slot navigation arguments`() = runTest {
+        val viewModel = AppointmentFormViewModel(
+            savedStateHandle = SavedStateHandle(
+                mapOf(
+                    AppDestination.AppointmentForm.ARG_DATE to "2026-05-19",
+                    AppDestination.AppointmentForm.ARG_START_TIME to "14:00",
+                    AppDestination.AppointmentForm.ARG_END_TIME to "14:30"
+                )
+            ),
+            clientsRepository = FakeClientsRepository(),
+            servicesRepository = FakeServicesRepository()
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(LocalDate.of(2026, 5, 19), viewModel.uiState.value.appointmentDate)
+        assertEquals("19/05/2026", viewModel.uiState.value.appointmentDateInput)
+        assertEquals("14:00", viewModel.uiState.value.startTime)
+        assertEquals("14:30", viewModel.uiState.value.endTime)
+    }
+
+    @Test
     fun `client selector should append next page when list reaches the end`() = runTest {
         val clientsRepository = FakeClientsRepository()
-        val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
+        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientOptionRendered(23)
@@ -88,7 +128,7 @@ class AppointmentFormViewModelTest {
     @Test
     fun `client selector should filter from cached items immediately and request remote in parallel`() = runTest {
         val clientsRepository = FakeClientsRepository(delayByName = mapOf("Cliente 2" to 1_000L))
-        val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
+        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.selectClient(1)
@@ -120,7 +160,7 @@ class AppointmentFormViewModelTest {
     @Test
     fun `client selector click should clear filter and list cached clients immediately`() = runTest {
         val clientsRepository = FakeClientsRepository()
-        val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
+        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientFilterNameChange("Cliente 2")
@@ -141,7 +181,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `client selector click should preserve selected client until another option is chosen`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.selectClient(1)
@@ -166,7 +206,7 @@ class AppointmentFormViewModelTest {
                 "Cliente 21" to 10L
             )
         )
-        val viewModel = AppointmentFormViewModel(clientsRepository, FakeServicesRepository())
+        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientFilterNameChange("Cliente 3")
@@ -189,7 +229,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `add service should preserve other selected services`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.addService(1)
@@ -202,7 +242,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `select appointment date should update date and formatted input`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.selectAppointmentDate(LocalDate.of(2026, 6, 3))
@@ -214,7 +254,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `update appointment date should validate manual input`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.updateAppointmentDate("99/99/9999")
@@ -228,7 +268,7 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector should append next page when list reaches the end`() = runTest {
         val servicesRepository = FakeServicesRepository()
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), servicesRepository)
+        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceOptionRendered(23)
@@ -248,7 +288,7 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector should filter from cached items immediately and request remote in parallel`() = runTest {
         val servicesRepository = FakeServicesRepository(delayByDescription = mapOf("Servico 2" to 1_000L))
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), servicesRepository)
+        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceFilterDescriptionChange("Servico 2")
@@ -274,7 +314,7 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector click should clear filter and list cached services immediately`() = runTest {
         val servicesRepository = FakeServicesRepository()
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), servicesRepository)
+        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceFilterDescriptionChange("Servico 2")
@@ -295,7 +335,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `available services should exclude selected services and restore after removal`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.addService(1)
@@ -315,7 +355,7 @@ class AppointmentFormViewModelTest {
     fun `save local only should validate required fields individually and not persist`() = runTest {
         val clientsRepository = FakeClientsRepository()
         val servicesRepository = FakeServicesRepository()
-        val viewModel = AppointmentFormViewModel(clientsRepository, servicesRepository)
+        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.updateAppointmentDate("")
@@ -351,7 +391,7 @@ class AppointmentFormViewModelTest {
 
     @Test
     fun `field errors should clear independently when form values are corrected`() = runTest {
-        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.updateAppointmentDate("")
@@ -386,6 +426,18 @@ private data class ClientListCall(
     val pageIndex: Int,
     val itemsPerPage: Int
 )
+
+private fun createViewModel(
+    savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    clientsRepository: ClientsRepository = FakeClientsRepository(),
+    servicesRepository: ServicesRepository = FakeServicesRepository()
+): AppointmentFormViewModel {
+    return AppointmentFormViewModel(
+        savedStateHandle = savedStateHandle,
+        clientsRepository = clientsRepository,
+        servicesRepository = servicesRepository
+    )
+}
 
 private data class ServiceListCall(
     val description: String?,

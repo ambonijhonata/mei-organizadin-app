@@ -1,5 +1,6 @@
 package com.tcc.androidnative.feature.appointments.ui
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcc.androidnative.R
@@ -11,6 +12,7 @@ import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.feature.services.data.ServicesRepository
+import com.tcc.androidnative.navigation.AppDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.LocalTime
@@ -68,10 +70,23 @@ data class AppointmentFormUiState(
 
 @HiltViewModel
 class AppointmentFormViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val clientsRepository: ClientsRepository,
     private val servicesRepository: ServicesRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(createInitialAppointmentFormUiState())
+    private val _uiState = MutableStateFlow(
+        createInitialAppointmentFormUiState(
+            prefilledDate = savedStateHandle
+                .get<String?>(AppDestination.AppointmentForm.ARG_DATE)
+                ?.toLocalDateOrNull(),
+            prefilledStartTime = savedStateHandle
+                .get<String?>(AppDestination.AppointmentForm.ARG_START_TIME)
+                ?.toLocalTimeOrNull(),
+            prefilledEndTime = savedStateHandle
+                .get<String?>(AppDestination.AppointmentForm.ARG_END_TIME)
+                ?.toLocalTimeOrNull()
+        )
+    )
     val uiState: StateFlow<AppointmentFormUiState> = _uiState.asStateFlow()
 
     private var clientRemoteSearchJob: Job? = null
@@ -672,17 +687,28 @@ class AppointmentFormViewModel @Inject constructor(
 }
 
 internal fun createInitialAppointmentFormUiState(
+    prefilledDate: LocalDate? = null,
+    prefilledStartTime: LocalTime? = null,
+    prefilledEndTime: LocalTime? = null,
     currentDate: LocalDate = LocalDate.now(),
     currentTime: LocalTime = LocalTime.now()
 ): AppointmentFormUiState {
+    val resolvedDate = prefilledDate ?: currentDate
+    val resolvedStartTime = prefilledStartTime ?: currentTime
+    val resolvedEndTime = prefilledEndTime ?: resolvedStartTime.plusMinutes(30)
+
     return AppointmentFormUiState(
-        appointmentDate = currentDate,
-        appointmentDateInput = DateFormats.toUiDate(currentDate),
-        startTime = formatAppointmentTime(currentTime),
-        endTime = formatAppointmentTime(currentTime.plusMinutes(30))
+        appointmentDate = resolvedDate,
+        appointmentDateInput = DateFormats.toUiDate(resolvedDate),
+        startTime = formatAppointmentTime(resolvedStartTime),
+        endTime = formatAppointmentTime(resolvedEndTime)
     )
 }
 
 private fun formatAppointmentTime(time: LocalTime): String {
     return "%02d:%02d".format(time.hour, time.minute)
 }
+
+private fun String.toLocalDateOrNull(): LocalDate? = runCatching(LocalDate::parse).getOrNull()
+
+private fun String.toLocalTimeOrNull(): LocalTime? = runCatching(LocalTime::parse).getOrNull()

@@ -168,7 +168,7 @@ fun AppNavHost() {
                 topBarTitleColor = DrawerMenuIconBlue,
                 topBarIconColor = DrawerMenuIconBlue,
                 onCreateAppointment = {
-                    navController.navigate(AppDestination.AppointmentForm.route) {
+                    navController.navigate(AppDestination.AppointmentForm.createRoute()) {
                         launchSingleTop = true
                     }
                 }
@@ -189,11 +189,42 @@ fun AppNavHost() {
                         ) {
                             launchSingleTop = true
                         }
+                    },
+                    onEmptySlotClick = { selectedDate, slotTime ->
+                        allowCalendarInitialAutoFocus = false
+                        navController.navigate(
+                            AppDestination.AppointmentForm.createRoute(
+                                date = selectedDate,
+                                startTime = slotTime,
+                                endTime = slotTime.plusMinutes(30)
+                            )
+                        ) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
         }
-        composable(AppDestination.AppointmentForm.route) {
+        composable(
+            route = AppDestination.AppointmentForm.route,
+            arguments = listOf(
+                navArgument(AppDestination.AppointmentForm.ARG_DATE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(AppDestination.AppointmentForm.ARG_START_TIME) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(AppDestination.AppointmentForm.ARG_END_TIME) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             AppShellScaffold(
                 currentRoute = AppDestination.AppointmentForm.route,
                 onNavigate = ::navigateTo,

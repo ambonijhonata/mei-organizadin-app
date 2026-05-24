@@ -1,6 +1,8 @@
 package com.tcc.androidnative.navigation
 
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -82,5 +84,26 @@ class AppNavHostRoutingTest {
         )
 
         assertEquals("payments/25?totalServiceValue=100.00&preloadPayments=false", route)
+    }
+
+    @Test
+    fun `appointment form destination should create base route when no prefill args are provided`() {
+        val route = AppDestination.AppointmentForm.createRoute()
+
+        assertEquals(AppDestination.AppointmentForm.ROUTE_BASE, route)
+    }
+
+    @Test
+    fun `appointment form destination should create route with encoded prefill args`() {
+        val route = AppDestination.AppointmentForm.createRoute(
+            date = LocalDate.of(2026, 5, 19),
+            startTime = LocalTime.of(14, 0),
+            endTime = LocalTime.of(14, 30)
+        )
+
+        assertEquals(
+            "appointment-form?date=2026-05-19&startTime=14%3A00&endTime=14%3A30",
+            route
+        )
     }
 }

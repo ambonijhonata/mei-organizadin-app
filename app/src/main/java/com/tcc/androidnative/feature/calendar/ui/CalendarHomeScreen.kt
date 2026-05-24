@@ -88,6 +88,7 @@ fun CalendarHomeScreen(
     viewModel: CalendarHomeViewModel = hiltViewModel(),
     onReauthenticateRequested: () -> Unit = {},
     onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
+    onEmptySlotClick: (LocalDate, LocalTime) -> Unit = { _, _ -> },
     listState: LazyListState? = null,
     allowInitialAutoFocus: Boolean = true
 ) {
@@ -115,6 +116,7 @@ fun CalendarHomeScreen(
         onReauthenticateRequested = onReauthenticateRequested,
         onSyncRequested = viewModel::synchronizeNow,
         onAppointmentClick = onAppointmentClick,
+        onEmptySlotClick = onEmptySlotClick,
         listState = listState,
         allowInitialAutoFocus = allowInitialAutoFocus,
         autoFocusRequestId = pendingAutoFocusRequestId,
@@ -132,6 +134,7 @@ internal fun CalendarHomeContent(
     onReauthenticateRequested: () -> Unit,
     onSyncRequested: () -> Unit = {},
     onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
+    onEmptySlotClick: (LocalDate, LocalTime) -> Unit = { _, _ -> },
     listState: LazyListState? = null,
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
     currentDateProvider: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
@@ -420,7 +423,11 @@ internal fun CalendarHomeContent(
                             Text(
                                 text = "$label - Livre",
                                 color = Color(0xFF9CA3AF),
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onEmptySlotClick(uiState.selectedDate, slot) }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .testTag("calendar-empty-slot-$label"),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         } else {

@@ -307,6 +307,7 @@ class CalendarHomeScreenTest {
     fun home_should_notify_appointment_click_for_payments_navigation() {
         var clickedEventId: Long? = null
         var clickedServiceTotal: BigDecimal? = null
+        var emptySlotClicks = 0
         composeRule.setContent {
             AndroidNativeTheme {
                 CalendarHomeContent(
@@ -333,7 +334,8 @@ class CalendarHomeScreenTest {
                     onAppointmentClick = { item ->
                         clickedEventId = item.eventId
                         clickedServiceTotal = item.serviceTotalValue
-                    }
+                    },
+                    onEmptySlotClick = { _, _ -> emptySlotClicks += 1 }
                 )
             }
         }
@@ -341,6 +343,34 @@ class CalendarHomeScreenTest {
         composeRule.onNodeWithTag("appointment_card_88").performClick()
         assertTrue(clickedEventId == 88L)
         assertTrue(clickedServiceTotal == BigDecimal("65.00"))
+        assertEquals(0, emptySlotClicks)
+    }
+
+    @Test
+    fun home_should_notify_empty_slot_click_with_selected_date_and_slot_time() {
+        var clickedDate: LocalDate? = null
+        var clickedTime: LocalTime? = null
+
+        composeRule.setContent {
+            AndroidNativeTheme {
+                CalendarHomeContent(
+                    uiState = CalendarHomeUiState(selectedDate = LocalDate.of(2026, 5, 19)),
+                    onPreviousDay = {},
+                    onNextDay = {},
+                    onDateSelected = {},
+                    onReauthenticateRequested = {},
+                    onEmptySlotClick = { date, time ->
+                        clickedDate = date
+                        clickedTime = time
+                    }
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar-empty-slot-14:00").performClick()
+
+        assertEquals(LocalDate.of(2026, 5, 19), clickedDate)
+        assertEquals(LocalTime.of(14, 0), clickedTime)
     }
 
     @Test
