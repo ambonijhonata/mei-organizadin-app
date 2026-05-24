@@ -1,11 +1,11 @@
 package com.tcc.androidnative.feature.appointments.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,10 +22,12 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -83,7 +85,9 @@ fun AppointmentFormScreen(
         onAppointmentDateSelected = viewModel::selectAppointmentDate,
         onStartTimeChange = viewModel::updateStartTime,
         onEndTimeChange = viewModel::updateEndTime,
-        onServiceToggled = viewModel::toggleService,
+        onServiceAdded = viewModel::addService,
+        onServiceGridCheckedChange = viewModel::toggleServiceGridSelection,
+        onDeleteCheckedServices = viewModel::removeCheckedServices,
         onSaveClick = viewModel::saveLocalOnly,
         onCancelClick = onCancelClick
     )
@@ -103,7 +107,9 @@ fun AppointmentFormContent(
     onAppointmentDateSelected: (java.time.LocalDate) -> Unit = {},
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
-    onServiceToggled: (Long) -> Unit,
+    onServiceAdded: (Long) -> Unit,
+    onServiceGridCheckedChange: (Long, Boolean) -> Unit,
+    onDeleteCheckedServices: () -> Unit,
     onSaveClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
@@ -118,7 +124,7 @@ fun AppointmentFormContent(
     }
     val clientFieldInteractionSource = remember { MutableInteractionSource() }
     val serviceFieldInteractionSource = remember { MutableInteractionSource() }
-    val selectedServices = uiState.selectedServiceOptions.values.toList()
+    val selectedServices = uiState.selectedServiceOptions.values.toList().sortedBy { it.description }
     var clientFieldBounds by remember { mutableStateOf<Rect?>(null) }
     var clientListBounds by remember { mutableStateOf<Rect?>(null) }
     var serviceFieldBounds by remember { mutableStateOf<Rect?>(null) }
@@ -377,34 +383,59 @@ fun AppointmentFormContent(
                 }
 
                 Column {
-                    OutlinedTextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("appointment-services-field")
-                            .onGloballyPositioned { coordinates ->
-                                serviceFieldBounds = coordinates.boundsInRoot()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("appointment-services-field")
+                                .onGloballyPositioned { coordinates ->
+                                    serviceFieldBounds = coordinates.boundsInRoot()
+                                },
+                            value = uiState.serviceFilterDescription,
+                            onValueChange = {
+                                if (!servicesMenuExpanded) {
+                                    servicesMenuExpanded = true
+                                    clientMenuExpanded = false
+                                }
+                                onServiceFilterDescriptionChange(it)
                             },
-                        value = uiState.serviceFilterDescription,
-                        onValueChange = {
-                            if (!servicesMenuExpanded) {
-                                servicesMenuExpanded = true
-                                clientMenuExpanded = false
-                            }
-                            onServiceFilterDescriptionChange(it)
-                        },
-                        readOnly = false,
-                        label = { Text(stringResource(R.string.appointment_services_label)) },
-                        placeholder = { Text(stringResource(R.string.appointment_services_placeholder)) },
-                        trailingIcon = {
+                            readOnly = false,
+                            label = { Text(stringResource(R.string.appointment_services_label)) },
+                            placeholder = { Text(stringResource(R.string.appointment_services_placeholder)) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.ArrowDropDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.clickable { toggleServicesMenu() }
+                                )
+                            },
+                            interactionSource = serviceFieldInteractionSource,
+                            singleLine = true
+                        )
+                        IconButton(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .testTag("appointment-services-delete")
+                                .semantics {
+                                    contentDescription = "Excluir serviços selecionados"
+                                },
+                            enabled = uiState.checkedServiceGridIds.isNotEmpty(),
+                            onClick = onDeleteCheckedServices
+                        ) {
                             Icon(
-                                imageVector = Icons.Outlined.ArrowDropDown,
+                                imageVector = Icons.Outlined.Delete,
                                 contentDescription = null,
-                                modifier = Modifier.clickable { toggleServicesMenu() }
+                                tint = if (uiState.checkedServiceGridIds.isNotEmpty()) {
+                                    Color(0xFFDC2626)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                }
                             )
-                        },
-                        interactionSource = serviceFieldInteractionSource,
-                        singleLine = true
-                    )
+                        }
+                    }
                     if (servicesMenuExpanded) {
                         Surface(
                             modifier = Modifier
@@ -423,25 +454,23 @@ fun AppointmentFormContent(
                                 modifier = Modifier.heightIn(max = 280.dp)
                             ) {
                                 itemsIndexed(
-                                    items = uiState.services,
+                                    items = uiState.availableServices,
                                     key = { _, service -> service.id }
                                 ) { index, service ->
-                                    LaunchedEffect(index, uiState.services.size) {
+                                    LaunchedEffect(index, uiState.availableServices.size) {
                                         onServiceOptionRendered(index)
                                     }
-                                    Row(
+                                    Text(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onServiceToggled(service.id) }
+                                            .clickable {
+                                                onServiceAdded(service.id)
+                                                servicesMenuExpanded = false
+                                            }
                                             .padding(horizontal = 16.dp, vertical = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Checkbox(
-                                            checked = service.id in uiState.selectedServiceIds,
-                                            onCheckedChange = null
-                                        )
-                                        Text(service.description)
-                                    }
+                                        text = service.description,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
                                 }
 
                                 if (uiState.isAppendingServices) {
@@ -452,7 +481,7 @@ fun AppointmentFormContent(
                                     }
                                 }
 
-                                if (uiState.isLoadingServices && uiState.services.isEmpty()) {
+                                if (uiState.isLoadingServices && uiState.availableServices.isEmpty()) {
                                     item {
                                         LinearProgressIndicator(
                                             modifier = Modifier.fillMaxWidth()
@@ -463,15 +492,68 @@ fun AppointmentFormContent(
                         }
                     }
 
-                    selectedServices.forEach { service ->
-                        FilterChip(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .testTag("appointment-selected-service-${service.id}"),
-                            selected = true,
-                            onClick = { onServiceToggled(service.id) },
-                            label = { Text(service.description) }
-                        )
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        tonalElevation = 2.dp,
+                        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                        color = Color.White,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.padding(end = 12.dp))
+                                Text(
+                                    text = stringResource(R.string.appointment_services_grid_header_description),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color(0xFF374151)
+                                )
+                            }
+
+                            HorizontalDivider(color = Color(0xFFE5E7EB))
+
+                            if (selectedServices.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.services_empty_state_message),
+                                    color = Color(0xFF6B7280),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 24.dp, horizontal = 12.dp),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            } else {
+                                selectedServices.forEach { service ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                            .testTag("appointment-selected-service-row-${service.id}"),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = service.id in uiState.checkedServiceGridIds,
+                                            onCheckedChange = { checked ->
+                                                onServiceGridCheckedChange(service.id, checked)
+                                            },
+                                            modifier = Modifier.testTag("appointment-selected-service-checkbox-${service.id}")
+                                        )
+                                        Text(
+                                            text = service.description,
+                                            modifier = Modifier
+                                                .padding(start = 8.dp)
+                                                .testTag("appointment-selected-service-description-${service.id}")
+                                        )
+                                    }
+                                    HorizontalDivider(color = Color(0xFFF3F4F6))
+                                }
+                            }
+                        }
                     }
                 }
             }

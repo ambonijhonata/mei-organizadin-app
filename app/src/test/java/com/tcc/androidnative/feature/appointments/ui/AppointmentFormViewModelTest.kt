@@ -175,13 +175,14 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
-    fun `toggle service should preserve other selected services`() = runTest {
+    fun `add service should preserve other selected services`() = runTest {
         val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
         advanceUntilIdle()
 
-        viewModel.toggleService(1)
-        viewModel.toggleService(2)
-        viewModel.toggleService(1)
+        viewModel.addService(1)
+        viewModel.addService(2)
+        viewModel.toggleServiceGridSelection(1, true)
+        viewModel.removeCheckedServices()
 
         assertEquals(setOf(2L), viewModel.uiState.value.selectedServiceIds)
     }
@@ -280,6 +281,24 @@ class AppointmentFormViewModelTest {
     }
 
     @Test
+    fun `available services should exclude selected services and restore after removal`() = runTest {
+        val viewModel = AppointmentFormViewModel(FakeClientsRepository(), FakeServicesRepository())
+        advanceUntilIdle()
+
+        viewModel.addService(1)
+        viewModel.addService(2)
+
+        assertEquals(false, viewModel.uiState.value.availableServices.any { it.id == 1L })
+        assertEquals(false, viewModel.uiState.value.availableServices.any { it.id == 2L })
+
+        viewModel.toggleServiceGridSelection(1, true)
+        viewModel.removeCheckedServices()
+
+        assertEquals(true, viewModel.uiState.value.availableServices.any { it.id == 1L })
+        assertEquals(false, viewModel.uiState.value.checkedServiceGridIds.isNotEmpty())
+    }
+
+    @Test
     fun `save local only should validate required fields and not persist`() = runTest {
         val clientsRepository = FakeClientsRepository()
         val servicesRepository = FakeServicesRepository()
@@ -293,7 +312,7 @@ class AppointmentFormViewModelTest {
         viewModel.selectClient(1)
         viewModel.updateStartTime("08:00")
         viewModel.updateEndTime("09:00")
-        viewModel.toggleService(1)
+        viewModel.addService(1)
         viewModel.saveLocalOnly()
 
         assertEquals(R.string.appointment_local_save_feedback, viewModel.uiState.value.feedbackMessage?.textResId)

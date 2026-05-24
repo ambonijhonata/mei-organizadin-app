@@ -39,6 +39,7 @@ data class AppointmentFormUiState(
     val endTime: String = "",
     val selectedServiceIds: Set<Long> = emptySet(),
     val selectedServiceOptions: Map<Long, ServiceModel> = emptyMap(),
+    val checkedServiceGridIds: Set<Long> = emptySet(),
     val clientPageIndex: Int = 0,
     val clientTotalPages: Int = 1,
     val servicePageIndex: Int = 0,
@@ -55,6 +56,9 @@ data class AppointmentFormUiState(
 ) {
     val isLoadingOptions: Boolean
         get() = isLoadingClients || isLoadingServices
+
+    val availableServices: List<ServiceModel>
+        get() = services.filterNot { it.id in selectedServiceIds }
 }
 
 @HiltViewModel
@@ -173,6 +177,8 @@ class AppointmentFormViewModel @Inject constructor(
 
         if (_uiState.value.serviceSeedOptions.isEmpty()) {
             refreshServiceSeed()
+        } else {
+            ensureAvailableServiceOptionsLoaded()
         }
     }
 
@@ -520,24 +526,69 @@ class AppointmentFormViewModel @Inject constructor(
         _uiState.update { it.copy(endTime = value, feedbackMessage = null) }
     }
 
-    fun toggleService(serviceId: Long) {
+    fun addService(serviceId: Long) {
         _uiState.update { state ->
             val selected = state.selectedServiceIds.toMutableSet()
             val selectedOptions = state.selectedServiceOptions.toMutableMap()
-            if (selected.contains(serviceId)) {
-                selected.remove(serviceId)
-                selectedOptions.remove(serviceId)
-            } else {
+            if (!selected.contains(serviceId)) {
                 selected.add(serviceId)
-                state.services.firstOrNull { it.id == serviceId }
-                    ?: state.serviceSeedOptions.firstOrNull { it.id == serviceId }
-            }?.let { selectedOptions[serviceId] = it }
+                (
+                    state.services.firstOrNull { it.id == serviceId }
+                        ?: state.serviceSeedOptions.firstOrNull { it.id == serviceId }
+                        ?: selectedOptions[serviceId]
+                    )?.let { selectedOptions[serviceId] = it }
+            }
 
             state.copy(
                 selectedServiceIds = selected,
                 selectedServiceOptions = selectedOptions,
+                checkedServiceGridIds = state.checkedServiceGridIds - serviceId,
                 feedbackMessage = null
             )
+        }
+    }
+
+    fun toggleServiceGridSelection(serviceId: Long, checked: Boolean) {
+        _uiState.update { state ->
+            val updated = state.checkedServiceGridIds.toMutableSet()
+            if (checked) {
+                updated.add(serviceId)
+            } else {
+                updated.remove(serviceId)
+            }
+            state.copy(
+                checkedServiceGridIds = updated,
+                feedbackMessage = null
+            )
+        }
+    }
+
+    fun removeCheckedServices() {
+        _uiState.update { state ->
+            if (state.checkedServiceGridIds.isEmpty()) {
+                return@update state
+            }
+
+            val remainingIds = state.selectedServiceIds - state.checkedServiceGridIds
+            val remainingOptions = state.selectedServiceOptions.filterKeys { it in remainingIds }
+            state.copy(
+                selectedServiceIds = remainingIds,
+                selectedServiceOptions = remainingOptions,
+                checkedServiceGridIds = emptySet(),
+                feedbackMessage = null
+            )
+        }
+        ensureAvailableServiceOptionsLoaded()
+    }
+
+    private fun ensureAvailableServiceOptionsLoaded() {
+        val state = _uiState.value
+        if (state.availableServices.isEmpty() &&
+            state.servicePageIndex < state.serviceTotalPages &&
+            !state.isLoadingServices &&
+            !state.isAppendingServices
+        ) {
+            loadNextServicePage()
         }
     }
 

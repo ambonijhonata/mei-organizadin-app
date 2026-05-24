@@ -2,10 +2,13 @@ package com.tcc.androidnative.feature.appointments.ui
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -34,7 +37,9 @@ class AppointmentFormScreenTest {
                     onClientSelected = {},
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -64,7 +69,9 @@ class AppointmentFormScreenTest {
                     onClientSelectorClick = { openCount++ },
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -89,7 +96,9 @@ class AppointmentFormScreenTest {
                     onClientSelected = {},
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -111,7 +120,9 @@ class AppointmentFormScreenTest {
                     onClientSelected = {},
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -133,7 +144,9 @@ class AppointmentFormScreenTest {
                     onClientSelected = {},
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -152,8 +165,9 @@ class AppointmentFormScreenTest {
     }
 
     @Test
-    fun form_should_select_and_deselect_multiple_services() {
+    fun form_should_add_services_to_grid_and_remove_from_combobox() {
         var selected = emptySet<Long>()
+        var checked = emptySet<Long>()
 
         fun render() {
             composeRule.setContent {
@@ -163,8 +177,18 @@ class AppointmentFormScreenTest {
                         onClientSelected = {},
                         onStartTimeChange = {},
                         onEndTimeChange = {},
-                        onServiceToggled = { id ->
-                            selected = if (id in selected) selected - id else selected + id
+                        onServiceAdded = { id ->
+                            selected = selected + id
+                            checked = checked - id
+                            render()
+                        },
+                        onServiceGridCheckedChange = { id, isChecked ->
+                            checked = if (isChecked) checked + id else checked - id
+                            render()
+                        },
+                        onDeleteCheckedServices = {
+                            selected = selected - checked
+                            checked = emptySet()
                             render()
                         },
                         onSaveClick = {},
@@ -180,13 +204,104 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithText("Design de sobrancelha").performClick()
         composeRule.onNodeWithText("Henna").performClick()
 
-        composeRule.onNodeWithTag("appointment-selected-service-1").assertIsDisplayed()
-        composeRule.onNodeWithTag("appointment-selected-service-3").assertIsDisplayed()
+        composeRule.onNodeWithTag("appointment-selected-service-row-1").assertIsDisplayed()
+        composeRule.onNodeWithTag("appointment-selected-service-row-3").assertIsDisplayed()
 
-        composeRule.onNodeWithTag("appointment-selected-service-1").performClick()
+        composeRule.onNodeWithTag("appointment-services-field").performClick()
+        composeRule.onAllNodesWithText("Design de sobrancelha").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Henna").assertCountEquals(1)
+    }
 
-        composeRule.onNodeWithText("Henna").assertIsDisplayed()
-        composeRule.onNodeWithTag("appointment-selected-service-3").assertIsDisplayed()
+    @Test
+    fun form_should_enable_delete_only_when_grid_items_are_checked() {
+        var selected = setOf(1L)
+        var checked = emptySet<Long>()
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(
+                            selectedServiceIds = selected,
+                            checkedServiceGridIds = checked
+                        ),
+                        onClientSelected = {},
+                        onStartTimeChange = {},
+                        onEndTimeChange = {},
+                        onServiceAdded = { id ->
+                            selected = selected + id
+                            render()
+                        },
+                        onServiceGridCheckedChange = { id, isChecked ->
+                            checked = if (isChecked) checked + id else checked - id
+                            render()
+                        },
+                        onDeleteCheckedServices = {
+                            selected = selected - checked
+                            checked = emptySet()
+                            render()
+                        },
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule.onNodeWithTag("appointment-services-delete").assertIsNotEnabled()
+        composeRule.onNodeWithTag("appointment-selected-service-checkbox-1").performClick()
+        composeRule.onNodeWithTag("appointment-services-delete").assertIsEnabled()
+    }
+
+    @Test
+    fun form_should_bulk_remove_checked_services_and_make_them_selectable_again() {
+        var selected = setOf(1L, 3L)
+        var checked = emptySet<Long>()
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(
+                            selectedServiceIds = selected,
+                            checkedServiceGridIds = checked
+                        ),
+                        onClientSelected = {},
+                        onStartTimeChange = {},
+                        onEndTimeChange = {},
+                        onServiceAdded = { id ->
+                            selected = selected + id
+                            checked = checked - id
+                            render()
+                        },
+                        onServiceGridCheckedChange = { id, isChecked ->
+                            checked = if (isChecked) checked + id else checked - id
+                            render()
+                        },
+                        onDeleteCheckedServices = {
+                            selected = selected - checked
+                            checked = emptySet()
+                            render()
+                        },
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule.onNodeWithTag("appointment-selected-service-checkbox-1").performClick()
+        composeRule.onNodeWithTag("appointment-services-delete").performClick()
+
+        composeRule.onAllNodesWithTag("appointment-selected-service-row-1").assertCountEquals(0)
+        composeRule.onNodeWithTag("appointment-selected-service-row-3").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("appointment-services-field").performClick()
+        composeRule.onNodeWithText("Design de sobrancelha").assertIsDisplayed()
     }
 
     @Test
@@ -209,7 +324,9 @@ class AppointmentFormScreenTest {
                             endTime = it
                             render()
                         },
-                        onServiceToggled = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
                         onSaveClick = {},
                         onCancelClick = { cancelCount++ }
                     )
@@ -245,7 +362,9 @@ class AppointmentFormScreenTest {
                             render()
                         },
                         onEndTimeChange = {},
-                        onServiceToggled = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
                         onSaveClick = {},
                         onCancelClick = {}
                     )
@@ -274,7 +393,9 @@ class AppointmentFormScreenTest {
                             render()
                         },
                         onEndTimeChange = {},
-                        onServiceToggled = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
                         onSaveClick = {},
                         onCancelClick = {}
                     )
@@ -303,7 +424,9 @@ class AppointmentFormScreenTest {
                             endTime = it
                             render()
                         },
-                        onServiceToggled = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
                         onSaveClick = {},
                         onCancelClick = {}
                     )
@@ -332,7 +455,9 @@ class AppointmentFormScreenTest {
                             endTime = it
                             render()
                         },
-                        onServiceToggled = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
                         onSaveClick = {},
                         onCancelClick = {}
                     )
@@ -355,7 +480,9 @@ class AppointmentFormScreenTest {
                     onClientSelected = {},
                     onStartTimeChange = {},
                     onEndTimeChange = {},
-                    onServiceToggled = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
                     onSaveClick = {},
                     onCancelClick = {}
                 )
@@ -371,6 +498,7 @@ class AppointmentFormScreenTest {
 
     private fun sampleState(
         selectedServiceIds: Set<Long> = emptySet(),
+        checkedServiceGridIds: Set<Long> = emptySet(),
         appointmentDate: LocalDate = LocalDate.of(2026, 5, 22),
         appointmentDateInput: String = "22/05/2026",
         startTime: String = "",
@@ -392,7 +520,8 @@ class AppointmentFormScreenTest {
             startTime = startTime,
             endTime = endTime,
             selectedServiceIds = selectedServiceIds,
-            selectedServiceOptions = services.filter { it.id in selectedServiceIds }.associateBy { it.id }
+            selectedServiceOptions = services.filter { it.id in selectedServiceIds }.associateBy { it.id },
+            checkedServiceGridIds = checkedServiceGridIds
         )
     }
 }
