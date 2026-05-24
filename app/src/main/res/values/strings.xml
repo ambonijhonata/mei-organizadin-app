@@ -93,7 +93,11 @@
     <string name="appointment_date_calendar_icon_description">Abrir calendario de data do agendamento</string>
     <string name="appointment_date_invalid">Data do agendamento invalida</string>
     <string name="appointment_start_time_label">Horário inicial</string>
+    <string name="appointment_start_time_field_description">Campo de horario inicial do agendamento</string>
+    <string name="appointment_start_time_clock_icon_description">Abrir relogio de horario inicial</string>
     <string name="appointment_end_time_label">Horário final</string>
+    <string name="appointment_end_time_field_description">Campo de horario final do agendamento</string>
+    <string name="appointment_end_time_clock_icon_description">Abrir relogio de horario final</string>
     <string name="appointment_services_label">Serviços</string>
     <string name="appointment_services_placeholder">Selecione os serviços</string>
     <string name="appointment_services_grid_header_description">Descrição</string>
@@ -103,7 +107,7 @@
     <string name="appointment_required_feedback">Preencha cliente, data, horários e pelo menos um serviço.</string>
     <string name="appointment_local_save_feedback">Agendamento preenchido. A gravação será conectada em uma etapa futura.</string>
     <string name="appointment_options_load_error">Erro ao carregar clientes e serviços</string>
-    <string name="services_empty_state_message">Nenhum serviço cadastrado</string>
+    <string name="services_empty_state_message">Nenhum serviço selecionado</string>
 
     <string name="settings_title">Configurações</string>
     <string name="settings_sync_section_title">Sincronização</string>

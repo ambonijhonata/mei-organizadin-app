@@ -348,6 +348,110 @@ class AppointmentFormScreenTest {
     }
 
     @Test
+    fun form_should_render_clock_actions_for_both_time_fields() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppointmentFormContent(
+                    uiState = sampleState(),
+                    onClientSelected = {},
+                    onStartTimeChange = {},
+                    onEndTimeChange = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Abrir relogio de horario inicial")
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("Abrir relogio de horario final")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun form_should_open_start_time_picker_and_confirm_existing_value() {
+        var startTime = "08:30"
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(startTime = startTime),
+                        onClientSelected = {},
+                        onStartTimeChange = {
+                            startTime = it
+                            render()
+                        },
+                        onEndTimeChange = {},
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule
+            .onNodeWithContentDescription("Abrir relogio de horario inicial")
+            .performClick()
+        composeRule.onNodeWithTag("appointment-start-time-picker-dialog").assertIsDisplayed()
+        composeRule.onNodeWithText("Selecionar").performClick()
+
+        composeRule.onNodeWithTag("appointment-start-time").assertTextEquals("08:30")
+        composeRule.runOnIdle {
+            assertEquals("08:30", startTime)
+        }
+    }
+
+    @Test
+    fun form_should_open_end_time_picker_and_cancel_without_changing_value() {
+        var endTime = "09:45"
+
+        fun render() {
+            composeRule.setContent {
+                AndroidNativeTheme {
+                    AppointmentFormContent(
+                        uiState = sampleState(endTime = endTime),
+                        onClientSelected = {},
+                        onStartTimeChange = {},
+                        onEndTimeChange = {
+                            endTime = it
+                            render()
+                        },
+                        onServiceAdded = {},
+                        onServiceGridCheckedChange = { _, _ -> },
+                        onDeleteCheckedServices = {},
+                        onSaveClick = {},
+                        onCancelClick = {}
+                    )
+                }
+            }
+        }
+
+        render()
+
+        composeRule
+            .onNodeWithContentDescription("Abrir relogio de horario final")
+            .performClick()
+        composeRule.onNodeWithTag("appointment-end-time-picker-dialog").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancelar").performClick()
+
+        composeRule.onNodeWithTag("appointment-end-time").assertTextEquals("09:45")
+        composeRule.runOnIdle {
+            assertEquals("09:45", endTime)
+        }
+    }
+
+    @Test
     fun form_should_mask_start_time_and_ignore_non_digits() {
         var startTime = ""
 

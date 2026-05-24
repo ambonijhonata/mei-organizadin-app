@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -55,7 +54,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
 import com.tcc.androidnative.core.ui.form.DatePickerField
+import com.tcc.androidnative.core.ui.form.TimePickerField
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 
@@ -117,6 +116,8 @@ fun AppointmentFormContent(
     var clientMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var servicesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var isAppointmentDatePickerVisible by rememberSaveable { mutableStateOf(false) }
+    var isStartTimePickerVisible by rememberSaveable { mutableStateOf(false) }
+    var isEndTimePickerVisible by rememberSaveable { mutableStateOf(false) }
     var startTimeFieldValue by remember {
         mutableStateOf(timeFieldValueFromMasked(uiState.startTime))
     }
@@ -338,8 +339,8 @@ fun AppointmentFormContent(
                     fieldContentDescription = stringResource(R.string.appointment_date_field_description),
                     calendarActionContentDescription = stringResource(R.string.appointment_date_calendar_icon_description),
                     isError = uiState.appointmentDateInputErrorResId != null,
-                    supportingText = {
-                        uiState.appointmentDateInputErrorResId?.let { errorResId ->
+                    supportingText = uiState.appointmentDateInputErrorResId?.let { errorResId ->
+                        {
                             Text(stringResource(errorResId))
                         }
                     },
@@ -352,7 +353,7 @@ fun AppointmentFormContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedTextField(
+                    TimePickerField(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("appointment-start-time"),
@@ -362,12 +363,14 @@ fun AppointmentFormContent(
                             startTimeFieldValue = maskedValue
                             onStartTimeChange(maskedValue.text)
                         },
+                        isTimePickerVisible = isStartTimePickerVisible,
+                        onTimePickerVisibilityChange = { isStartTimePickerVisible = it },
                         label = { Text(stringResource(R.string.appointment_start_time_label)) },
-                        placeholder = { Text("00:00") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        fieldContentDescription = stringResource(R.string.appointment_start_time_field_description),
+                        clockActionContentDescription = stringResource(R.string.appointment_start_time_clock_icon_description),
+                        dialogTestTag = "appointment-start-time-picker-dialog"
                     )
-                    OutlinedTextField(
+                    TimePickerField(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("appointment-end-time"),
@@ -377,10 +380,12 @@ fun AppointmentFormContent(
                             endTimeFieldValue = maskedValue
                             onEndTimeChange(maskedValue.text)
                         },
+                        isTimePickerVisible = isEndTimePickerVisible,
+                        onTimePickerVisibilityChange = { isEndTimePickerVisible = it },
                         label = { Text(stringResource(R.string.appointment_end_time_label)) },
-                        placeholder = { Text("00:00") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        fieldContentDescription = stringResource(R.string.appointment_end_time_field_description),
+                        clockActionContentDescription = stringResource(R.string.appointment_end_time_clock_icon_description),
+                        dialogTestTag = "appointment-end-time-picker-dialog"
                     )
                 }
 

@@ -258,8 +258,8 @@ internal fun SettingsContent(
                     fieldContentDescription = startDateFieldDescription,
                     calendarActionContentDescription = startDateCalendarDescription,
                     isError = uiState.startDateInputErrorResId != null,
-                    supportingText = {
-                        uiState.startDateInputErrorResId?.let { errorResId ->
+                    supportingText = uiState.startDateInputErrorResId?.let { errorResId ->
+                        {
                             Text(stringResource(errorResId))
                         }
                     },
