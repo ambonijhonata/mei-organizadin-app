@@ -633,6 +633,31 @@ class AppointmentFormScreenTest {
         composeRule.onNodeWithText("Selecione pelo menos um serviço").assertIsDisplayed()
     }
 
+    @Test
+    fun form_should_render_time_range_validation_message() {
+        composeRule.setContent {
+            AndroidNativeTheme {
+                AppointmentFormContent(
+                    uiState = sampleState(
+                        startTime = "10:00",
+                        endTime = "09:00",
+                        endTimeErrorResId = com.tcc.androidnative.R.string.appointment_end_time_must_be_after_start_time
+                    ),
+                    onClientSelected = {},
+                    onStartTimeChange = {},
+                    onEndTimeChange = {},
+                    onServiceAdded = {},
+                    onServiceGridCheckedChange = { _, _ -> },
+                    onDeleteCheckedServices = {},
+                    onSaveClick = {},
+                    onCancelClick = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Horário final deve ser maior que o horário inicial").assertIsDisplayed()
+    }
+
     private fun sampleState(
         selectedServiceIds: Set<Long> = emptySet(),
         checkedServiceGridIds: Set<Long> = emptySet(),

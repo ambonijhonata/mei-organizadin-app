@@ -41,8 +41,10 @@ data class AppointmentFormUiState(
     val appointmentDateInputErrorResId: Int? = null,
     val startTime: String = "",
     val startTimeErrorResId: Int? = null,
+    val hasEditedStartTime: Boolean = false,
     val endTime: String = "",
     val endTimeErrorResId: Int? = null,
+    val hasEditedEndTime: Boolean = false,
     val selectedServiceIds: Set<Long> = emptySet(),
     val selectedServiceOptions: Map<Long, ServiceModel> = emptyMap(),
     val checkedServiceGridIds: Set<Long> = emptySet(),
@@ -497,10 +499,15 @@ class AppointmentFormViewModel @Inject constructor(
     }
 
     fun updateStartTime(value: String) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            state.copy(
                 startTime = value,
-                startTimeErrorResId = if (value.isNotBlank()) null else it.startTimeErrorResId,
+                startTimeErrorResId = if (value.isNotBlank()) null else state.startTimeErrorResId,
+                endTimeErrorResId = if (state.endTimeErrorResId == R.string.appointment_end_time_must_be_after_start_time) {
+                    null
+                } else {
+                    state.endTimeErrorResId
+                },
                 feedbackMessage = null
             )
         }
@@ -550,12 +557,26 @@ class AppointmentFormViewModel @Inject constructor(
     }
 
     fun updateEndTime(value: String) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            state.copy(
                 endTime = value,
-                endTimeErrorResId = if (value.isNotBlank()) null else it.endTimeErrorResId,
+                endTimeErrorResId = if (value.isNotBlank()) null else state.endTimeErrorResId,
                 feedbackMessage = null
             )
+        }
+    }
+
+    fun completeStartTimeEditing() {
+        _uiState.update { state ->
+            val markedState = state.copy(hasEditedStartTime = true)
+            validateTimeRangeIfReady(markedState)
+        }
+    }
+
+    fun completeEndTimeEditing() {
+        _uiState.update { state ->
+            val markedState = state.copy(hasEditedEndTime = true)
+            validateTimeRangeIfReady(markedState)
         }
     }
 
@@ -635,7 +656,17 @@ class AppointmentFormViewModel @Inject constructor(
             else -> null
         }
         val startTimeErrorResId = if (state.startTime.isBlank()) R.string.appointment_start_time_required else null
-        val endTimeErrorResId = if (state.endTime.isBlank()) R.string.appointment_end_time_required else null
+        val parsedStartTime = state.startTime.parseCompleteTimeOrNull()
+        val parsedEndTime = state.endTime.parseCompleteTimeOrNull()
+        val endTimeErrorResId = when {
+            state.endTime.isBlank() -> R.string.appointment_end_time_required
+            clientErrorResId == null &&
+                startTimeErrorResId == null &&
+                parsedStartTime != null &&
+                parsedEndTime != null &&
+                parsedEndTime <= parsedStartTime -> R.string.appointment_end_time_must_be_after_start_time
+            else -> null
+        }
         val servicesErrorResId = if (state.selectedServiceIds.isEmpty()) R.string.appointment_services_required else null
 
         if (clientErrorResId != null ||
@@ -684,6 +715,27 @@ class AppointmentFormViewModel @Inject constructor(
         if (normalizedQuery.isBlank()) return items
         return items.filter { it.description.startsWith(normalizedQuery, ignoreCase = true) }
     }
+
+    private fun validateTimeRangeIfReady(state: AppointmentFormUiState): AppointmentFormUiState {
+        if (!state.hasEditedStartTime || !state.hasEditedEndTime) {
+            return state
+        }
+
+        val parsedStartTime = state.startTime.parseCompleteTimeOrNull()
+        val parsedEndTime = state.endTime.parseCompleteTimeOrNull()
+        val endTimeErrorResId = when {
+            state.endTime.isBlank() -> state.endTimeErrorResId
+            parsedStartTime != null &&
+                parsedEndTime != null &&
+                parsedEndTime <= parsedStartTime -> R.string.appointment_end_time_must_be_after_start_time
+            else -> null
+        }
+
+        return state.copy(
+            endTimeErrorResId = endTimeErrorResId,
+            feedbackMessage = null
+        )
+    }
 }
 
 internal fun createInitialAppointmentFormUiState(
@@ -707,6 +759,11 @@ internal fun createInitialAppointmentFormUiState(
 
 private fun formatAppointmentTime(time: LocalTime): String {
     return "%02d:%02d".format(time.hour, time.minute)
+}
+
+private fun String.parseCompleteTimeOrNull(): LocalTime? {
+    if (!matches(Regex("\\d{2}:\\d{2}"))) return null
+    return runCatching(LocalTime::parse).getOrNull()
 }
 
 private fun String.toLocalDateOrNull(): LocalDate? = runCatching(LocalDate::parse).getOrNull()

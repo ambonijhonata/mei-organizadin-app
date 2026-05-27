@@ -419,6 +419,72 @@ class AppointmentFormViewModelTest {
         viewModel.updateAppointmentDate("03/06/2026")
         assertEquals(null, viewModel.uiState.value.appointmentDateInputErrorResId)
     }
+
+    @Test
+    fun `time range validation should be deferred until both time fields were edited`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateStartTime("10:00")
+        viewModel.completeStartTimeEditing()
+
+        assertEquals(true, viewModel.uiState.value.hasEditedStartTime)
+        assertEquals(false, viewModel.uiState.value.hasEditedEndTime)
+        assertEquals(null, viewModel.uiState.value.endTimeErrorResId)
+
+        viewModel.updateEndTime("09:00")
+        viewModel.completeEndTimeEditing()
+
+        assertEquals(true, viewModel.uiState.value.hasEditedEndTime)
+        assertEquals(
+            R.string.appointment_end_time_must_be_after_start_time,
+            viewModel.uiState.value.endTimeErrorResId
+        )
+    }
+
+    @Test
+    fun `time range validation should re-run when either field finishes editing after both were edited`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateStartTime("10:00")
+        viewModel.completeStartTimeEditing()
+        viewModel.updateEndTime("09:00")
+        viewModel.completeEndTimeEditing()
+
+        assertEquals(
+            R.string.appointment_end_time_must_be_after_start_time,
+            viewModel.uiState.value.endTimeErrorResId
+        )
+
+        viewModel.updateEndTime("10:30")
+        viewModel.completeEndTimeEditing()
+
+        assertEquals(null, viewModel.uiState.value.endTimeErrorResId)
+    }
+
+    @Test
+    fun `save local only should validate time range even if only one field was edited`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.selectClient(1)
+        viewModel.updateAppointmentDate("03/06/2026")
+        viewModel.updateStartTime("10:00")
+        viewModel.completeStartTimeEditing()
+        viewModel.updateEndTime("09:00")
+        viewModel.addService(1)
+
+        assertEquals(false, viewModel.uiState.value.hasEditedEndTime)
+        assertEquals(null, viewModel.uiState.value.endTimeErrorResId)
+
+        viewModel.saveLocalOnly()
+
+        assertEquals(
+            R.string.appointment_end_time_must_be_after_start_time,
+            viewModel.uiState.value.endTimeErrorResId
+        )
+    }
 }
 
 private data class ClientListCall(

@@ -38,6 +38,7 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 fun TimePickerField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
+    onEditCompleted: () -> Unit = {},
     isTimePickerVisible: Boolean,
     onTimePickerVisibilityChange: (Boolean) -> Unit,
     label: @Composable () -> Unit,
@@ -105,6 +106,7 @@ fun TimePickerField(
                                             selection = TextRange(formattedTime.length)
                                         )
                                     )
+                                    onEditCompleted()
                                     onTimePickerVisibilityChange(false)
                                 }
                             ) {

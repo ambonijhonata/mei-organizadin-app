@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -85,7 +86,9 @@ fun AppointmentFormScreen(
         onAppointmentDateChange = viewModel::updateAppointmentDate,
         onAppointmentDateSelected = viewModel::selectAppointmentDate,
         onStartTimeChange = viewModel::updateStartTime,
+        onStartTimeEditingFinished = viewModel::completeStartTimeEditing,
         onEndTimeChange = viewModel::updateEndTime,
+        onEndTimeEditingFinished = viewModel::completeEndTimeEditing,
         onServiceAdded = viewModel::addService,
         onServiceGridCheckedChange = viewModel::toggleServiceGridSelection,
         onDeleteCheckedServices = viewModel::removeCheckedServices,
@@ -107,7 +110,9 @@ fun AppointmentFormContent(
     onAppointmentDateChange: (String) -> Unit = {},
     onAppointmentDateSelected: (java.time.LocalDate) -> Unit = {},
     onStartTimeChange: (String) -> Unit,
+    onStartTimeEditingFinished: () -> Unit = {},
     onEndTimeChange: (String) -> Unit,
+    onEndTimeEditingFinished: () -> Unit = {},
     onServiceAdded: (Long) -> Unit,
     onServiceGridCheckedChange: (Long, Boolean) -> Unit,
     onDeleteCheckedServices: () -> Unit,
@@ -125,6 +130,10 @@ fun AppointmentFormContent(
     var endTimeFieldValue by remember {
         mutableStateOf(timeFieldValueFromMasked(uiState.endTime))
     }
+    var startTimeFieldHasFocus by remember { mutableStateOf(false) }
+    var endTimeFieldHasFocus by remember { mutableStateOf(false) }
+    var startTimeHasPendingEdit by remember { mutableStateOf(false) }
+    var endTimeHasPendingEdit by remember { mutableStateOf(false) }
     val clientFieldInteractionSource = remember { MutableInteractionSource() }
     val serviceFieldInteractionSource = remember { MutableInteractionSource() }
     val selectedServices = uiState.selectedServiceOptions.values.toList().sortedBy { it.description }
@@ -363,12 +372,24 @@ fun AppointmentFormContent(
                     TimePickerField(
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("appointment-start-time"),
+                            .testTag("appointment-start-time")
+                            .onFocusChanged { focusState ->
+                                if (startTimeFieldHasFocus && !focusState.isFocused && startTimeHasPendingEdit) {
+                                    startTimeHasPendingEdit = false
+                                    onStartTimeEditingFinished()
+                                }
+                                startTimeFieldHasFocus = focusState.isFocused
+                            },
                         value = startTimeFieldValue,
                         onValueChange = {
                             val maskedValue = maskTimeInput(it)
                             startTimeFieldValue = maskedValue
+                            startTimeHasPendingEdit = true
                             onStartTimeChange(maskedValue.text)
+                        },
+                        onEditCompleted = {
+                            startTimeHasPendingEdit = false
+                            onStartTimeEditingFinished()
                         },
                         isTimePickerVisible = isStartTimePickerVisible,
                         onTimePickerVisibilityChange = { isStartTimePickerVisible = it },
@@ -392,12 +413,24 @@ fun AppointmentFormContent(
                     TimePickerField(
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("appointment-end-time"),
+                            .testTag("appointment-end-time")
+                            .onFocusChanged { focusState ->
+                                if (endTimeFieldHasFocus && !focusState.isFocused && endTimeHasPendingEdit) {
+                                    endTimeHasPendingEdit = false
+                                    onEndTimeEditingFinished()
+                                }
+                                endTimeFieldHasFocus = focusState.isFocused
+                            },
                         value = endTimeFieldValue,
                         onValueChange = {
                             val maskedValue = maskTimeInput(it)
                             endTimeFieldValue = maskedValue
+                            endTimeHasPendingEdit = true
                             onEndTimeChange(maskedValue.text)
+                        },
+                        onEditCompleted = {
+                            endTimeHasPendingEdit = false
+                            onEndTimeEditingFinished()
                         },
                         isTimePickerVisible = isEndTimePickerVisible,
                         onTimePickerVisibilityChange = { isEndTimePickerVisible = it },

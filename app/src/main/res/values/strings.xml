@@ -95,6 +95,7 @@
     <string name="appointment_client_required">Selecione um cliente</string>
     <string name="appointment_start_time_required">Informe o horário inicial</string>
     <string name="appointment_end_time_required">Informe o horário final</string>
+    <string name="appointment_end_time_must_be_after_start_time">Horário final deve ser maior que o horário inicial</string>
     <string name="appointment_services_required">Selecione pelo menos um serviço</string>
     <string name="appointment_start_time_label">Horário inicial</string>
     <string name="appointment_start_time_field_description">Campo de horario inicial do agendamento</string>
