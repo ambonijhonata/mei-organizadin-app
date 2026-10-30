@@ -58,9 +58,7 @@ data class ServicesUiState(
 )
 
 @HiltViewModel
-class ServicesViewModel @Inject constructor(
-    private val repository: ServicesRepository
-) : ViewModel() {
+class ServicesViewModel @Inject constructor(private val repository: ServicesRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ServicesUiState())
     val uiState: StateFlow<ServicesUiState> = _uiState.asStateFlow()
     private var filterDebounceJob: Job? = null
@@ -154,10 +152,7 @@ class ServicesViewModel @Inject constructor(
         }
     }
 
-    fun updateForm(
-        description: String? = null,
-        valueInput: String? = null
-    ) {
+    fun updateForm(description: String? = null, valueInput: String? = null) {
         _uiState.update { state ->
             val updatedFieldErrors = state.formState.fieldErrors.toMutableMap().apply {
                 if (description != null) remove(SERVICE_FIELD_DESCRIPTION)

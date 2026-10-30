@@ -1,8 +1,8 @@
 package com.tcc.androidnative.feature.clients.data
 
-import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.core.network.BackendApiException
 import com.tcc.androidnative.core.network.BackendErrorParser
+import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.clients.data.remote.ClientApi
 import com.tcc.androidnative.feature.clients.data.remote.dto.ClientUpsertRequestDto
 import java.time.LocalDate
@@ -19,12 +19,7 @@ data class ClientModel(
     val phone: String?
 )
 
-data class ClientsPage(
-    val items: List<ClientModel>,
-    val pageIndex: Int,
-    val totalPages: Int,
-    val totalItems: Long
-)
+data class ClientsPage(val items: List<ClientModel>, val pageIndex: Int, val totalPages: Int, val totalItems: Long)
 
 enum class DeleteClientOutcome {
     DELETED,
@@ -78,65 +73,59 @@ class ClientsRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun create(model: ClientModel): ClientModel {
-        return try {
-            val response = api.createClient(
-                request = ClientUpsertRequestDto(
-                    name = model.name,
-                    cpf = model.cpf,
-                    dateOfBirth = model.dateOfBirth?.let(DateFormats::toApiDate),
-                    email = model.email,
-                    phone = model.phone
-                )
+    override suspend fun create(model: ClientModel): ClientModel = try {
+        val response = api.createClient(
+            request = ClientUpsertRequestDto(
+                name = model.name,
+                cpf = model.cpf,
+                dateOfBirth = model.dateOfBirth?.let(DateFormats::toApiDate),
+                email = model.email,
+                phone = model.phone
             )
-            ClientModel(
-                id = response.id,
-                name = response.name,
-                cpf = response.cpf,
-                dateOfBirth = response.dateOfBirth?.let(DateFormats::parseApiDate),
-                email = response.email,
-                phone = response.phone
-            )
-        } catch (error: HttpException) {
-            throw BackendApiException(backendErrorParser.parse(error), error)
-        }
+        )
+        ClientModel(
+            id = response.id,
+            name = response.name,
+            cpf = response.cpf,
+            dateOfBirth = response.dateOfBirth?.let(DateFormats::parseApiDate),
+            email = response.email,
+            phone = response.phone
+        )
+    } catch (error: HttpException) {
+        throw BackendApiException(backendErrorParser.parse(error), error)
     }
 
-    override suspend fun update(id: Long, model: ClientModel): ClientModel {
-        return try {
-            val response = api.updateClient(
-                id = id,
-                request = ClientUpsertRequestDto(
-                    name = model.name,
-                    cpf = model.cpf,
-                    dateOfBirth = model.dateOfBirth?.let(DateFormats::toApiDate),
-                    email = model.email,
-                    phone = model.phone
-                )
+    override suspend fun update(id: Long, model: ClientModel): ClientModel = try {
+        val response = api.updateClient(
+            id = id,
+            request = ClientUpsertRequestDto(
+                name = model.name,
+                cpf = model.cpf,
+                dateOfBirth = model.dateOfBirth?.let(DateFormats::toApiDate),
+                email = model.email,
+                phone = model.phone
             )
-            ClientModel(
-                id = response.id,
-                name = response.name,
-                cpf = response.cpf,
-                dateOfBirth = response.dateOfBirth?.let(DateFormats::parseApiDate),
-                email = response.email,
-                phone = response.phone
-            )
-        } catch (error: HttpException) {
-            throw BackendApiException(backendErrorParser.parse(error), error)
-        }
+        )
+        ClientModel(
+            id = response.id,
+            name = response.name,
+            cpf = response.cpf,
+            dateOfBirth = response.dateOfBirth?.let(DateFormats::parseApiDate),
+            email = response.email,
+            phone = response.phone
+        )
+    } catch (error: HttpException) {
+        throw BackendApiException(backendErrorParser.parse(error), error)
     }
 
-    override suspend fun delete(id: Long): DeleteClientOutcome {
-        return try {
-            api.deleteClient(id)
-            DeleteClientOutcome.DELETED
-        } catch (error: Throwable) {
-            if (error is HttpException && isHasLinkedAppointmentError(error)) {
-                DeleteClientOutcome.HAS_LINK
-            } else {
-                DeleteClientOutcome.FAILED
-            }
+    override suspend fun delete(id: Long): DeleteClientOutcome = try {
+        api.deleteClient(id)
+        DeleteClientOutcome.DELETED
+    } catch (error: Throwable) {
+        if (error is HttpException && isHasLinkedAppointmentError(error)) {
+            DeleteClientOutcome.HAS_LINK
+        } else {
+            DeleteClientOutcome.FAILED
         }
     }
 

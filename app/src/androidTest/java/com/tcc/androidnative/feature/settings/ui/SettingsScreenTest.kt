@@ -7,6 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertCountEquals
@@ -39,7 +40,7 @@ class SettingsScreenTest {
     fun settings_should_enable_date_field_when_checkbox_is_checked() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState(useStartDateFilter = false))
+                var state by remember { mutableStateOf(baseState(useStartDateFilter = false)) }
                 SettingsContent(
                     uiState = state,
                     onUseStartDateFilterChanged = { enabled ->
@@ -79,7 +80,7 @@ class SettingsScreenTest {
         var showDatePicker by mutableStateOf(false)
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState())
+                var state by remember { mutableStateOf(baseState()) }
 
                 if (showDatePicker) {
                     DatePickerDialog(
@@ -142,7 +143,7 @@ class SettingsScreenTest {
         var showDatePicker by mutableStateOf(false)
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState(useStartDateFilter = false))
+                var state by remember { mutableStateOf(baseState(useStartDateFilter = false)) }
 
                 if (showDatePicker) {
                     DatePickerDialog(
@@ -203,7 +204,7 @@ class SettingsScreenTest {
     fun settings_should_allow_manual_date_input_when_enabled() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState())
+                var state by remember { mutableStateOf(baseState()) }
                 SettingsContent(
                     uiState = state,
                     onUseStartDateFilterChanged = { enabled ->
@@ -217,7 +218,13 @@ class SettingsScreenTest {
                         state = state.copy(
                             startDate = parsedDate ?: state.startDate,
                             startDateInput = input,
-                            startDateInputErrorResId = if (parsedDate != null) null else R.string.settings_start_date_invalid
+                            startDateInputErrorResId = if (parsedDate !=
+                                null
+                            ) {
+                                null
+                            } else {
+                                R.string.settings_start_date_invalid
+                            }
                         )
                     },
                     onDateFieldClick = {},
@@ -244,7 +251,7 @@ class SettingsScreenTest {
     fun settings_should_show_validation_feedback_for_invalid_manual_date_input() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState())
+                var state by remember { mutableStateOf(baseState()) }
                 SettingsContent(
                     uiState = state,
                     onUseStartDateFilterChanged = { enabled ->
@@ -258,7 +265,13 @@ class SettingsScreenTest {
                         state = state.copy(
                             startDate = parsedDate ?: state.startDate,
                             startDateInput = input,
-                            startDateInputErrorResId = if (parsedDate != null) null else R.string.settings_start_date_invalid
+                            startDateInputErrorResId = if (parsedDate !=
+                                null
+                            ) {
+                                null
+                            } else {
+                                R.string.settings_start_date_invalid
+                            }
                         )
                     },
                     onDateFieldClick = {},
@@ -287,7 +300,7 @@ class SettingsScreenTest {
             "O aplicativo ira buscar os agendamentos do google agenda a partir da data definida. Agendamentos anteriores a data nao serao importados."
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState())
+                var state by remember { mutableStateOf(baseState()) }
                 SettingsContent(
                     uiState = state,
                     onUseStartDateFilterChanged = { enabled ->
@@ -327,7 +340,7 @@ class SettingsScreenTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(baseState())
+                var state by remember { mutableStateOf(baseState()) }
                 SettingsContent(
                     uiState = state,
                     onUseStartDateFilterChanged = { enabled ->

@@ -37,7 +37,9 @@ class PaymentMethodRevenueScreenTest {
         }
 
         composeRule.onNodeWithText("Periodo (dd/MM/yyyy)").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Periodo do filtro de faturamento por método de pagamento").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(
+            "Periodo do filtro de faturamento por método de pagamento"
+        ).assertIsDisplayed()
         composeRule.onAllNodesWithText("Data inicial (dd/MM/yyyy)").assertCountEquals(0)
         composeRule.onAllNodesWithText("Data final (dd/MM/yyyy)").assertCountEquals(0)
     }

@@ -38,13 +38,13 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 fun TimePickerField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
-    onEditCompleted: () -> Unit = {},
     isTimePickerVisible: Boolean,
     onTimePickerVisibilityChange: (Boolean) -> Unit,
     label: @Composable () -> Unit,
     fieldContentDescription: String,
     clockActionContentDescription: String,
     modifier: Modifier = Modifier,
+    onEditCompleted: () -> Unit = {},
     enabled: Boolean = true,
     readOnly: Boolean = false,
     isError: Boolean = false,
@@ -160,6 +160,4 @@ private fun parseTimeValue(value: String): Pair<Int, Int> {
     return hour to minute
 }
 
-private fun formatPickedTime(hour: Int, minute: Int): String {
-    return "%02d:%02d".format(hour, minute)
-}
+private fun formatPickedTime(hour: Int, minute: Int): String = "%02d:%02d".format(hour, minute)

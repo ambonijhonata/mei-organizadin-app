@@ -19,10 +19,8 @@ interface AuthRepository {
 }
 
 @Singleton
-class AuthRepositoryImpl @Inject constructor(
-    private val api: AuthApi,
-    private val sessionManager: SessionManager
-) : AuthRepository {
+class AuthRepositoryImpl @Inject constructor(private val api: AuthApi, private val sessionManager: SessionManager) :
+    AuthRepository {
     override suspend fun login(idToken: String, authorizationCode: String): UserSession {
         logInfo("auth_login_request_start")
 
@@ -91,9 +89,7 @@ class AuthRepositoryImpl @Inject constructor(
         sessionManager.clearSession()
     }
 
-    private fun parseEpochSeconds(value: String): Long {
-        return Instant.parse(value).epochSecond
-    }
+    private fun parseEpochSeconds(value: String): Long = Instant.parse(value).epochSecond
 
     private fun logInfo(message: String) {
         runCatching { Log.i(TAG, message) }

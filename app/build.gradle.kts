@@ -1,15 +1,20 @@
+import io.gitlab.arturbosch.detekt.Detekt
 import java.io.File
 import java.nio.file.Files
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 abstract class CheckNoHardcodedUrlsTask : DefaultTask() {
     @get:InputDirectory
@@ -53,20 +58,57 @@ abstract class CheckNoHardcodedUrlsTask : DefaultTask() {
     }
 }
 
+abstract class CheckNoKotlinSuppressionsTask : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceFiles: ConfigurableFileCollection
+
+    @get:Input
+    abstract val rootPath: Property<String>
+
+    @TaskAction
+    fun check() {
+        val root = File(rootPath.get()).toPath()
+        val annotationPattern = Regex("@(?:Sup" + "press|Sup" + "pressLint)\\s*\\(")
+        val cpdPattern = Regex("CPD" + "-(?:OFF|ON)")
+        val violations = mutableListOf<String>()
+
+        sourceFiles.files.sortedBy { it.path }.forEach { file ->
+            Files.readAllLines(file.toPath()).forEachIndexed { index, line ->
+                if (annotationPattern.containsMatchIn(line) || cpdPattern.containsMatchIn(line)) {
+                    violations += "${root.relativize(file.toPath())}:${index + 1}: ${line.trim()}"
+                }
+            }
+        }
+
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    appendLine("Kotlin suppression mechanisms are forbidden:")
+                    violations.forEach(::appendLine)
+                }
+            )
+        }
+    }
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
+    id("io.gitlab.arturbosch.detekt")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
-fun extractJsonField(content: String, field: String): String? =
-    Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"")
-        .find(content)
-        ?.groupValues
-        ?.getOrNull(1)
-        ?.takeIf { it.isNotBlank() }
+val cpdTool by configurations.creating
+
+fun extractJsonField(content: String, field: String): String? = Regex("\"$field\"\\s*:\\s*\"([^\"]+)\"")
+    .find(content)
+    ?.groupValues
+    ?.getOrNull(1)
+    ?.takeIf { it.isNotBlank() }
 
 fun readGoogleClientId(file: File): String {
     val content = file.readText()
@@ -88,11 +130,12 @@ val appSecretsDir = File(secretsRoot, "App")
 val appSecretFileLegacy = File(appSecretsDir, "client_secret_app2.json")
 val appSecretFile: File? = when {
     appSecretFileLegacy.exists() -> appSecretFileLegacy
-    else -> appSecretsDir
-        .listFiles()
-        ?.filter { it.isFile && it.name.startsWith("client_secret_") && it.extension == "json" }
-        ?.sortedBy { it.name }
-        ?.firstOrNull()
+    else ->
+        appSecretsDir
+            .listFiles()
+            ?.filter { it.isFile && it.name.startsWith("client_secret_") && it.extension == "json" }
+            ?.sortedBy { it.name }
+            ?.firstOrNull()
 }
 
 val backendWebClientIdFromFile: String? = backendSecretFile?.let(::readGoogleClientId)
@@ -159,6 +202,16 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+        checkDependencies = true
+        disable += setOf("GradleDependency", "IconLauncherShape", "OldTargetApi")
+        textReport = true
+        htmlReport = true
+        xmlReport = true
+    }
 }
 
 kotlin {
@@ -171,11 +224,90 @@ kapt {
     correctErrorTypes = true
 }
 
+detekt {
+    toolVersion = "1.23.8"
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    ignoreFailures = false
+    basePath = rootProject.projectDir.absolutePath
+}
+
+tasks.withType<Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        sarif.required.set(true)
+        txt.required.set(true)
+    }
+}
+
+ktlint {
+    android.set(true)
+    ignoreFailures.set(false)
+    outputToConsole.set(true)
+    reporters {
+        reporter(ReporterType.PLAIN)
+        reporter(ReporterType.CHECKSTYLE)
+    }
+}
+
 val checkNoHardcodedUrls by tasks.registering(CheckNoHardcodedUrlsTask::class) {
     group = "verification"
     description = "Fails if URL absoluta estiver hardcoded fora de ApiConfig."
     sourceRoot.set(layout.projectDirectory.dir("src/main/java"))
     allowedFiles.set(listOf("ApiConfig.kt"))
+}
+
+val checkNoKotlinSuppressions by tasks.registering(CheckNoKotlinSuppressionsTask::class) {
+    group = "verification"
+    description = "Fails when Kotlin sources or scripts contain suppression mechanisms."
+    sourceFiles.from(
+        rootProject.fileTree(rootProject.projectDir) {
+            include("**/*.kt", "**/*.kts")
+            exclude("**/.gradle/**", "**/.idea/**", "**/build/**", "**/generated/**")
+        }
+    )
+    rootPath.set(rootProject.projectDir.absolutePath)
+}
+
+val cpdMinimumTokens = providers.gradleProperty("cpdMinimumTokens").orElse("120")
+
+val cpdKotlin by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Runs PMD CPD against all Kotlin production and test sources."
+    classpath = cpdTool
+    mainClass.set("net.sourceforge.pmd.cli.PmdCli")
+    args(
+        "cpd",
+        "--minimum-tokens",
+        cpdMinimumTokens.get(),
+        "--language",
+        "kotlin",
+        "--format",
+        "text",
+        "--fail-on-error",
+        "--fail-on-violation",
+        "--dir",
+        file("src/main/java").absolutePath,
+        "--dir",
+        file("src/test/java").absolutePath,
+        "--dir",
+        file("src/androidTest/java").absolutePath
+    )
+}
+
+tasks.register("qualityCheck") {
+    group = "verification"
+    description = "Runs the complete pull-request quality policy."
+    dependsOn(
+        checkNoHardcodedUrls,
+        checkNoKotlinSuppressions,
+        cpdKotlin,
+        "detekt",
+        "ktlintCheck",
+        "lint",
+        "testDebugUnitTest"
+    )
 }
 
 tasks.named("preBuild") {
@@ -222,7 +354,7 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    cpdTool("net.sourceforge.pmd:pmd-cli:7.28.0")
+    cpdTool("net.sourceforge.pmd:pmd-kotlin:7.28.0")
 }
-
-
-

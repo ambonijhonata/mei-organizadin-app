@@ -2,6 +2,7 @@ package com.tcc.androidnative.feature.payments.ui
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -28,12 +29,14 @@ class PaymentsScreenTest {
     fun payments_should_show_only_supported_method_options() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.initial(
-                        eventId = 1L,
-                        totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.initial(
+                            eventId = 1L,
+                            totalServiceValue = BigDecimal("100.00")
+                        )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
@@ -64,12 +67,14 @@ class PaymentsScreenTest {
     fun payments_should_disable_value_field_and_add_button_when_total_value_is_checked() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.initial(
-                        eventId = 1L,
-                        totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.initial(
+                            eventId = 1L,
+                            totalServiceValue = BigDecimal("100.00")
+                        )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
@@ -99,12 +104,14 @@ class PaymentsScreenTest {
     fun payments_should_limit_to_four_entries() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.initial(
-                        eventId = 1L,
-                        totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.initial(
+                            eventId = 1L,
+                            totalServiceValue = BigDecimal("100.00")
+                        )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
@@ -145,14 +152,16 @@ class PaymentsScreenTest {
     fun payments_should_block_value_input_that_exceeds_total_service_value() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.addPayment(
-                        PaymentsFormReducer.initial(
-                            eventId = 1L,
-                            totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.addPayment(
+                            PaymentsFormReducer.initial(
+                                eventId = 1L,
+                                totalServiceValue = BigDecimal("100.00")
+                            )
                         )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
@@ -228,12 +237,14 @@ class PaymentsScreenTest {
     fun payments_should_format_value_input_with_brl_mask_without_drift() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.initial(
-                        eventId = 1L,
-                        totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.initial(
+                            eventId = 1L,
+                            totalServiceValue = BigDecimal("100.00")
+                        )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },
@@ -262,12 +273,14 @@ class PaymentsScreenTest {
     fun payments_should_hide_used_methods_and_restore_after_removal() {
         composeRule.setContent {
             AndroidNativeTheme {
-                var state by mutableStateOf(
-                    PaymentsFormReducer.initial(
-                        eventId = 1L,
-                        totalServiceValue = BigDecimal("100.00")
+                var state by remember {
+                    mutableStateOf(
+                        PaymentsFormReducer.initial(
+                            eventId = 1L,
+                            totalServiceValue = BigDecimal("100.00")
+                        )
                     )
-                )
+                }
                 PaymentsContent(
                     uiState = state,
                     onAddPaymentClick = { state = PaymentsFormReducer.addPayment(state) },

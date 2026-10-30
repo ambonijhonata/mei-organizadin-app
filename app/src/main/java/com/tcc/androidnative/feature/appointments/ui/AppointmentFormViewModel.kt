@@ -402,7 +402,9 @@ class AppointmentFormViewModel @Inject constructor(
                     itemsPerPage = CLIENT_OPTION_PAGE_SIZE
                 )
             }.onSuccess { page ->
-                if (requestToken != clientQueryToken || _uiState.value.clientFilterName.trim().ifBlank { null } != query) {
+                if (requestToken != clientQueryToken ||
+                    _uiState.value.clientFilterName.trim().ifBlank { null } != query
+                ) {
                     return@onSuccess
                 }
 
@@ -418,7 +420,9 @@ class AppointmentFormViewModel @Inject constructor(
                     )
                 }
             }.onFailure {
-                if (requestToken != clientQueryToken || _uiState.value.clientFilterName.trim().ifBlank { null } != query) {
+                if (requestToken != clientQueryToken ||
+                    _uiState.value.clientFilterName.trim().ifBlank { null } != query
+                ) {
                     return@onFailure
                 }
 
@@ -453,7 +457,9 @@ class AppointmentFormViewModel @Inject constructor(
                     pageSize = SERVICE_OPTION_PAGE_SIZE
                 )
             }.onSuccess { page ->
-                if (requestToken != serviceQueryToken || _uiState.value.serviceFilterDescription.trim().ifBlank { null } != query) {
+                if (requestToken != serviceQueryToken ||
+                    _uiState.value.serviceFilterDescription.trim().ifBlank { null } != query
+                ) {
                     return@onSuccess
                 }
 
@@ -469,7 +475,9 @@ class AppointmentFormViewModel @Inject constructor(
                     )
                 }
             }.onFailure {
-                if (requestToken != serviceQueryToken || _uiState.value.serviceFilterDescription.trim().ifBlank { null } != query) {
+                if (requestToken != serviceQueryToken ||
+                    _uiState.value.serviceFilterDescription.trim().ifBlank { null } != query
+                ) {
                     return@onFailure
                 }
 
@@ -503,7 +511,9 @@ class AppointmentFormViewModel @Inject constructor(
             state.copy(
                 startTime = value,
                 startTimeErrorResId = if (value.isNotBlank()) null else state.startTimeErrorResId,
-                endTimeErrorResId = if (state.endTimeErrorResId == R.string.appointment_end_time_must_be_after_start_time) {
+                endTimeErrorResId = if (state.endTimeErrorResId ==
+                    R.string.appointment_end_time_must_be_after_start_time
+                ) {
                     null
                 } else {
                     state.endTimeErrorResId
@@ -757,9 +767,7 @@ internal fun createInitialAppointmentFormUiState(
     )
 }
 
-private fun formatAppointmentTime(time: LocalTime): String {
-    return "%02d:%02d".format(time.hour, time.minute)
-}
+private fun formatAppointmentTime(time: LocalTime): String = "%02d:%02d".format(time.hour, time.minute)
 
 private fun String.parseCompleteTimeOrNull(): LocalTime? {
     if (!matches(Regex("\\d{2}:\\d{2}"))) return null

@@ -8,23 +8,11 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class SyncMetadataModel(
-    val dataUpToDate: Boolean,
-    val lastSyncAt: String?,
-    val reauthRequired: Boolean
-)
+data class SyncMetadataModel(val dataUpToDate: Boolean, val lastSyncAt: String?, val reauthRequired: Boolean)
 
-data class CashFlowServiceModel(
-    val name: String,
-    val quantity: Int,
-    val total: BigDecimal
-)
+data class CashFlowServiceModel(val name: String, val quantity: Int, val total: BigDecimal)
 
-data class CashFlowEntryModel(
-    val date: LocalDate,
-    val total: BigDecimal,
-    val services: List<CashFlowServiceModel>
-)
+data class CashFlowEntryModel(val date: LocalDate, val total: BigDecimal, val services: List<CashFlowServiceModel>)
 
 data class CashFlowReportModel(
     val entries: List<CashFlowEntryModel>,
@@ -40,10 +28,7 @@ data class RevenueReportModel(
     val syncMetadata: SyncMetadataModel
 )
 
-data class PaymentMethodRevenueEntryModel(
-    val method: PaymentMethod,
-    val total: BigDecimal
-)
+data class PaymentMethodRevenueEntryModel(val method: PaymentMethod, val total: BigDecimal)
 
 data class PaymentMethodRevenueReportModel(
     val entries: List<PaymentMethodRevenueEntryModel>,
@@ -70,16 +55,11 @@ interface ReportsRepository {
         paymentScope: ReportPaymentScope = ReportPaymentScope.ALL
     ): RevenueReportModel
 
-    suspend fun paymentMethodRevenue(
-        startDate: LocalDate,
-        endDate: LocalDate
-    ): PaymentMethodRevenueReportModel
+    suspend fun paymentMethodRevenue(startDate: LocalDate, endDate: LocalDate): PaymentMethodRevenueReportModel
 }
 
 @Singleton
-class ReportsRepositoryImpl @Inject constructor(
-    private val api: ReportApi
-) : ReportsRepository {
+class ReportsRepositoryImpl @Inject constructor(private val api: ReportApi) : ReportsRepository {
     override suspend fun cashFlow(
         startDate: LocalDate,
         endDate: LocalDate,

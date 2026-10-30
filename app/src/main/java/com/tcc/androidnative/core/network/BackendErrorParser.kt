@@ -11,14 +11,10 @@ data class BackendErrorDetails(
     val fieldErrors: Map<String, String> = emptyMap()
 )
 
-class BackendApiException(
-    val details: BackendErrorDetails,
-    cause: Throwable? = null
-) : RuntimeException(details.message ?: "Backend request failed", cause)
+class BackendApiException(val details: BackendErrorDetails, cause: Throwable? = null) :
+    RuntimeException(details.message ?: "Backend request failed", cause)
 
-class BackendErrorParser @Inject constructor(
-    moshi: Moshi
-) {
+class BackendErrorParser @Inject constructor(moshi: Moshi) {
     private val adapter = moshi.adapter(BackendErrorResponse::class.java)
 
     fun parse(error: HttpException): BackendErrorDetails {
@@ -47,7 +43,4 @@ private data class BackendErrorResponse(
     val errors: List<BackendFieldErrorResponse> = emptyList()
 )
 
-private data class BackendFieldErrorResponse(
-    val field: String? = null,
-    val message: String? = null
-)
+private data class BackendFieldErrorResponse(val field: String? = null, val message: String? = null)

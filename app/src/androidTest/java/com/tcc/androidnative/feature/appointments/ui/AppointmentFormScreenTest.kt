@@ -13,8 +13,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.services.data.ServiceModel
 import com.tcc.androidnative.ui.theme.AndroidNativeTheme

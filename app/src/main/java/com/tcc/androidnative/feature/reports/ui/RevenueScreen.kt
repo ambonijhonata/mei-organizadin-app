@@ -38,9 +38,7 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.LocalDate
 
 @Composable
-fun RevenueScreen(
-    viewModel: RevenueViewModel = hiltViewModel()
-) {
+fun RevenueScreen(viewModel: RevenueViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     RevenueScreenContent(
@@ -139,10 +137,7 @@ private fun RevenueFormStep(
 }
 
 @Composable
-private fun RevenueReportStep(
-    uiState: RevenueUiState,
-    onBackToForm: () -> Unit
-) {
+private fun RevenueReportStep(uiState: RevenueUiState, onBackToForm: () -> Unit) {
     val report = uiState.report
 
     Column(

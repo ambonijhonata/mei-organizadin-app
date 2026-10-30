@@ -6,18 +6,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class InitialSetupViewModel @Inject constructor(
-    private val firstAccessPreferenceStore: FirstAccessPreferenceStore
-) : ViewModel() {
-    fun shouldShowOnboarding(): Boolean {
-        return !firstAccessPreferenceStore.isFirstAcessCompleted()
-    }
+class InitialSetupViewModel @Inject constructor(private val firstAccessPreferenceStore: FirstAccessPreferenceStore) :
+    ViewModel() {
+    fun shouldShowOnboarding(): Boolean = !firstAccessPreferenceStore.isFirstAcessCompleted()
 
     fun completeOnboarding() {
         firstAccessPreferenceStore.setFirstAcessCompleted(completed = true)
     }
 
-    fun hasCompletedOnboarding(): Boolean {
-        return firstAccessPreferenceStore.isFirstAcessCompleted()
-    }
+    fun hasCompletedOnboarding(): Boolean = firstAccessPreferenceStore.isFirstAcessCompleted()
 }

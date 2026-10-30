@@ -1,10 +1,10 @@
 package com.tcc.androidnative.feature.payments.data
 
+import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.feature.calendar.data.remote.CalendarApi
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentEntryRequestDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsResponseDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsUpsertRequestDto
-import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.feature.payments.ui.PaymentEntryUiState
 import com.tcc.androidnative.feature.payments.ui.PaymentMethod
 import java.math.BigDecimal
@@ -14,18 +14,13 @@ import javax.inject.Singleton
 interface PaymentsRepository {
     suspend fun loadPayments(eventId: Long): List<PaymentEntryUiState>
 
-    suspend fun savePayments(
-        eventId: Long,
-        payments: List<PaymentEntryUiState>
-    ): CalendarPaymentsResponseDto
+    suspend fun savePayments(eventId: Long, payments: List<PaymentEntryUiState>): CalendarPaymentsResponseDto
 }
 
 @Singleton
-class PaymentsRepositoryImpl @Inject constructor(
-    private val calendarApi: CalendarApi
-) : PaymentsRepository {
-    override suspend fun loadPayments(eventId: Long): List<PaymentEntryUiState> {
-        return calendarApi.getPayments(eventId = eventId)
+class PaymentsRepositoryImpl @Inject constructor(private val calendarApi: CalendarApi) : PaymentsRepository {
+    override suspend fun loadPayments(eventId: Long): List<PaymentEntryUiState> =
+        calendarApi.getPayments(eventId = eventId)
             .payments
             .map { entry ->
                 PaymentEntryUiState(
@@ -35,12 +30,8 @@ class PaymentsRepositoryImpl @Inject constructor(
                     isValueTotal = entry.valueTotal
                 )
             }
-    }
 
-    override suspend fun savePayments(
-        eventId: Long,
-        payments: List<PaymentEntryUiState>
-    ): CalendarPaymentsResponseDto {
+    override suspend fun savePayments(eventId: Long, payments: List<PaymentEntryUiState>): CalendarPaymentsResponseDto {
         val request = CalendarPaymentsUpsertRequestDto(
             payments = payments.map { entry ->
                 CalendarPaymentEntryRequestDto(

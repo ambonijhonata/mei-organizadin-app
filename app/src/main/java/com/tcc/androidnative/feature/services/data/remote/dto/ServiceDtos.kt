@@ -2,10 +2,7 @@ package com.tcc.androidnative.feature.services.data.remote.dto
 
 import java.math.BigDecimal
 
-data class ServiceUpsertRequestDto(
-    val description: String,
-    val value: BigDecimal
-)
+data class ServiceUpsertRequestDto(val description: String, val value: BigDecimal)
 
 data class ServiceDto(
     val id: Long,
@@ -23,8 +20,4 @@ data class PaginatedServicesDto(
     val pageIndex: Int
 )
 
-data class BulkDeleteServiceResponseDto(
-    val deleted: Int,
-    val hasLink: Int
-)
-
+data class BulkDeleteServiceResponseDto(val deleted: Int, val hasLink: Int)

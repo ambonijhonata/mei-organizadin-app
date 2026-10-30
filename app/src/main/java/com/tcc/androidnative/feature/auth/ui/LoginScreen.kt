@@ -43,10 +43,7 @@ import com.tcc.androidnative.ui.theme.LoginSubtitleGray
 import com.tcc.androidnative.ui.theme.LoginSubtitleStyle
 
 @Composable
-fun LoginScreen(
-    uiState: LoginUiState,
-    onGoogleClick: () -> Unit
-) {
+fun LoginScreen(uiState: LoginUiState, onGoogleClick: () -> Unit) {
     val googleButtonContentDescription = stringResource(R.string.login_google_button_description)
 
     Column(

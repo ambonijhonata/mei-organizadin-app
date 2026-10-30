@@ -9,7 +9,6 @@ import com.tcc.androidnative.navigation.AppDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import javax.inject.Inject
-import retrofit2.HttpException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 @HiltViewModel
 class PaymentsViewModel @Inject constructor(
@@ -178,20 +178,16 @@ class PaymentsViewModel @Inject constructor(
         return normalized?.toBigDecimalOrNull() ?: BigDecimal.ZERO
     }
 
-    private fun Throwable.isUnauthorizedPreloadFailure(): Boolean {
-        return this is HttpException && code() == 401
+    private fun Throwable.isUnauthorizedPreloadFailure(): Boolean = this is HttpException && code() == 401
+
+    private fun Throwable.toSaveErrorMessageResId(): Int? = if (this is HttpException && code() == 422) {
+        R.string.payments_value_required_feedback
+    } else {
+        null
     }
 
-    private fun Throwable.toSaveErrorMessageResId(): Int? {
-        return if (this is HttpException && code() == 422) {
-            R.string.payments_value_required_feedback
-        } else {
-            null
-        }
-    }
-
-    private fun PaymentsUiState.hasPaymentWithoutAmount(): Boolean {
-        return payments.any { entry -> entry.amountInput.isBlank() }
+    private fun PaymentsUiState.hasPaymentWithoutAmount(): Boolean = payments.any { entry ->
+        entry.amountInput.isBlank()
     }
 }
 

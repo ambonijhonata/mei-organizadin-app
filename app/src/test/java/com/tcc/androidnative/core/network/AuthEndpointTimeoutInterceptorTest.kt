@@ -49,15 +49,13 @@ private class TimeoutCaptureChain(private val initialRequest: Request) : Interce
 
     override fun request(): Request = initialRequest
 
-    override fun proceed(request: Request): Response {
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_1_1)
-            .code(200)
-            .message("OK")
-            .body("{}".toResponseBody())
-            .build()
-    }
+    override fun proceed(request: Request): Response = Response.Builder()
+        .request(request)
+        .protocol(Protocol.HTTP_1_1)
+        .code(200)
+        .message("OK")
+        .body("{}".toResponseBody())
+        .build()
 
     override fun call(): Call = fakeCall
     override fun connection(): Connection? = null

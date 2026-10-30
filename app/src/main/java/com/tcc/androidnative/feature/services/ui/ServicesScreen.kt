@@ -1,8 +1,8 @@
 package com.tcc.androidnative.feature.services.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Add
@@ -374,19 +374,16 @@ private fun ServiceFormDialog(
     )
 }
 
-private fun textFieldValueAtEnd(text: String): TextFieldValue {
-    return TextFieldValue(text = text, selection = TextRange(text.length))
-}
+private fun textFieldValueAtEnd(text: String): TextFieldValue =
+    TextFieldValue(text = text, selection = TextRange(text.length))
 
 @Composable
-private fun resolveFormMessageText(message: TransientMessage): String {
-    return if (message.textResId != null) {
-        if (message.textArgs.isEmpty()) {
-            androidx.compose.ui.res.stringResource(message.textResId)
-        } else {
-            androidx.compose.ui.res.stringResource(message.textResId, *message.textArgs.toTypedArray())
-        }
+private fun resolveFormMessageText(message: TransientMessage): String = if (message.textResId != null) {
+    if (message.textArgs.isEmpty()) {
+        androidx.compose.ui.res.stringResource(message.textResId)
     } else {
-        message.text.orEmpty()
+        androidx.compose.ui.res.stringResource(message.textResId, *message.textArgs.toTypedArray())
     }
+} else {
+    message.text.orEmpty()
 }

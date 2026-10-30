@@ -21,9 +21,7 @@ class SharedPreferencesFirstAccessPreferenceStore internal constructor(
         currentUserIdProvider = { sessionManager.currentSession()?.userId }
     )
 
-    override fun isFirstAcessCompleted(): Boolean {
-        return prefs.getBoolean(scopedKey(KEY_FIRST_ACCESS_COMPLETED), false)
-    }
+    override fun isFirstAcessCompleted(): Boolean = prefs.getBoolean(scopedKey(KEY_FIRST_ACCESS_COMPLETED), false)
 
     override fun setFirstAcessCompleted(completed: Boolean) {
         prefs.edit()
@@ -31,13 +29,9 @@ class SharedPreferencesFirstAccessPreferenceStore internal constructor(
             .apply()
     }
 
-    private fun scopedKey(baseKey: String): String {
-        return "${baseKey}_${currentUserScope()}"
-    }
+    private fun scopedKey(baseKey: String): String = "${baseKey}_${currentUserScope()}"
 
-    private fun currentUserScope(): String {
-        return currentUserIdProvider()?.toString() ?: ANONYMOUS_SCOPE
-    }
+    private fun currentUserScope(): String = currentUserIdProvider()?.toString() ?: ANONYMOUS_SCOPE
 
     private companion object {
         const val FILE_NAME = "onboarding_preferences"
@@ -45,4 +39,3 @@ class SharedPreferencesFirstAccessPreferenceStore internal constructor(
         const val ANONYMOUS_SCOPE = "anonymous"
     }
 }
-

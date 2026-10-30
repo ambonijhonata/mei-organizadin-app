@@ -20,4 +20,3 @@ object CpfValidator {
         return if (remainder < 2) 0 else 11 - remainder
     }
 }
-

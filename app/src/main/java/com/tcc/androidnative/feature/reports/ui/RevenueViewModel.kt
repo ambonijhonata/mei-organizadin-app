@@ -113,9 +113,8 @@ class RevenueViewModel @Inject constructor(
         }
     }
 
-    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String {
-        return "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
-    }
+    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String =
+        "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
 
     fun backToForm() {
         _uiState.update { it.copy(step = RevenueScreenStep.FORM) }

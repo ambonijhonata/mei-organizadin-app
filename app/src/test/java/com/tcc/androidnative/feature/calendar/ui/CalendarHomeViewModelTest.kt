@@ -579,13 +579,10 @@ class CalendarHomeViewModelTest {
     private fun createViewModel(
         repository: CalendarRepository,
         settingsStore: CalendarSyncSettingsStore = FakeCalendarSyncSettingsStore()
-    ): CalendarHomeViewModel {
-        return CalendarHomeViewModel(
-            calendarRepository = repository,
-            calendarSyncSettingsStore = settingsStore
-        )
-    }
-
+    ): CalendarHomeViewModel = CalendarHomeViewModel(
+        calendarRepository = repository,
+        calendarSyncSettingsStore = settingsStore
+    )
 }
 
 private class FakeCalendarRepository(

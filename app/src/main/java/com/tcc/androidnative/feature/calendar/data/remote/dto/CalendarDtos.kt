@@ -2,11 +2,7 @@ package com.tcc.androidnative.feature.calendar.data.remote.dto
 
 import java.math.BigDecimal
 
-data class SyncResponseDto(
-    val created: Int,
-    val updated: Int,
-    val deleted: Int
-)
+data class SyncResponseDto(val created: Int, val updated: Int, val deleted: Int)
 
 data class CalendarEventDto(
     val id: Long,

@@ -23,10 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun FeedbackMessageCard(
-    message: TransientMessage,
-    modifier: Modifier = Modifier
-) {
+fun FeedbackMessageCard(message: TransientMessage, modifier: Modifier = Modifier) {
     FeedbackMessageCard(
         text = resolveMessageText(message),
         tone = message.tone,
@@ -35,11 +32,7 @@ fun FeedbackMessageCard(
 }
 
 @Composable
-fun FeedbackMessageCard(
-    text: String,
-    tone: MessageTone,
-    modifier: Modifier = Modifier
-) {
+fun FeedbackMessageCard(text: String, tone: MessageTone, modifier: Modifier = Modifier) {
     val palette = tone.palette()
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -87,35 +80,33 @@ private data class TonePalette(
     val icon: ImageVector
 )
 
-private fun MessageTone.palette(): TonePalette {
-    return when (this) {
-        MessageTone.SUCCESS -> TonePalette(
-            background = Color(0xFFF0FDF4),
-            border = Color(0xFFBBF7D0),
-            text = Color(0xFF166534),
-            iconTint = Color(0xFF16A34A),
-            icon = Icons.Outlined.CheckCircle
-        )
-        MessageTone.WARNING -> TonePalette(
-            background = Color(0xFFFFFBEB),
-            border = Color(0xFFFDE68A),
-            text = Color(0xFF92400E),
-            iconTint = Color(0xFFD97706),
-            icon = Icons.Outlined.WarningAmber
-        )
-        MessageTone.ERROR -> TonePalette(
-            background = Color(0xFFFEF2F2),
-            border = Color(0xFFFECACA),
-            text = Color(0xFF991B1B),
-            iconTint = Color(0xFFDC2626),
-            icon = Icons.Outlined.ErrorOutline
-        )
-        MessageTone.INFO -> TonePalette(
-            background = Color(0xFFEFF6FF),
-            border = Color(0xFFBFDBFE),
-            text = Color(0xFF1E40AF),
-            iconTint = Color(0xFF2563EB),
-            icon = Icons.Outlined.Info
-        )
-    }
+private fun MessageTone.palette(): TonePalette = when (this) {
+    MessageTone.SUCCESS -> TonePalette(
+        background = Color(0xFFF0FDF4),
+        border = Color(0xFFBBF7D0),
+        text = Color(0xFF166534),
+        iconTint = Color(0xFF16A34A),
+        icon = Icons.Outlined.CheckCircle
+    )
+    MessageTone.WARNING -> TonePalette(
+        background = Color(0xFFFFFBEB),
+        border = Color(0xFFFDE68A),
+        text = Color(0xFF92400E),
+        iconTint = Color(0xFFD97706),
+        icon = Icons.Outlined.WarningAmber
+    )
+    MessageTone.ERROR -> TonePalette(
+        background = Color(0xFFFEF2F2),
+        border = Color(0xFFFECACA),
+        text = Color(0xFF991B1B),
+        iconTint = Color(0xFFDC2626),
+        icon = Icons.Outlined.ErrorOutline
+    )
+    MessageTone.INFO -> TonePalette(
+        background = Color(0xFFEFF6FF),
+        border = Color(0xFFBFDBFE),
+        text = Color(0xFF1E40AF),
+        iconTint = Color(0xFF2563EB),
+        icon = Icons.Outlined.Info
+    )
 }

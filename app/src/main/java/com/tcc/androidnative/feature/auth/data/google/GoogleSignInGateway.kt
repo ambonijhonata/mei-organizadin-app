@@ -13,10 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class GoogleAuthTokens(
-    val idToken: String,
-    val authorizationCode: String
-)
+data class GoogleAuthTokens(val idToken: String, val authorizationCode: String)
 
 interface GoogleSignInGateway {
     fun signInIntent(): Intent
@@ -24,9 +21,7 @@ interface GoogleSignInGateway {
 }
 
 @Singleton
-class GoogleSignInGatewayImpl @Inject constructor(
-    @ApplicationContext context: Context
-) : GoogleSignInGateway {
+class GoogleSignInGatewayImpl @Inject constructor(@ApplicationContext context: Context) : GoogleSignInGateway {
     private val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
         .requestScopes(Scope(ApiConfig.GOOGLE_CALENDAR_READONLY_SCOPE))

@@ -17,8 +17,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -105,13 +105,11 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun loginErrorMessage(): TransientMessage {
-        return TransientMessage(
-            textResId = R.string.login_feedback_error,
-            tone = MessageTone.ERROR,
-            durationMillis = MessageDurations.LOGIN_ERROR_5_MIN
-        )
-    }
+    private fun loginErrorMessage(): TransientMessage = TransientMessage(
+        textResId = R.string.login_feedback_error,
+        tone = MessageTone.ERROR,
+        durationMillis = MessageDurations.LOGIN_ERROR_5_MIN
+    )
 
     private suspend fun clearErrorAfterTimeout(message: TransientMessage) {
         delay(message.durationMillis)

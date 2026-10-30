@@ -42,8 +42,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -153,7 +153,8 @@ internal fun PaymentsContent(
 
         uiState.payments.forEachIndexed { index, entry ->
             val paymentNumber = index + 1
-            val totalToggleEnabled = uiState.totalValueOwnerPaymentId == null || uiState.totalValueOwnerPaymentId == entry.id
+            val totalToggleEnabled =
+                uiState.totalValueOwnerPaymentId == null || uiState.totalValueOwnerPaymentId == entry.id
             val usedMethodsByOtherEntries = uiState.payments
                 .filter { it.id != entry.id }
                 .map { it.method }
@@ -380,6 +381,5 @@ private fun methodToLabel(method: PaymentMethod): String {
     return stringResource(labelRes)
 }
 
-private fun textFieldValueAtEnd(text: String): TextFieldValue {
-    return TextFieldValue(text = text, selection = TextRange(text.length))
-}
+private fun textFieldValueAtEnd(text: String): TextFieldValue =
+    TextFieldValue(text = text, selection = TextRange(text.length))

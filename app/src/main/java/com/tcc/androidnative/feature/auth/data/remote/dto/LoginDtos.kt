@@ -17,11 +17,7 @@ data class LoginResponseDto(
     val refreshTokenExpiresAt: String
 )
 
-data class RefreshRequestDto(
-    val refreshToken: String,
-    val deviceId: String? = null,
-    val appVersion: String? = null
-)
+data class RefreshRequestDto(val refreshToken: String, val deviceId: String? = null, val appVersion: String? = null)
 
 data class RefreshResponseDto(
     val accessToken: String,
@@ -30,6 +26,4 @@ data class RefreshResponseDto(
     val refreshTokenExpiresAt: String
 )
 
-data class LogoutRequestDto(
-    val refreshToken: String
-)
+data class LogoutRequestDto(val refreshToken: String)

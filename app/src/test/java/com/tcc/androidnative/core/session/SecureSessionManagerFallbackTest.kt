@@ -98,17 +98,14 @@ private class ReadFailureThenRecoverStore : SecureSessionStore {
 }
 
 private class ThrowingSessionPrefs : SessionSecurePrefs {
-    override fun getString(key: String, defaultValue: String?): String? {
+    override fun getString(key: String, defaultValue: String?): String? =
         throw GeneralSecurityException("AEADBadTagException simulated at read")
-    }
 
-    override fun getLong(key: String, defaultValue: Long): Long {
+    override fun getLong(key: String, defaultValue: Long): Long =
         throw GeneralSecurityException("AEADBadTagException simulated at read")
-    }
 
-    override fun edit(): SessionSecurePrefsEditor {
+    override fun edit(): SessionSecurePrefsEditor =
         throw GeneralSecurityException("AEADBadTagException simulated at read")
-    }
 }
 
 private class InMemorySessionPrefs : SessionSecurePrefs {
@@ -156,8 +153,4 @@ private class RecordingFallbackLogger : SessionFallbackLogger {
     }
 }
 
-private data class LogEvent(
-    val event: String,
-    val errorClass: String?,
-    val message: String?
-)
+private data class LogEvent(val event: String, val errorClass: String?, val message: String?)

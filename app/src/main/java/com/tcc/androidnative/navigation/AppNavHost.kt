@@ -1,12 +1,12 @@
 package com.tcc.androidnative.navigation
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -18,9 +18,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tcc.androidnative.feature.appointments.ui.AppointmentFormScreen
 import com.tcc.androidnative.feature.auth.ui.LoginRoute
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeScreen
 import com.tcc.androidnative.feature.calendar.ui.CalendarHomeViewModel
-import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.clients.ui.ClientsScreen
 import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep1Screen
 import com.tcc.androidnative.feature.onboarding.ui.OnboardingStep2Screen
@@ -160,7 +160,7 @@ fun AppNavHost() {
             )
         }
         composable(AppDestination.Home.route) {
-                AppShellScaffold(
+            AppShellScaffold(
                 currentRoute = AppDestination.Home.route,
                 onNavigate = ::navigateTo,
                 onLogout = sessionViewModel::logout,
@@ -389,27 +389,17 @@ fun AppNavHost() {
     }
 }
 
-internal fun resolveStartDestination(
-    hasSession: Boolean,
-    shouldShowOnboarding: Boolean
-): String {
+internal fun resolveStartDestination(hasSession: Boolean, shouldShowOnboarding: Boolean): String {
     if (!hasSession) {
         return AppDestination.Login.route
     }
     return if (shouldShowOnboarding) AppDestination.Onboarding1.route else AppDestination.Home.route
 }
 
-internal fun resolvePostLoginDestination(shouldShowOnboarding: Boolean): String {
-    return if (shouldShowOnboarding) AppDestination.Onboarding1.route else AppDestination.Home.route
-}
+internal fun resolvePostLoginDestination(shouldShowOnboarding: Boolean): String =
+    if (shouldShowOnboarding) AppDestination.Onboarding1.route else AppDestination.Home.route
 
-internal fun resolveSettingsSaveDestination(): String {
-    return AppDestination.Home.route
-}
+internal fun resolveSettingsSaveDestination(): String = AppDestination.Home.route
 
-internal fun shouldRefreshCalendarAfterAuth(
-    currentRoute: String?,
-    pendingCalendarRefresh: Boolean
-): Boolean {
-    return pendingCalendarRefresh && currentRoute == AppDestination.Home.route
-}
+internal fun shouldRefreshCalendarAfterAuth(currentRoute: String?, pendingCalendarRefresh: Boolean): Boolean =
+    pendingCalendarRefresh && currentRoute == AppDestination.Home.route

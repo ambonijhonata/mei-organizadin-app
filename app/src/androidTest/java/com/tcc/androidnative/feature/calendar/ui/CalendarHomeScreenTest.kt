@@ -100,7 +100,9 @@ class CalendarHomeScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Integracao Google revogada. Reautentique para voltar a sincronizar.").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "Integracao Google revogada. Reautentique para voltar a sincronizar."
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Reautenticar Google").assertIsDisplayed()
     }
 

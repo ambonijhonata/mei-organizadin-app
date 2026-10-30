@@ -37,4 +37,3 @@ interface ServiceApi {
     @POST("/api/services/delete")
     suspend fun bulkDelete(@Body ids: List<Long>): BulkDeleteServiceResponseDto
 }
-

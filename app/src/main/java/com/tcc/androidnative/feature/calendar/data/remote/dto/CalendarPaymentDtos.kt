@@ -14,15 +14,9 @@ data class CalendarPaymentSummaryDto(
     val status: CalendarPaymentStatusDto
 )
 
-data class CalendarPaymentEntryRequestDto(
-    val paymentType: String,
-    val amount: BigDecimal,
-    val valueTotal: Boolean
-)
+data class CalendarPaymentEntryRequestDto(val paymentType: String, val amount: BigDecimal, val valueTotal: Boolean)
 
-data class CalendarPaymentsUpsertRequestDto(
-    val payments: List<CalendarPaymentEntryRequestDto>
-)
+data class CalendarPaymentsUpsertRequestDto(val payments: List<CalendarPaymentEntryRequestDto>)
 
 data class CalendarPaymentEntryResponseDto(
     val id: Long,
@@ -32,7 +26,4 @@ data class CalendarPaymentEntryResponseDto(
     val paidAt: String?
 )
 
-data class CalendarPaymentsResponseDto(
-    val eventId: Long,
-    val payments: List<CalendarPaymentEntryResponseDto>
-)
+data class CalendarPaymentsResponseDto(val eventId: Long, val payments: List<CalendarPaymentEntryResponseDto>)

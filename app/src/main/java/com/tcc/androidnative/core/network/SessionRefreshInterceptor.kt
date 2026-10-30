@@ -1,10 +1,10 @@
 package com.tcc.androidnative.core.network
 
+import android.util.Log
 import com.tcc.androidnative.core.session.RefreshOutcome
 import com.tcc.androidnative.core.session.RefreshTrigger
 import com.tcc.androidnative.core.session.SessionManager
 import com.tcc.androidnative.core.session.SessionRefreshCoordinator
-import android.util.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.runBlocking
@@ -60,7 +60,9 @@ class SessionRefreshInterceptor @Inject constructor(
                 )
             }
             is RefreshOutcome.TerminalFailure -> {
-                logWarn("session_refresh_terminal_failure path=${request.url.encodedPath} code=${refreshOutcome.code.value}")
+                logWarn(
+                    "session_refresh_terminal_failure path=${request.url.encodedPath} code=${refreshOutcome.code.value}"
+                )
                 response
             }
             is RefreshOutcome.RecoverableFailure -> {
@@ -99,11 +101,9 @@ class SessionRefreshInterceptor @Inject constructor(
         return authorizationHeader.removePrefix("Bearer ").trim()
     }
 
-    private fun isAuthFlowPath(path: String): Boolean {
-        return path.startsWith("/api/auth/login") ||
-            path.startsWith("/api/auth/refresh") ||
-            path.startsWith("/api/auth/logout")
-    }
+    private fun isAuthFlowPath(path: String): Boolean = path.startsWith("/api/auth/login") ||
+        path.startsWith("/api/auth/refresh") ||
+        path.startsWith("/api/auth/logout")
 
     private fun logInfo(message: String) {
         runCatching { Log.i(TAG, message) }

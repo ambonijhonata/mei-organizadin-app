@@ -1,6 +1,5 @@
 package com.tcc.androidnative.core.network
 
-import com.tcc.androidnative.core.session.RefreshOutcome
 import com.tcc.androidnative.core.session.SessionManager
 import com.tcc.androidnative.core.session.SessionRefreshCoordinator
 import com.tcc.androidnative.core.session.UserSession
@@ -38,9 +37,8 @@ class SessionRefreshInterceptorTest {
             )
         )
         val authRepository = object : AuthRepository {
-            override suspend fun login(idToken: String, authorizationCode: String): UserSession {
+            override suspend fun login(idToken: String, authorizationCode: String): UserSession =
                 throw UnsupportedOperationException("Not needed in this test")
-            }
 
             override suspend fun refresh(refreshToken: String): UserSession {
                 val current = sessionManager.currentSession() ?: error("Missing session")
@@ -85,9 +83,8 @@ class SessionRefreshInterceptorTest {
             )
         )
         val authRepository = object : AuthRepository {
-            override suspend fun login(idToken: String, authorizationCode: String): UserSession {
+            override suspend fun login(idToken: String, authorizationCode: String): UserSession =
                 throw UnsupportedOperationException("Not needed in this test")
-            }
 
             override suspend fun refresh(refreshToken: String): UserSession {
                 val current = sessionManager.currentSession() ?: error("Missing session")
@@ -252,9 +249,8 @@ private class CountingInterceptorAuthRepository(
     var refreshCalls: Int = 0
         private set
 
-    override suspend fun login(idToken: String, authorizationCode: String): UserSession {
+    override suspend fun login(idToken: String, authorizationCode: String): UserSession =
         throw UnsupportedOperationException("Not needed in this test")
-    }
 
     override suspend fun refresh(refreshToken: String): UserSession {
         refreshCalls += 1
@@ -273,9 +269,7 @@ private class CountingInterceptorAuthRepository(
     }
 }
 
-private class SessionRefreshTestCall(
-    private val request: Request
-) : Call {
+private class SessionRefreshTestCall(private val request: Request) : Call {
     override fun request(): Request = request
     override fun execute(): Response = throw UnsupportedOperationException("Not needed in this test")
     override fun enqueue(responseCallback: Callback) = throw UnsupportedOperationException("Not needed in this test")

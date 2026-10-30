@@ -1,15 +1,13 @@
 package com.tcc.androidnative.core.network
 
 import com.tcc.androidnative.core.session.SessionManager
-import okhttp3.Interceptor
-import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Singleton
+import okhttp3.Interceptor
+import okhttp3.Response
 
 @Singleton
-class AuthTokenInterceptor @Inject constructor(
-    private val sessionManager: SessionManager
-) : Interceptor {
+class AuthTokenInterceptor @Inject constructor(private val sessionManager: SessionManager) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = sessionManager.getAccessToken()
         val originalRequest = chain.request()
@@ -24,9 +22,7 @@ class AuthTokenInterceptor @Inject constructor(
         return chain.proceed(request)
     }
 
-    private fun isAuthFlowPath(path: String): Boolean {
-        return path.startsWith("/api/auth/login") ||
-            path.startsWith("/api/auth/refresh") ||
-            path.startsWith("/api/auth/logout")
-    }
+    private fun isAuthFlowPath(path: String): Boolean = path.startsWith("/api/auth/login") ||
+        path.startsWith("/api/auth/refresh") ||
+        path.startsWith("/api/auth/logout")
 }
