@@ -2,10 +2,9 @@ package com.tcc.androidnative.feature.payments.ui
 
 import androidx.lifecycle.SavedStateHandle
 import com.tcc.androidnative.R
-import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentEntryResponseDto
+import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsResponseDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsUpsertRequestDto
-import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.feature.payments.data.PaymentsRepository
 import com.tcc.androidnative.navigation.AppDestination
 import com.tcc.androidnative.testutil.MainDispatcherRule
@@ -257,10 +256,7 @@ private class FakePaymentsRepository : PaymentsRepository {
         return paymentsToLoad
     }
 
-    override suspend fun savePayments(
-        eventId: Long,
-        payments: List<PaymentEntryUiState>
-    ): CalendarPaymentsResponseDto {
+    override suspend fun savePayments(eventId: Long, payments: List<PaymentEntryUiState>): CalendarPaymentsResponseDto {
         saveFailure?.let { throw it }
         lastEventId = eventId
         lastRequest = CalendarPaymentsUpsertRequestDto(

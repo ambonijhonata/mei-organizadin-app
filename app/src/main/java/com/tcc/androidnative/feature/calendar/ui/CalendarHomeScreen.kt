@@ -69,7 +69,6 @@ import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.ui.theme.BluePrimary
 import com.tcc.androidnative.ui.theme.GreenSuccess
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
-import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -132,6 +131,7 @@ internal fun CalendarHomeContent(
     onNextDay: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onReauthenticateRequested: () -> Unit,
+    modifier: Modifier = Modifier,
     onSyncRequested: () -> Unit = {},
     onAppointmentClick: (CalendarAgendaItem) -> Unit = {},
     onEmptySlotClick: (LocalDate, LocalTime) -> Unit = { _, _ -> },
@@ -141,8 +141,7 @@ internal fun CalendarHomeContent(
     onAutoFocusIndexResolved: (Int) -> Unit = {},
     allowInitialAutoFocus: Boolean = true,
     autoFocusRequestId: Int? = null,
-    onAutoFocusRequestConsumed: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onAutoFocusRequestConsumed: () -> Unit = {}
 ) {
     val resolvedListState = listState ?: rememberLazyListState()
     val timeSlots = remember { buildHalfHourSlots() }
@@ -456,11 +455,7 @@ private fun resolveAgendaSwipeThresholdPx(containerWidthPx: Int): Float {
 }
 
 @Composable
-private fun AppointmentCard(
-    item: CalendarAgendaItem,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun AppointmentCard(item: CalendarAgendaItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val appointmentColors = when (item.paymentStatus) {
         CalendarPaymentStatus.NONE -> AppointmentColors(
             border = BluePrimary.copy(alpha = 0.25f),
@@ -545,16 +540,10 @@ private fun AppointmentCard(
     }
 }
 
-private data class AppointmentColors(
-    val border: Color,
-    val background: Color,
-    val accent: Color
-)
+private data class AppointmentColors(val border: Color, val background: Color, val accent: Color)
 
-private fun buildHalfHourSlots(): List<LocalTime> {
-    return (0 until 48).map { halfHourIndex ->
-        LocalTime.MIDNIGHT.plusMinutes(halfHourIndex * 30L)
-    }
+private fun buildHalfHourSlots(): List<LocalTime> = (0 until 48).map { halfHourIndex ->
+    LocalTime.MIDNIGHT.plusMinutes(halfHourIndex * 30L)
 }
 
 internal fun resolveInitialFocusIndex(
@@ -585,17 +574,13 @@ internal fun mapDeviceTimeToSlotLabel(deviceLocalTime: LocalTime): String {
         .format(slotFormatter)
 }
 
-internal fun firstDayOfCurrentMonthUtcMillis(currentDateProvider: () -> LocalDate): Long {
-    return localDateToUtcMillis(currentDateProvider().withDayOfMonth(1))
-}
+internal fun firstDayOfCurrentMonthUtcMillis(currentDateProvider: () -> LocalDate): Long =
+    localDateToUtcMillis(currentDateProvider().withDayOfMonth(1))
 
-internal fun utcMillisToLocalDate(utcMillis: Long): LocalDate {
-    return Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
-}
+internal fun utcMillisToLocalDate(utcMillis: Long): LocalDate =
+    Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
 
-private fun localDateToUtcMillis(date: LocalDate): Long {
-    return date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-}
+private fun localDateToUtcMillis(date: LocalDate): Long = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
 private suspend fun centerSlotOnViewport(listState: LazyListState, targetIndex: Int) {
     listState.scrollToItem(index = targetIndex)

@@ -2,23 +2,11 @@ package com.tcc.androidnative.feature.reports.data.remote.dto
 
 import java.math.BigDecimal
 
-data class SyncMetadataDto(
-    val dataUpToDate: Boolean,
-    val lastSyncAt: String?,
-    val reauthRequired: Boolean
-)
+data class SyncMetadataDto(val dataUpToDate: Boolean, val lastSyncAt: String?, val reauthRequired: Boolean)
 
-data class ServiceEntryDto(
-    val name: String,
-    val quantity: Int,
-    val total: BigDecimal
-)
+data class ServiceEntryDto(val name: String, val quantity: Int, val total: BigDecimal)
 
-data class CashFlowEntryDto(
-    val date: String,
-    val total: BigDecimal,
-    val services: List<ServiceEntryDto>
-)
+data class CashFlowEntryDto(val date: String, val total: BigDecimal, val services: List<ServiceEntryDto>)
 
 data class CashFlowReportDto(
     val entries: List<CashFlowEntryDto>,
@@ -34,10 +22,7 @@ data class RevenueReportDto(
     val syncMetadata: SyncMetadataDto
 )
 
-data class PaymentMethodRevenueEntryDto(
-    val paymentType: String,
-    val total: BigDecimal
-)
+data class PaymentMethodRevenueEntryDto(val paymentType: String, val total: BigDecimal)
 
 data class PaymentMethodRevenueReportDto(
     val entries: List<PaymentMethodRevenueEntryDto>,

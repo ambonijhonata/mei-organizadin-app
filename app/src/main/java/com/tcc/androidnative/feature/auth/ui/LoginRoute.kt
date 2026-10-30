@@ -12,10 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 private const val TAG = "LoginRoute"
 
 @Composable
-fun LoginRoute(
-    viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit = {}
-) {
+fun LoginRoute(viewModel: LoginViewModel = hiltViewModel(), onLoginSuccess: () -> Unit = {}) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()

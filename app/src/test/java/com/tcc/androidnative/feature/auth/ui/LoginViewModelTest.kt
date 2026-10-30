@@ -65,9 +65,7 @@ class LoginViewModelTest {
     }
 }
 
-private class FakeAuthRepository(
-    private val shouldFail: Boolean
-) : AuthRepository {
+private class FakeAuthRepository(private val shouldFail: Boolean) : AuthRepository {
     override suspend fun login(idToken: String, authorizationCode: String): UserSession {
         if (shouldFail) {
             throw IllegalStateException("login failed")
@@ -83,9 +81,8 @@ private class FakeAuthRepository(
         )
     }
 
-    override suspend fun refresh(refreshToken: String): UserSession {
+    override suspend fun refresh(refreshToken: String): UserSession =
         throw UnsupportedOperationException("Not needed in this test")
-    }
 
     override suspend fun logout() {
     }
@@ -94,12 +91,10 @@ private class FakeAuthRepository(
 private class FakeGoogleSignInGateway : GoogleSignInGateway {
     override fun signInIntent(): Intent = Intent("fake-sign-in")
 
-    override fun extractTokens(data: Intent?): Result<GoogleAuthTokens> {
-        return Result.success(
-            GoogleAuthTokens(
-                idToken = "id-token",
-                authorizationCode = "auth-code"
-            )
+    override fun extractTokens(data: Intent?): Result<GoogleAuthTokens> = Result.success(
+        GoogleAuthTokens(
+            idToken = "id-token",
+            authorizationCode = "auth-code"
         )
-    }
+    )
 }

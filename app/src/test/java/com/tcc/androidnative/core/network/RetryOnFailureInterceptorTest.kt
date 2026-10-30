@@ -6,12 +6,12 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Connection
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
 import okhttp3.Request
-import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
-import okhttp3.MediaType.Companion.toMediaType
 import okio.Timeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -59,21 +59,17 @@ class RetryOnFailureInterceptorTest {
         assertEquals(1, chain.proceedCalls)
     }
 
-    private fun responseOf(request: Request, code: Int): Response {
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_1_1)
-            .code(code)
-            .message("OK")
-            .body("{}".toResponseBody())
-            .build()
-    }
+    private fun responseOf(request: Request, code: Int): Response = Response.Builder()
+        .request(request)
+        .protocol(Protocol.HTTP_1_1)
+        .code(code)
+        .message("OK")
+        .body("{}".toResponseBody())
+        .build()
 }
 
-private class FakeChain(
-    private val request: Request,
-    private val proceedResults: List<() -> Response>
-) : Interceptor.Chain {
+private class FakeChain(private val request: Request, private val proceedResults: List<() -> Response>) :
+    Interceptor.Chain {
     var proceedCalls: Int = 0
         private set
 
@@ -104,18 +100,13 @@ private class FakeChain(
     override fun withWriteTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain = this
 }
 
-private class FakeCall(
-    private val request: Request
-) : Call {
+private class FakeCall(private val request: Request) : Call {
     override fun request(): Request = request
 
-    override fun execute(): Response {
-        throw UnsupportedOperationException("Not needed in this test")
-    }
+    override fun execute(): Response = throw UnsupportedOperationException("Not needed in this test")
 
-    override fun enqueue(responseCallback: Callback) {
+    override fun enqueue(responseCallback: Callback): Unit =
         throw UnsupportedOperationException("Not needed in this test")
-    }
 
     override fun cancel() = Unit
 

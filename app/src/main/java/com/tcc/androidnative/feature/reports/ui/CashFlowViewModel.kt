@@ -116,9 +116,8 @@ class CashFlowViewModel @Inject constructor(
         }
     }
 
-    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String {
-        return "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
-    }
+    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String =
+        "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
 
     fun openDetail(entry: CashFlowEntryModel) {
         _uiState.update { it.copy(selectedDetail = entry, step = CashFlowScreenStep.DETAIL) }

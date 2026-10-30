@@ -1,15 +1,13 @@
 package com.tcc.androidnative.core.network
 
 import com.tcc.androidnative.core.session.SessionManager
-import okhttp3.Interceptor
-import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Singleton
+import okhttp3.Interceptor
+import okhttp3.Response
 
 @Singleton
-class SessionInvalidationInterceptor @Inject constructor(
-    private val sessionManager: SessionManager
-) : Interceptor {
+class SessionInvalidationInterceptor @Inject constructor(private val sessionManager: SessionManager) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val response = chain.proceed(request)
@@ -37,7 +35,6 @@ class SessionInvalidationInterceptor @Inject constructor(
         return false
     }
 
-    internal fun isPaymentsPreloadPath(encodedPath: String): Boolean {
-        return encodedPath.matches(Regex("""/api/calendar/events/\d+/payments$"""))
-    }
+    internal fun isPaymentsPreloadPath(encodedPath: String): Boolean =
+        encodedPath.matches(Regex("""/api/calendar/events/\d+/payments$"""))
 }

@@ -98,18 +98,12 @@ private class FakeCalendarApi : CalendarApi {
 
     override suspend fun sync(startDate: String?) = error("not needed")
 
-    override suspend fun listEvents(
-        eventStart: String?,
-        eventEnd: String?,
-        page: Int,
-        size: Int
-    ) = error("not needed")
+    override suspend fun listEvents(eventStart: String?, eventEnd: String?, page: Int, size: Int) = error("not needed")
 
     override suspend fun status() = error("not needed")
 
-    override suspend fun getPayments(eventId: Long): CalendarPaymentsResponseDto {
-        return paymentsResponse ?: error("not needed")
-    }
+    override suspend fun getPayments(eventId: Long): CalendarPaymentsResponseDto =
+        paymentsResponse ?: error("not needed")
 
     override suspend fun upsertPayments(
         eventId: Long,

@@ -1,8 +1,8 @@
 package com.tcc.androidnative.feature.services.data
 
-import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.core.network.BackendApiException
 import com.tcc.androidnative.core.network.BackendErrorParser
+import com.tcc.androidnative.core.util.CurrencyFormats
 import com.tcc.androidnative.feature.services.data.remote.ServiceApi
 import com.tcc.androidnative.feature.services.data.remote.dto.ServiceUpsertRequestDto
 import java.math.BigDecimal
@@ -10,18 +10,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import retrofit2.HttpException
 
-data class ServiceModel(
-    val id: Long,
-    val description: String,
-    val value: BigDecimal
-)
+data class ServiceModel(val id: Long, val description: String, val value: BigDecimal)
 
-data class ServicesPage(
-    val items: List<ServiceModel>,
-    val pageIndex: Int,
-    val totalPages: Int,
-    val totalItems: Int
-)
+data class ServicesPage(val items: List<ServiceModel>, val pageIndex: Int, val totalPages: Int, val totalItems: Int)
 
 enum class DeleteServiceOutcome {
     DELETED,
@@ -74,45 +65,39 @@ class ServicesRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun create(description: String, valueInput: String): ServiceModel {
-        return try {
-            val response = api.createService(
-                ServiceUpsertRequestDto(
-                    description = description,
-                    value = CurrencyFormats.parseUiValue(valueInput)
-                )
+    override suspend fun create(description: String, valueInput: String): ServiceModel = try {
+        val response = api.createService(
+            ServiceUpsertRequestDto(
+                description = description,
+                value = CurrencyFormats.parseUiValue(valueInput)
             )
-            ServiceModel(response.id, response.description, response.value)
-        } catch (error: HttpException) {
-            throw BackendApiException(backendErrorParser.parse(error), error)
-        }
+        )
+        ServiceModel(response.id, response.description, response.value)
+    } catch (error: HttpException) {
+        throw BackendApiException(backendErrorParser.parse(error), error)
     }
 
-    override suspend fun update(id: Long, description: String, valueInput: String): ServiceModel {
-        return try {
-            val response = api.updateService(
-                id = id,
-                request = ServiceUpsertRequestDto(
-                    description = description,
-                    value = CurrencyFormats.parseUiValue(valueInput)
-                )
+    override suspend fun update(id: Long, description: String, valueInput: String): ServiceModel = try {
+        val response = api.updateService(
+            id = id,
+            request = ServiceUpsertRequestDto(
+                description = description,
+                value = CurrencyFormats.parseUiValue(valueInput)
             )
-            ServiceModel(response.id, response.description, response.value)
-        } catch (error: HttpException) {
-            throw BackendApiException(backendErrorParser.parse(error), error)
-        }
+        )
+        ServiceModel(response.id, response.description, response.value)
+    } catch (error: HttpException) {
+        throw BackendApiException(backendErrorParser.parse(error), error)
     }
 
-    override suspend fun delete(id: Long): DeleteServiceOutcome {
-        return try {
-            api.deleteService(id)
-            DeleteServiceOutcome.DELETED
-        } catch (error: Throwable) {
-            if (error is HttpException && isHasLinkedAppointmentError(error)) {
-                DeleteServiceOutcome.HAS_LINK
-            } else {
-                DeleteServiceOutcome.FAILED
-            }
+    override suspend fun delete(id: Long): DeleteServiceOutcome = try {
+        api.deleteService(id)
+        DeleteServiceOutcome.DELETED
+    } catch (error: Throwable) {
+        if (error is HttpException && isHasLinkedAppointmentError(error)) {
+            DeleteServiceOutcome.HAS_LINK
+        } else {
+            DeleteServiceOutcome.FAILED
         }
     }
 

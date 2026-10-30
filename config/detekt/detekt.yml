@@ -1,0 +1,65 @@
+config:
+  validation: true
+  warningsAsErrors: true
+
+build:
+  maxIssues: 0
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+complexity:
+  ComplexCondition:
+    threshold: 6
+  CyclomaticComplexMethod:
+    threshold: 50
+  LargeClass:
+    threshold: 800
+  LongMethod:
+    threshold: 550
+  LongParameterList:
+    functionThreshold: 20
+    constructorThreshold: 20
+  TooManyFunctions:
+    thresholdInFiles: 30
+    thresholdInClasses: 30
+    thresholdInInterfaces: 30
+    thresholdInObjects: 30
+    thresholdInEnums: 30
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Za-z][A-Za-z0-9_]*'
+
+exceptions:
+  InstanceOfCheckForException:
+    active: false
+  TooGenericExceptionCaught:
+    active: false
+
+empty-blocks:
+  EmptyFunctionBlock:
+    active: false
+
+performance:
+  SpreadOperator:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+  ReturnCount:
+    max: 7
+  UseCheckOrError:
+    active: false

@@ -37,9 +37,7 @@ data class PaymentMethodRevenueUiState(
 )
 
 @HiltViewModel
-class PaymentMethodRevenueViewModel @Inject constructor(
-    private val repository: ReportsRepository
-) : ViewModel() {
+class PaymentMethodRevenueViewModel @Inject constructor(private val repository: ReportsRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(PaymentMethodRevenueUiState())
     val uiState: StateFlow<PaymentMethodRevenueUiState> = _uiState.asStateFlow()
 
@@ -104,9 +102,8 @@ class PaymentMethodRevenueViewModel @Inject constructor(
         }
     }
 
-    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String {
-        return "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
-    }
+    private fun formatPeriod(startDate: LocalDate, endDate: LocalDate): String =
+        "${DateFormats.toUiDate(startDate)} - ${DateFormats.toUiDate(endDate)}"
 
     fun backToForm() {
         _uiState.update { it.copy(step = PaymentMethodRevenueScreenStep.FORM) }

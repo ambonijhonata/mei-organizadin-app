@@ -35,9 +35,7 @@ class RetryOnFailureInterceptor @Inject constructor() : Interceptor {
         throw lastError ?: IOException("Unexpected empty retry failure")
     }
 
-    private fun isRetryableMethod(method: String): Boolean {
-        return RETRYABLE_METHODS.contains(method.uppercase())
-    }
+    private fun isRetryableMethod(method: String): Boolean = RETRYABLE_METHODS.contains(method.uppercase())
 
     private companion object {
         val RETRYABLE_METHODS = setOf("GET", "HEAD", "OPTIONS")

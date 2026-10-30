@@ -86,16 +86,16 @@ class AuthRepositoryImplTest {
     }
 }
 
-private class FakeAuthApi(
-    private val response: LoginResponseDto? = null,
-    private val error: Throwable? = null
-) : AuthApi {
+private class FakeAuthApi(private val response: LoginResponseDto? = null, private val error: Throwable? = null) :
+    AuthApi {
     override suspend fun login(body: LoginRequestDto): LoginResponseDto {
         error?.let { throw it }
         return requireNotNull(response)
     }
 
-    override suspend fun refresh(body: com.tcc.androidnative.feature.auth.data.remote.dto.RefreshRequestDto): com.tcc.androidnative.feature.auth.data.remote.dto.RefreshResponseDto {
+    override suspend fun refresh(
+        body: com.tcc.androidnative.feature.auth.data.remote.dto.RefreshRequestDto
+    ): com.tcc.androidnative.feature.auth.data.remote.dto.RefreshResponseDto {
         error?.let { throw it }
         return com.tcc.androidnative.feature.auth.data.remote.dto.RefreshResponseDto(
             accessToken = "new-access-token",

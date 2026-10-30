@@ -81,24 +81,25 @@ class ServicesViewModelTest {
     }
 
     @Test
-    fun `duplicate service description should use submitted description when backend message is unavailable`() = runTest {
-        val repository = FakeServicesRepository(
-            createException = BackendApiException(
-                BackendErrorDetails(message = null)
+    fun `duplicate service description should use submitted description when backend message is unavailable`() =
+        runTest {
+            val repository = FakeServicesRepository(
+                createException = BackendApiException(
+                    BackendErrorDetails(message = null)
+                )
             )
-        )
-        val viewModel = ServicesViewModel(repository)
-        advanceUntilIdle()
+            val viewModel = ServicesViewModel(repository)
+            advanceUntilIdle()
 
-        viewModel.openCreateForm()
-        viewModel.updateForm(description = "Corte", valueInput = "R$ 50,00")
-        viewModel.submitForm()
-        runCurrent()
+            viewModel.openCreateForm()
+            viewModel.updateForm(description = "Corte", valueInput = "R$ 50,00")
+            viewModel.submitForm()
+            runCurrent()
 
-        val formState = viewModel.uiState.value.formState
-        assertEquals("Corte já cadastrado", formState.bannerMessage?.text)
-        assertTrue(formState.fieldErrors.isEmpty())
-    }
+            val formState = viewModel.uiState.value.formState
+            assertEquals("Corte já cadastrado", formState.bannerMessage?.text)
+            assertTrue(formState.fieldErrors.isEmpty())
+        }
 
     @Test
     fun `backend duplicate service message should be normalized when already localized`() = runTest {
@@ -304,9 +305,8 @@ private class FakeServicesRepository(
         )
     }
 
-    override suspend fun getById(id: Long): ServiceModel {
-        return ServiceModel(id = id, description = "Design", value = BigDecimal("50.00"))
-    }
+    override suspend fun getById(id: Long): ServiceModel =
+        ServiceModel(id = id, description = "Design", value = BigDecimal("50.00"))
 
     override suspend fun create(description: String, valueInput: String): ServiceModel {
         createException?.let { throw it }

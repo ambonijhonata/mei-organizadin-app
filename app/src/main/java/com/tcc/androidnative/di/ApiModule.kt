@@ -9,8 +9,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import retrofit2.Retrofit
 import javax.inject.Singleton
+import retrofit2.Retrofit
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -35,4 +35,3 @@ object ApiModule {
     @Singleton
     fun provideReportApi(retrofit: Retrofit): ReportApi = retrofit.create(ReportApi::class.java)
 }
-

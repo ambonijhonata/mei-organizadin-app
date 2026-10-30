@@ -1,7 +1,7 @@
 package com.tcc.androidnative.di
 
-import com.tcc.androidnative.core.session.SessionManager
 import com.tcc.androidnative.core.session.SecureSessionManager
+import com.tcc.androidnative.core.session.SessionManager
 import com.tcc.androidnative.feature.auth.data.AuthRepository
 import com.tcc.androidnative.feature.auth.data.AuthRepositoryImpl
 import com.tcc.androidnative.feature.auth.data.google.GoogleSignInGateway

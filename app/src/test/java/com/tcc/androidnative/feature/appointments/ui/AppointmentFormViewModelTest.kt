@@ -52,7 +52,10 @@ class AppointmentFormViewModelTest {
         assertEquals(25, viewModel.uiState.value.serviceSeedOptions.size)
         assertEquals("Servico 1", viewModel.uiState.value.services.first().description)
         assertEquals("Servico 25", viewModel.uiState.value.services.last().description)
-        assertEquals(listOf(ServiceListCall(description = null, pageIndex = 1, pageSize = 25)), servicesRepository.listCalls)
+        assertEquals(
+            listOf(ServiceListCall(description = null, pageIndex = 1, pageSize = 25)),
+            servicesRepository.listCalls
+        )
         assertFalse(viewModel.uiState.value.isLoadingOptions)
     }
 
@@ -108,7 +111,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `client selector should append next page when list reaches the end`() = runTest {
         val clientsRepository = FakeClientsRepository()
-        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
+        val viewModel =
+            createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientOptionRendered(23)
@@ -128,7 +132,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `client selector should filter from cached items immediately and request remote in parallel`() = runTest {
         val clientsRepository = FakeClientsRepository(delayByName = mapOf("Cliente 2" to 1_000L))
-        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
+        val viewModel =
+            createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.selectClient(1)
@@ -160,7 +165,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `client selector click should clear filter and list cached clients immediately`() = runTest {
         val clientsRepository = FakeClientsRepository()
-        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
+        val viewModel =
+            createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientFilterNameChange("Cliente 2")
@@ -168,7 +174,10 @@ class AppointmentFormViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Cliente 2", viewModel.uiState.value.clientFilterName)
-        assertEquals(ClientListCall(name = "Cliente 2", pageIndex = 1, itemsPerPage = 25), clientsRepository.listCalls.last())
+        assertEquals(
+            ClientListCall(name = "Cliente 2", pageIndex = 1, itemsPerPage = 25),
+            clientsRepository.listCalls.last()
+        )
 
         viewModel.onClientSelectorClick()
 
@@ -206,7 +215,8 @@ class AppointmentFormViewModelTest {
                 "Cliente 21" to 10L
             )
         )
-        val viewModel = createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
+        val viewModel =
+            createViewModel(clientsRepository = clientsRepository, servicesRepository = FakeServicesRepository())
         advanceUntilIdle()
 
         viewModel.onClientFilterNameChange("Cliente 3")
@@ -268,7 +278,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector should append next page when list reaches the end`() = runTest {
         val servicesRepository = FakeServicesRepository()
-        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
+        val viewModel =
+            createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceOptionRendered(23)
@@ -288,7 +299,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector should filter from cached items immediately and request remote in parallel`() = runTest {
         val servicesRepository = FakeServicesRepository(delayByDescription = mapOf("Servico 2" to 1_000L))
-        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
+        val viewModel =
+            createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceFilterDescriptionChange("Servico 2")
@@ -314,7 +326,8 @@ class AppointmentFormViewModelTest {
     @Test
     fun `service selector click should clear filter and list cached services immediately`() = runTest {
         val servicesRepository = FakeServicesRepository()
-        val viewModel = createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
+        val viewModel =
+            createViewModel(clientsRepository = FakeClientsRepository(), servicesRepository = servicesRepository)
         advanceUntilIdle()
 
         viewModel.onServiceFilterDescriptionChange("Servico 2")
@@ -322,7 +335,10 @@ class AppointmentFormViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Servico 2", viewModel.uiState.value.serviceFilterDescription)
-        assertEquals(ServiceListCall(description = "Servico 2", pageIndex = 1, pageSize = 25), servicesRepository.listCalls.last())
+        assertEquals(
+            ServiceListCall(description = "Servico 2", pageIndex = 1, pageSize = 25),
+            servicesRepository.listCalls.last()
+        )
 
         viewModel.onServiceSelectorClick()
 
@@ -487,33 +503,21 @@ class AppointmentFormViewModelTest {
     }
 }
 
-private data class ClientListCall(
-    val name: String?,
-    val pageIndex: Int,
-    val itemsPerPage: Int
-)
+private data class ClientListCall(val name: String?, val pageIndex: Int, val itemsPerPage: Int)
 
 private fun createViewModel(
     savedStateHandle: SavedStateHandle = SavedStateHandle(),
     clientsRepository: ClientsRepository = FakeClientsRepository(),
     servicesRepository: ServicesRepository = FakeServicesRepository()
-): AppointmentFormViewModel {
-    return AppointmentFormViewModel(
-        savedStateHandle = savedStateHandle,
-        clientsRepository = clientsRepository,
-        servicesRepository = servicesRepository
-    )
-}
-
-private data class ServiceListCall(
-    val description: String?,
-    val pageIndex: Int,
-    val pageSize: Int
+): AppointmentFormViewModel = AppointmentFormViewModel(
+    savedStateHandle = savedStateHandle,
+    clientsRepository = clientsRepository,
+    servicesRepository = servicesRepository
 )
 
-private class FakeClientsRepository(
-    private val delayByName: Map<String, Long> = emptyMap()
-) : ClientsRepository {
+private data class ServiceListCall(val description: String?, val pageIndex: Int, val pageSize: Int)
+
+private class FakeClientsRepository(private val delayByName: Map<String, Long> = emptyMap()) : ClientsRepository {
     var createCalls = 0
     var updateCalls = 0
     val listCalls = mutableListOf<ClientListCall>()
@@ -539,9 +543,7 @@ private class FakeClientsRepository(
         )
     }
 
-    override suspend fun getById(id: Long): ClientModel {
-        return ClientModel(id, "Cliente $id", null, null, null, null)
-    }
+    override suspend fun getById(id: Long): ClientModel = ClientModel(id, "Cliente $id", null, null, null, null)
 
     override suspend fun create(model: ClientModel): ClientModel {
         createCalls++
@@ -558,9 +560,8 @@ private class FakeClientsRepository(
     override suspend fun bulkDelete(ids: List<Long>): Pair<Int, Int> = ids.size to 0
 }
 
-private class FakeServicesRepository(
-    private val delayByDescription: Map<String, Long> = emptyMap()
-) : ServicesRepository {
+private class FakeServicesRepository(private val delayByDescription: Map<String, Long> = emptyMap()) :
+    ServicesRepository {
     var createCalls = 0
     var updateCalls = 0
     val listCalls = mutableListOf<ServiceListCall>()
@@ -586,9 +587,7 @@ private class FakeServicesRepository(
         )
     }
 
-    override suspend fun getById(id: Long): ServiceModel {
-        return ServiceModel(id, "Servico $id", BigDecimal.TEN)
-    }
+    override suspend fun getById(id: Long): ServiceModel = ServiceModel(id, "Servico $id", BigDecimal.TEN)
 
     override suspend fun create(description: String, valueInput: String): ServiceModel {
         createCalls++

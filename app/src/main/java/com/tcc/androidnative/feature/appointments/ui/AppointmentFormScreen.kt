@@ -1,11 +1,12 @@
 package com.tcc.androidnative.feature.appointments.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +35,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,21 +42,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,10 +68,7 @@ import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 
 @Composable
-fun AppointmentFormScreen(
-    onCancelClick: () -> Unit,
-    viewModel: AppointmentFormViewModel = hiltViewModel()
-) {
+fun AppointmentFormScreen(onCancelClick: () -> Unit, viewModel: AppointmentFormViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     AppointmentFormContent(
@@ -353,7 +350,9 @@ fun AppointmentFormContent(
                     onDatePickerVisibilityChange = { isAppointmentDatePickerVisible = it },
                     label = stringResource(R.string.appointment_date_field_label),
                     fieldContentDescription = stringResource(R.string.appointment_date_field_description),
-                    calendarActionContentDescription = stringResource(R.string.appointment_date_calendar_icon_description),
+                    calendarActionContentDescription = stringResource(
+                        R.string.appointment_date_calendar_icon_description
+                    ),
                     isError = uiState.appointmentDateInputErrorResId != null,
                     supportingText = uiState.appointmentDateInputErrorResId?.let { errorResId ->
                         {
@@ -407,7 +406,9 @@ fun AppointmentFormContent(
                             }
                         },
                         fieldContentDescription = stringResource(R.string.appointment_start_time_field_description),
-                        clockActionContentDescription = stringResource(R.string.appointment_start_time_clock_icon_description),
+                        clockActionContentDescription = stringResource(
+                            R.string.appointment_start_time_clock_icon_description
+                        ),
                         dialogTestTag = "appointment-start-time-picker-dialog"
                     )
                     TimePickerField(
@@ -448,7 +449,9 @@ fun AppointmentFormContent(
                             }
                         },
                         fieldContentDescription = stringResource(R.string.appointment_end_time_field_description),
-                        clockActionContentDescription = stringResource(R.string.appointment_end_time_clock_icon_description),
+                        clockActionContentDescription = stringResource(
+                            R.string.appointment_end_time_clock_icon_description
+                        ),
                         dialogTestTag = "appointment-end-time-picker-dialog"
                     )
                 }
@@ -612,7 +615,9 @@ fun AppointmentFormContent(
                                             onCheckedChange = { checked ->
                                                 onServiceGridCheckedChange(service.id, checked)
                                             },
-                                            modifier = Modifier.testTag("appointment-selected-service-checkbox-${service.id}")
+                                            modifier = Modifier.testTag(
+                                                "appointment-selected-service-checkbox-${service.id}"
+                                            )
                                         )
                                         Text(
                                             text = service.description,
@@ -705,9 +710,7 @@ private fun maskedCursorPosition(digitsCountBeforeCursor: Int, maskedText: Strin
     return maskedText.length
 }
 
-private fun timeFieldValueFromMasked(maskedTime: String): TextFieldValue {
-    return TextFieldValue(
-        text = maskedTime,
-        selection = TextRange(maskedTime.length)
-    )
-}
+private fun timeFieldValueFromMasked(maskedTime: String): TextFieldValue = TextFieldValue(
+    text = maskedTime,
+    selection = TextRange(maskedTime.length)
+)

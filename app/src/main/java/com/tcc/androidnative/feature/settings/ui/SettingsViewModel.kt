@@ -36,9 +36,8 @@ data class SettingsUiState(
 )
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    private val calendarSyncSettingsStore: CalendarSyncSettingsStore
-) : ViewModel() {
+class SettingsViewModel @Inject constructor(private val calendarSyncSettingsStore: CalendarSyncSettingsStore) :
+    ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
@@ -188,11 +187,7 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    private fun showMessage(
-        @StringRes textResId: Int,
-        tone: MessageTone,
-        duration: Long
-    ) {
+    private fun showMessage(@StringRes textResId: Int, tone: MessageTone, duration: Long) {
         viewModelScope.launch {
             val message = TransientMessage(
                 textResId = textResId,

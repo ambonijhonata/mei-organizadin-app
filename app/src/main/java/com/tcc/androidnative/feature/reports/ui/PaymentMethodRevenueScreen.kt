@@ -39,9 +39,7 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.LocalDate
 
 @Composable
-fun PaymentMethodRevenueScreen(
-    viewModel: PaymentMethodRevenueViewModel = hiltViewModel()
-) {
+fun PaymentMethodRevenueScreen(viewModel: PaymentMethodRevenueViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     PaymentMethodRevenueScreenContent(
@@ -140,10 +138,7 @@ private fun PaymentMethodRevenueFormStep(
 }
 
 @Composable
-private fun PaymentMethodRevenueReportStep(
-    uiState: PaymentMethodRevenueUiState,
-    onBackToForm: () -> Unit
-) {
+private fun PaymentMethodRevenueReportStep(uiState: PaymentMethodRevenueUiState, onBackToForm: () -> Unit) {
     val report = uiState.report
 
     Column(
@@ -231,10 +226,7 @@ private fun PaymentMethodRevenueTableHeader() {
 }
 
 @Composable
-private fun PaymentMethodRevenueRow(
-    periodLabel: String,
-    totalLabel: String
-) {
+private fun PaymentMethodRevenueRow(periodLabel: String, totalLabel: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -15,12 +15,11 @@ import kotlinx.coroutines.flow.StateFlow
 internal const val SECURE_SESSION_FILE_NAME = "secure_session"
 
 @Singleton
-class SecureSessionManager @Inject constructor(
-    @ApplicationContext context: Context
-): SessionManager by SecureSessionManagerImpl(
-    secureStore = AndroidEncryptedSessionStore(context),
-    logger = AndroidSessionFallbackLogger()
-)
+class SecureSessionManager @Inject constructor(@ApplicationContext context: Context) :
+    SessionManager by SecureSessionManagerImpl(
+        secureStore = AndroidEncryptedSessionStore(context),
+        logger = AndroidSessionFallbackLogger()
+    )
 
 internal class SecureSessionManagerImpl(
     private val secureStore: SecureSessionStore,
@@ -104,20 +103,18 @@ internal class SecureSessionManagerImpl(
         return null
     }
 
-    private fun initializeSecurePrefsWithFallback(): SessionSecurePrefs {
-        return runCatching { secureStore.create() }
-            .getOrElse { error ->
-                if (!isRecoverableSecureStorageFailure(error)) throw error
-                logger.logEvent("session_secure_store_init_recoverable_failure", error)
-                runCatching { secureStore.clearStorage() }
-                    .onFailure { logger.logEvent("session_secure_store_init_clear_failed", it) }
-                runCatching { secureStore.create() }
-                    .getOrElse { reinitError ->
-                        logger.logEvent("session_secure_store_init_recovery_failed", reinitError)
-                        throw IllegalStateException("Unable to initialize secure session storage", reinitError)
-                    }
-            }
-    }
+    private fun initializeSecurePrefsWithFallback(): SessionSecurePrefs = runCatching { secureStore.create() }
+        .getOrElse { error ->
+            if (!isRecoverableSecureStorageFailure(error)) throw error
+            logger.logEvent("session_secure_store_init_recoverable_failure", error)
+            runCatching { secureStore.clearStorage() }
+                .onFailure { logger.logEvent("session_secure_store_init_clear_failed", it) }
+            runCatching { secureStore.create() }
+                .getOrElse { reinitError ->
+                    logger.logEvent("session_secure_store_init_recovery_failed", reinitError)
+                    throw IllegalStateException("Unable to initialize secure session storage", reinitError)
+                }
+        }
 
     private fun isRecoverableSecureStorageFailure(error: Throwable?): Boolean {
         if (error == null) return false
@@ -166,9 +163,7 @@ internal interface SecureSessionStore {
     fun clearStorage()
 }
 
-internal class AndroidEncryptedSessionStore(
-    private val context: Context
-) : SecureSessionStore {
+internal class AndroidEncryptedSessionStore(private val context: Context) : SecureSessionStore {
     override fun create(): SessionSecurePrefs {
         val prefs = EncryptedSharedPreferences.create(
             context,
@@ -185,17 +180,14 @@ internal class AndroidEncryptedSessionStore(
     }
 }
 
-internal class SharedPreferencesAdapter(
-    private val delegate: SharedPreferences
-) : SessionSecurePrefs {
+internal class SharedPreferencesAdapter(private val delegate: SharedPreferences) : SessionSecurePrefs {
     override fun getString(key: String, defaultValue: String?): String? = delegate.getString(key, defaultValue)
     override fun getLong(key: String, defaultValue: Long): Long = delegate.getLong(key, defaultValue)
     override fun edit(): SessionSecurePrefsEditor = SharedPreferencesEditorAdapter(delegate.edit())
 }
 
-internal class SharedPreferencesEditorAdapter(
-    private val delegate: SharedPreferences.Editor
-) : SessionSecurePrefsEditor {
+internal class SharedPreferencesEditorAdapter(private val delegate: SharedPreferences.Editor) :
+    SessionSecurePrefsEditor {
     override fun putLong(key: String, value: Long): SessionSecurePrefsEditor {
         delegate.putLong(key, value)
         return this

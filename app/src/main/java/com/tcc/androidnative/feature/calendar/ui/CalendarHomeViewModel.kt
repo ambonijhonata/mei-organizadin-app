@@ -123,7 +123,9 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logInfo(
-                "calendar_pipeline_success requestId=$requestId date=$selectedDate items=${items.size} render_ms=${elapsedMs(renderStart)}"
+                "calendar_pipeline_success requestId=$requestId date=$selectedDate items=${items.size} render_ms=${elapsedMs(
+                    renderStart
+                )}"
             )
             launchLastSyncMetadataRefresh()
             launchBackgroundSyncIfDue()
@@ -198,9 +200,7 @@ class CalendarHomeViewModel @Inject constructor(
         }
     }
 
-    private fun shouldTriggerBackgroundSync(): Boolean {
-        return backgroundSyncJob?.isActive != true
-    }
+    private fun shouldTriggerBackgroundSync(): Boolean = backgroundSyncJob?.isActive != true
 
     fun synchronizeNow() {
         if (!shouldTriggerBackgroundSync()) {
@@ -227,7 +227,9 @@ class CalendarHomeViewModel @Inject constructor(
         val lastSyncDisplayValue = integrationStatus?.let { formatLastSyncDisplayValue(it.lastSyncAt) }
         val shouldReloadSelectedDate = syncOutcome is CalendarSyncOutcome.Success && hasDelta(syncOutcome.result)
         logInfo(
-            "calendar_sync_result trigger=$trigger outcome=${syncOutcome::class.simpleName} reload_selected_date=$shouldReloadSelectedDate sync_ms=${elapsedMs(syncStart)}"
+            "calendar_sync_result trigger=$trigger outcome=${syncOutcome::class.simpleName} reload_selected_date=$shouldReloadSelectedDate sync_ms=${elapsedMs(
+                syncStart
+            )}"
         )
 
         if (shouldReloadSelectedDate) {
@@ -274,7 +276,9 @@ class CalendarHomeViewModel @Inject constructor(
                 )
             }
             logInfo(
-                "calendar_background_sync_reloaded_selected_date requestId=$requestId date=$selectedDate items=${items.size} reload_ms=${elapsedMs(reloadStart)}"
+                "calendar_background_sync_reloaded_selected_date requestId=$requestId date=$selectedDate items=${items.size} reload_ms=${elapsedMs(
+                    reloadStart
+                )}"
             )
         } catch (error: CancellationException) {
             logInfo("calendar_background_sync_reload_cancelled requestId=$requestId date=$selectedDate")
@@ -385,46 +389,41 @@ class CalendarHomeViewModel @Inject constructor(
 
     private fun mapAgendaItems(
         events: List<com.tcc.androidnative.feature.calendar.data.CalendarEventModel>
-    ): List<CalendarAgendaItem> {
-        return events
-            .sortedBy { it.eventStart }
-            .map { event ->
-                CalendarAgendaItem(
-                    eventId = event.id,
-                    eventStart = event.eventStart,
-                    eventEnd = event.eventEnd,
-                    slotLabel = formatSlotLabel(event.eventStart),
-                    timeLabel = formatEventTimeLabel(event.eventStart),
-                    title = event.title,
-                    serviceDescription = event.serviceDescription,
-                    durationLabel = formatDurationLabel(event.eventStart, event.eventEnd),
-                    serviceTotalValue = event.serviceValue ?: BigDecimal.ZERO,
-                    paymentStatus = event.paymentSummary?.status ?: CalendarPaymentStatus.NONE
-                )
-            }
-    }
+    ): List<CalendarAgendaItem> = events
+        .sortedBy { it.eventStart }
+        .map { event ->
+            CalendarAgendaItem(
+                eventId = event.id,
+                eventStart = event.eventStart,
+                eventEnd = event.eventEnd,
+                slotLabel = formatSlotLabel(event.eventStart),
+                timeLabel = formatEventTimeLabel(event.eventStart),
+                title = event.title,
+                serviceDescription = event.serviceDescription,
+                durationLabel = formatDurationLabel(event.eventStart, event.eventEnd),
+                serviceTotalValue = event.serviceValue ?: BigDecimal.ZERO,
+                paymentStatus = event.paymentSummary?.status ?: CalendarPaymentStatus.NONE
+            )
+        }
 
-    private fun hasDelta(result: com.tcc.androidnative.feature.calendar.data.CalendarSyncResult): Boolean {
-        return result.created > 0 || result.updated > 0 || result.deleted > 0
-    }
+    private fun hasDelta(result: com.tcc.androidnative.feature.calendar.data.CalendarSyncResult): Boolean =
+        result.created > 0 || result.updated > 0 || result.deleted > 0
 
     private suspend fun resolveSyncFeedback(
         syncOutcome: CalendarSyncOutcome,
         integrationStatus: CalendarIntegrationStatus?
-    ): Pair<TransientMessage?, Boolean> {
-        return when (syncOutcome) {
-            is CalendarSyncOutcome.Success -> null to false
-            is CalendarSyncOutcome.ReauthRequired -> reauthRequiredMessage() to true
-            is CalendarSyncOutcome.RecoverableFailure -> {
-                val reauthStatus = integrationStatus
-                    ?.isReauthRequired()
-                    ?: false
+    ): Pair<TransientMessage?, Boolean> = when (syncOutcome) {
+        is CalendarSyncOutcome.Success -> null to false
+        is CalendarSyncOutcome.ReauthRequired -> reauthRequiredMessage() to true
+        is CalendarSyncOutcome.RecoverableFailure -> {
+            val reauthStatus = integrationStatus
+                ?.isReauthRequired()
+                ?: false
 
-                if (reauthStatus) {
-                    reauthRequiredMessage() to true
-                } else {
-                    buildSyncWarning(syncOutcome) to false
-                }
+            if (reauthStatus) {
+                reauthRequiredMessage() to true
+            } else {
+                buildSyncWarning(syncOutcome) to false
             }
         }
     }
@@ -440,21 +439,19 @@ class CalendarHomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadIntegrationStatusSafely(): CalendarIntegrationStatus? {
-        return runCatching { calendarRepository.integrationStatus() }
-            .onFailure { error ->
-                logError("calendar_status_load_error error_type=${error::class.java.simpleName}", error)
-            }
-            .getOrNull()
+    private suspend fun loadIntegrationStatusSafely(): CalendarIntegrationStatus? = runCatching {
+        calendarRepository.integrationStatus()
     }
+        .onFailure { error ->
+            logError("calendar_status_load_error error_type=${error::class.java.simpleName}", error)
+        }
+        .getOrNull()
 
-    private fun reauthRequiredMessage(): TransientMessage {
-        return TransientMessage(
-            textResId = R.string.feedback_calendar_reauth_required,
-            tone = MessageTone.WARNING,
-            durationMillis = 0L
-        )
-    }
+    private fun reauthRequiredMessage(): TransientMessage = TransientMessage(
+        textResId = R.string.feedback_calendar_reauth_required,
+        tone = MessageTone.WARNING,
+        durationMillis = 0L
+    )
 
     private fun buildSyncWarning(syncFailure: CalendarSyncOutcome.RecoverableFailure): TransientMessage {
         val statusText = syncFailure.httpStatus?.toString() ?: "sem status HTTP"
@@ -470,10 +467,7 @@ class CalendarHomeViewModel @Inject constructor(
         )
     }
 
-    private fun updateStateIfLatest(
-        requestId: Long,
-        reducer: (CalendarHomeUiState) -> CalendarHomeUiState
-    ) {
+    private fun updateStateIfLatest(requestId: Long, reducer: (CalendarHomeUiState) -> CalendarHomeUiState) {
         if (requestId != latestRequestId) {
             logInfo("calendar_pipeline_drop_stale requestId=$requestId latest=$latestRequestId")
             return
@@ -499,9 +493,7 @@ class CalendarHomeViewModel @Inject constructor(
         return requestCounter
     }
 
-    private fun elapsedMs(startNs: Long): Long {
-        return (System.nanoTime() - startNs) / 1_000_000L
-    }
+    private fun elapsedMs(startNs: Long): Long = (System.nanoTime() - startNs) / 1_000_000L
 
     private fun logInfo(message: String) {
         runCatching { Log.i(TAG, message) }
@@ -511,18 +503,12 @@ class CalendarHomeViewModel @Inject constructor(
         runCatching { Log.e(TAG, message, error) }
     }
 
-    internal fun formatEventTimeLabel(
-        eventStart: Instant,
-        zoneResolver: () -> ZoneId = this.zoneResolver
-    ): String {
+    internal fun formatEventTimeLabel(eventStart: Instant, zoneResolver: () -> ZoneId = this.zoneResolver): String {
         val zone = runCatching { zoneResolver() }.getOrElse { ZoneOffset.UTC }
         return eventStart.atZone(zone).format(hourFormatter)
     }
 
-    internal fun formatSlotLabel(
-        eventStart: Instant,
-        zoneResolver: () -> ZoneId = this.zoneResolver
-    ): String {
+    internal fun formatSlotLabel(eventStart: Instant, zoneResolver: () -> ZoneId = this.zoneResolver): String {
         val zone = runCatching { zoneResolver() }.getOrElse { ZoneOffset.UTC }
         val zoned = eventStart.atZone(zone)
         val slotMinute = if (zoned.minute < 30) 0 else 30

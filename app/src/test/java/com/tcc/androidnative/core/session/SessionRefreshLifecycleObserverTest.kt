@@ -36,15 +36,13 @@ class SessionRefreshLifecycleObserverTest {
     }
 }
 
-private class LifecycleCountingAuthRepository(
-    private val sessionManager: LifecycleFakeSessionManager
-) : AuthRepository {
+private class LifecycleCountingAuthRepository(private val sessionManager: LifecycleFakeSessionManager) :
+    AuthRepository {
     @Volatile
     var refreshCalls: Int = 0
 
-    override suspend fun login(idToken: String, authorizationCode: String): UserSession {
+    override suspend fun login(idToken: String, authorizationCode: String): UserSession =
         throw UnsupportedOperationException("Not needed")
-    }
 
     override suspend fun refresh(refreshToken: String): UserSession {
         refreshCalls += 1

@@ -29,10 +29,7 @@ interface ClientApi {
     suspend fun getClient(@Path("id") id: Long): ClientDto
 
     @PUT("/api/clients/{id}")
-    suspend fun updateClient(
-        @Path("id") id: Long,
-        @Body request: ClientUpsertRequestDto
-    ): ClientDto
+    suspend fun updateClient(@Path("id") id: Long, @Body request: ClientUpsertRequestDto): ClientDto
 
     @DELETE("/api/clients/{id}")
     suspend fun deleteClient(@Path("id") id: Long)
@@ -40,4 +37,3 @@ interface ClientApi {
     @POST("/api/clients/delete")
     suspend fun bulkDelete(@Body ids: List<Long>): BulkDeleteResponseDto
 }
-

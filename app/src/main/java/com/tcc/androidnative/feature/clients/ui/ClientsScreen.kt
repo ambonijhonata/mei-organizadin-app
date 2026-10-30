@@ -1,8 +1,8 @@
 package com.tcc.androidnative.feature.clients.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
@@ -47,30 +47,28 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.res.stringResource
+import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.FeedbackMessageCard
+import com.tcc.androidnative.core.ui.feedback.TransientMessage
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.core.util.InputMasks
-import com.tcc.androidnative.core.ui.feedback.TransientMessage
-import com.tcc.androidnative.R
 import com.tcc.androidnative.ui.theme.DrawerMenuIconBlue
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClientsScreen(
-    viewModel: ClientsViewModel = hiltViewModel()
-) {
+fun ClientsScreen(viewModel: ClientsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDatePickerVisible = rememberSaveable { mutableStateOf(false) }
     val allVisibleSelected = uiState.items.isNotEmpty() && uiState.items.all { it.id in uiState.selectedIds }
@@ -459,27 +457,21 @@ private fun ClientFormDialog(
     )
 }
 
-private fun textFieldValueAtEnd(text: String): TextFieldValue {
-    return TextFieldValue(text = text, selection = TextRange(text.length))
-}
+private fun textFieldValueAtEnd(text: String): TextFieldValue =
+    TextFieldValue(text = text, selection = TextRange(text.length))
 
-private fun maskedFieldValue(
-    incoming: TextFieldValue,
-    formatter: (String) -> String
-): TextFieldValue {
+private fun maskedFieldValue(incoming: TextFieldValue, formatter: (String) -> String): TextFieldValue {
     val formatted = formatter(incoming.text)
     return TextFieldValue(text = formatted, selection = TextRange(formatted.length))
 }
 
 @Composable
-private fun resolveFormMessageText(message: TransientMessage): String {
-    return if (message.textResId != null) {
-        if (message.textArgs.isEmpty()) {
-            androidx.compose.ui.res.stringResource(message.textResId)
-        } else {
-            androidx.compose.ui.res.stringResource(message.textResId, *message.textArgs.toTypedArray())
-        }
+private fun resolveFormMessageText(message: TransientMessage): String = if (message.textResId != null) {
+    if (message.textArgs.isEmpty()) {
+        androidx.compose.ui.res.stringResource(message.textResId)
     } else {
-        message.text.orEmpty()
+        androidx.compose.ui.res.stringResource(message.textResId, *message.textArgs.toTypedArray())
     }
+} else {
+    message.text.orEmpty()
 }

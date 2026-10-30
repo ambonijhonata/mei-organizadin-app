@@ -21,11 +21,9 @@ class AuthEndpointTimeoutInterceptor @Inject constructor() : Interceptor {
         return authAwareChain.proceed(authAwareChain.request())
     }
 
-    private fun isAuthFlowPath(path: String): Boolean {
-        return path.startsWith("/api/auth/login") ||
-            path.startsWith("/api/auth/refresh") ||
-            path.startsWith("/api/auth/logout")
-    }
+    private fun isAuthFlowPath(path: String): Boolean = path.startsWith("/api/auth/login") ||
+        path.startsWith("/api/auth/refresh") ||
+        path.startsWith("/api/auth/logout")
 
     private companion object {
         const val AUTH_CONNECT_TIMEOUT_SECONDS = 60

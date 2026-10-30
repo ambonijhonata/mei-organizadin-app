@@ -22,11 +22,7 @@ sealed class AppDestination(val route: String) {
         const val ARG_START_TIME = "startTime"
         const val ARG_END_TIME = "endTime"
 
-        fun createRoute(
-            date: LocalDate? = null,
-            startTime: LocalTime? = null,
-            endTime: LocalTime? = null
-        ): String {
+        fun createRoute(date: LocalDate? = null, startTime: LocalTime? = null, endTime: LocalTime? = null): String {
             if (date == null && startTime == null && endTime == null) {
                 return ROUTE_BASE
             }
@@ -57,16 +53,9 @@ sealed class AppDestination(val route: String) {
         const val ARG_TOTAL_SERVICE_VALUE = "totalServiceValue"
         const val ARG_PRELOAD_PAYMENTS = "preloadPayments"
 
-        fun createRoute(
-            eventId: Long,
-            totalServiceValue: BigDecimal,
-            preloadPayments: Boolean = true
-        ): String {
-            return "$ROUTE_BASE/$eventId?$ARG_TOTAL_SERVICE_VALUE=${totalServiceValue.toPlainString()}&$ARG_PRELOAD_PAYMENTS=$preloadPayments"
-        }
+        fun createRoute(eventId: Long, totalServiceValue: BigDecimal, preloadPayments: Boolean = true): String =
+            "$ROUTE_BASE/$eventId?$ARG_TOTAL_SERVICE_VALUE=${totalServiceValue.toPlainString()}&$ARG_PRELOAD_PAYMENTS=$preloadPayments"
     }
 }
 
-private fun encodeQueryValue(value: String): String {
-    return URLEncoder.encode(value, StandardCharsets.UTF_8)
-}
+private fun encodeQueryValue(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8.name())

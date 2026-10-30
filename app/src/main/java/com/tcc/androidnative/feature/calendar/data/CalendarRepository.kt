@@ -3,8 +3,8 @@ package com.tcc.androidnative.feature.calendar.data
 import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.calendar.data.remote.CalendarApi
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentStatusDto
-import java.math.BigDecimal
 import java.io.IOException
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -32,10 +32,8 @@ data class CalendarIntegrationStatus(
     val errorCategory: String?,
     val errorMessage: String?
 ) {
-    fun isReauthRequired(): Boolean {
-        return status.equals(REAUTH_REQUIRED, ignoreCase = true) ||
-            errorCategory.equals(REVOKED_CATEGORY, ignoreCase = true)
-    }
+    fun isReauthRequired(): Boolean = status.equals(REAUTH_REQUIRED, ignoreCase = true) ||
+        errorCategory.equals(REVOKED_CATEGORY, ignoreCase = true)
 
     private companion object {
         const val REAUTH_REQUIRED = "REAUTH_REQUIRED"
@@ -73,43 +71,39 @@ interface CalendarRepository {
 }
 
 @Singleton
-class CalendarRepositoryImpl @Inject constructor(
-    private val api: CalendarApi
-) : CalendarRepository {
-    override suspend fun sync(startDate: LocalDate?): CalendarSyncOutcome {
-        return try {
-            val response = api.sync(startDate = startDate?.let(DateFormats::toApiDate))
-            CalendarSyncOutcome.Success(
-                CalendarSyncResult(
-                    created = response.created,
-                    updated = response.updated,
-                    deleted = response.deleted
-                )
+class CalendarRepositoryImpl @Inject constructor(private val api: CalendarApi) : CalendarRepository {
+    override suspend fun sync(startDate: LocalDate?): CalendarSyncOutcome = try {
+        val response = api.sync(startDate = startDate?.let(DateFormats::toApiDate))
+        CalendarSyncOutcome.Success(
+            CalendarSyncResult(
+                created = response.created,
+                updated = response.updated,
+                deleted = response.deleted
             )
-        } catch (error: HttpException) {
-            val errorBody = error.response()?.errorBody()?.string().orEmpty()
-            val backendCode = extractJsonField(errorBody, "code")
-            val backendMessage = extractJsonField(errorBody, "message")
-            if (error.code() == HTTP_FORBIDDEN && backendCode == INTEGRATION_REVOKED) {
-                CalendarSyncOutcome.ReauthRequired
-            } else {
-                CalendarSyncOutcome.RecoverableFailure(
-                    httpStatus = error.code(),
-                    backendCode = backendCode,
-                    backendMessage = backendMessage
-                )
-            }
-        } catch (error: IOException) {
+        )
+    } catch (error: HttpException) {
+        val errorBody = error.response()?.errorBody()?.string().orEmpty()
+        val backendCode = extractJsonField(errorBody, "code")
+        val backendMessage = extractJsonField(errorBody, "message")
+        if (error.code() == HTTP_FORBIDDEN && backendCode == INTEGRATION_REVOKED) {
+            CalendarSyncOutcome.ReauthRequired
+        } else {
             CalendarSyncOutcome.RecoverableFailure(
-                backendMessage = error.message
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            CalendarSyncOutcome.RecoverableFailure(
-                backendMessage = error.message
+                httpStatus = error.code(),
+                backendCode = backendCode,
+                backendMessage = backendMessage
             )
         }
+    } catch (error: IOException) {
+        CalendarSyncOutcome.RecoverableFailure(
+            backendMessage = error.message
+        )
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Throwable) {
+        CalendarSyncOutcome.RecoverableFailure(
+            backendMessage = error.message
+        )
     }
 
     override suspend fun integrationStatus(): CalendarIntegrationStatus {
@@ -146,12 +140,10 @@ class CalendarRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun CalendarPaymentStatusDto.toDomainStatus(): CalendarPaymentStatus {
-        return when (this) {
-            CalendarPaymentStatusDto.NONE -> CalendarPaymentStatus.NONE
-            CalendarPaymentStatusDto.PARTIAL -> CalendarPaymentStatus.PARTIAL
-            CalendarPaymentStatusDto.PAID -> CalendarPaymentStatus.PAID
-        }
+    private fun CalendarPaymentStatusDto.toDomainStatus(): CalendarPaymentStatus = when (this) {
+        CalendarPaymentStatusDto.NONE -> CalendarPaymentStatus.NONE
+        CalendarPaymentStatusDto.PARTIAL -> CalendarPaymentStatus.PARTIAL
+        CalendarPaymentStatusDto.PAID -> CalendarPaymentStatus.PAID
     }
 
     private fun extractJsonField(json: String, field: String): String? {

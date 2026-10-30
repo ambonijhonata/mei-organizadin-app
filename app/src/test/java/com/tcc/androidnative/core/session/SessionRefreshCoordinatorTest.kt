@@ -1,17 +1,17 @@
 package com.tcc.androidnative.core.session
 
 import com.tcc.androidnative.feature.auth.data.AuthRepository
+import dagger.Lazy
 import java.io.IOException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import dagger.Lazy
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionRefreshCoordinatorTest {
@@ -157,9 +157,8 @@ private class CountingAuthRepository(
     var refreshCalls: Int = 0
         private set
 
-    override suspend fun login(idToken: String, authorizationCode: String): UserSession {
+    override suspend fun login(idToken: String, authorizationCode: String): UserSession =
         throw UnsupportedOperationException("Not needed in this test")
-    }
 
     override suspend fun refresh(refreshToken: String): UserSession {
         refreshCalls += 1

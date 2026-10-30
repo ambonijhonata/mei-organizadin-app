@@ -37,10 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.tcc.androidnative.ui.theme.LoginBrandBlue
 
 @Composable
-fun OnboardingStep1Screen(
-    onCloseClick: () -> Unit,
-    onNextClick: () -> Unit
-) {
+fun OnboardingStep1Screen(onCloseClick: () -> Unit, onNextClick: () -> Unit) {
     OnboardingCardContainer(
         title = "Seu faturamento já está na agenda. A gente só extrai ele de lá.",
         onCloseClick = onCloseClick
@@ -129,11 +126,7 @@ fun OnboardingStep2Screen(
 }
 
 @Composable
-fun OnboardingStep4Screen(
-    onCloseClick: () -> Unit,
-    onBackClick: () -> Unit,
-    onConcludeClick: () -> Unit
-) {
+fun OnboardingStep4Screen(onCloseClick: () -> Unit, onBackClick: () -> Unit, onConcludeClick: () -> Unit) {
     OnboardingCardContainer(
         title = "Pronto!",
         onCloseClick = onCloseClick
@@ -210,11 +203,7 @@ fun OnboardingStep4Screen(
 }
 
 @Composable
-private fun OnboardingCardContainer(
-    title: String,
-    onCloseClick: () -> Unit,
-    content: @Composable () -> Unit
-) {
+private fun OnboardingCardContainer(title: String, onCloseClick: () -> Unit, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()

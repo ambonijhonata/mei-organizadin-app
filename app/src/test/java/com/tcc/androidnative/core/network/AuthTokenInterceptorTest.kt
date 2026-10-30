@@ -43,17 +43,15 @@ class AuthTokenInterceptorTest {
         assertNull(chain.lastAuthorizationHeader)
     }
 
-    private fun validSession(): UserSession {
-        return UserSession(
-            userId = 1L,
-            email = "user@test.com",
-            name = "User",
-            accessToken = "access-token",
-            refreshToken = "refresh-token",
-            accessTokenExpiresAtEpochSeconds = (System.currentTimeMillis() / 1000L) + 3600L,
-            refreshTokenExpiresAtEpochSeconds = (System.currentTimeMillis() / 1000L) + 7200L
-        )
-    }
+    private fun validSession(): UserSession = UserSession(
+        userId = 1L,
+        email = "user@test.com",
+        name = "User",
+        accessToken = "access-token",
+        refreshToken = "refresh-token",
+        accessTokenExpiresAtEpochSeconds = (System.currentTimeMillis() / 1000L) + 3600L,
+        refreshTokenExpiresAtEpochSeconds = (System.currentTimeMillis() / 1000L) + 7200L
+    )
 }
 
 private class CaptureAuthHeaderChain(private val initialRequest: Request) : Interceptor.Chain {

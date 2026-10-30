@@ -5,7 +5,7 @@
     <string name="login_subtitle">Organize seus agendamentos</string>
     <string name="login_welcome_title">Bem-vindo</string>
     <string name="login_google_button">Entrar com Google</string>
-    <string name="login_google_button_loading">Entrando...</string>
+    <string name="login_google_button_loading">Entrando&#8230;</string>
     <string name="login_google_button_description">Entrar com Google</string>
     <string name="drawer_app_title">MEI-ORGANIZADIN</string>
     <string name="drawer_menu_home">Início</string>
@@ -24,10 +24,9 @@
     <string name="login_feedback_error">Erro ao fazer login no Google</string>
 
     <string name="feedback_calendar_sync_warning">Sincronizacão parcial indisponível (%1$s/%2$s): %3$s Exibindo dados atuais.</string>
-    <string name="feedback_calendar_sync_warning_default_detail">Falha ao atualizar dados no Google.</string>
     <string name="feedback_calendar_reauth_required">Integracão Google revogada. Reautentique para voltar a sincronizar.</string>
-    <string name="feedback_calendar_loading">Sincronizando e carregando agenda...</string>
-    <string name="feedback_calendar_refreshing">Atualizando agenda em segundo plano...</string>
+    <string name="feedback_calendar_loading">Sincronizando e carregando agenda&#8230;</string>
+    <string name="feedback_calendar_refreshing">Atualizando agenda em segundo plano&#8230;</string>
     <string name="feedback_calendar_load_error">Erro ao carregar agenda</string>
     <string name="feedback_network_timeout">Conexao instável. Tente novamente em instantes.</string>
     <string name="feedback_calendar_reauth_action">Reautenticar Google</string>
@@ -62,9 +61,6 @@
     <string name="feedback_service_bulk_delete_warning">%1$s serviços não foram excluídos pois possuem agendamentos registrados.</string>
     <string name="feedback_service_bulk_delete_error">Erro ao excluir serviços</string>
 
-    <string name="feedback_report_start_date_invalid">Data inicial inválida</string>
-    <string name="feedback_report_end_date_invalid">Data final inválida</string>
-    <string name="feedback_report_start_before_end">Data inicial deve ser menor que a data final</string>
     <string name="feedback_report_period_invalid">Periodo invalido</string>
     <string name="feedback_report_period_limit">Relatório permitido somente para um periodo de até 1 mes</string>
     <string name="feedback_cash_flow_period_invalid">Periodo invalido</string>
@@ -106,10 +102,8 @@
     <string name="appointment_services_label">Serviços</string>
     <string name="appointment_services_placeholder">Selecione os serviços</string>
     <string name="appointment_services_grid_header_description">Descrição</string>
-    <string name="appointment_selected_services_count">%1$d serviços selecionados</string>
     <string name="appointment_save_button">Gravar</string>
     <string name="appointment_cancel_button">Cancelar</string>
-    <string name="appointment_required_feedback">Preencha cliente, data, horários e pelo menos um serviço.</string>
     <string name="appointment_local_save_feedback">Agendamento preenchido. A gravação será conectada em uma etapa futura.</string>
     <string name="appointment_options_load_error">Erro ao carregar clientes e serviços</string>
     <string name="services_empty_state_message">Nenhum serviço selecionado</string>
@@ -143,9 +137,9 @@
     <string name="payments_add_payment_button">+ Adicionar forma de pagamento</string>
     <string name="payments_total_paid_label">Total pago:</string>
     <string name="payments_totals_by_method_label">Totais por método:</string>
-    <string name="payments_loading_existing_composition">Carregando pagamentos do agendamento...</string>
+    <string name="payments_loading_existing_composition">Carregando pagamentos do agendamento&#8230;</string>
     <string name="payments_save_button">Gravar</string>
-    <string name="payments_save_button_saving">Salvando...</string>
+    <string name="payments_save_button_saving">Salvando&#8230;</string>
     <string name="payments_cancel_button">Cancelar</string>
     <string name="payments_method_dinheiro">Dinheiro</string>
     <string name="payments_method_pix">PIX</string>

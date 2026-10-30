@@ -4,10 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,10 +15,7 @@ import com.tcc.androidnative.core.ui.feedback.MessageTone
 import com.tcc.androidnative.core.ui.feedback.TransientMessage
 
 @Composable
-fun ReportMessageCard(
-    message: TransientMessage,
-    modifier: Modifier = Modifier
-) {
+fun ReportMessageCard(message: TransientMessage, modifier: Modifier = Modifier) {
     FeedbackMessageCard(
         message = message,
         modifier = modifier
@@ -28,18 +23,12 @@ fun ReportMessageCard(
 }
 
 @Composable
-fun ReportInfoBanner(
-    text: String,
-    modifier: Modifier = Modifier
-) {
+fun ReportInfoBanner(text: String, modifier: Modifier = Modifier) {
     FeedbackMessageCard(text = text, tone = MessageTone.INFO, modifier = modifier)
 }
 
 @Composable
-fun ReportCardContainer(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
+fun ReportCardContainer(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),

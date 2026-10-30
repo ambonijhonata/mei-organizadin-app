@@ -1,9 +1,9 @@
 package com.tcc.androidnative.feature.calendar.data
 
+import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.calendar.data.remote.CalendarApi
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarEventDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentEntryResponseDto
-import com.tcc.androidnative.feature.calendar.data.CalendarPaymentStatus
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentStatusDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentSummaryDto
 import com.tcc.androidnative.feature.calendar.data.remote.dto.CalendarPaymentsResponseDto
@@ -195,42 +195,36 @@ private class FakeCalendarApi(
         eventEnd: String?,
         page: Int,
         size: Int
-    ): SpringPageDto<CalendarEventDto> {
-        return SpringPageDto(
-            content = events,
-            totalPages = 1,
-            number = page,
-            size = size,
-            totalElements = 1
-        )
-    }
+    ): SpringPageDto<CalendarEventDto> = SpringPageDto(
+        content = events,
+        totalPages = 1,
+        number = page,
+        size = size,
+        totalElements = 1
+    )
 
     override suspend fun status(): IntegrationStatusDto = statusResult
 
-    override suspend fun getPayments(eventId: Long): CalendarPaymentsResponseDto {
-        return CalendarPaymentsResponseDto(
-            eventId = eventId,
-            payments = emptyList()
-        )
-    }
+    override suspend fun getPayments(eventId: Long): CalendarPaymentsResponseDto = CalendarPaymentsResponseDto(
+        eventId = eventId,
+        payments = emptyList()
+    )
 
     override suspend fun upsertPayments(
         eventId: Long,
         body: CalendarPaymentsUpsertRequestDto
-    ): CalendarPaymentsResponseDto {
-        return CalendarPaymentsResponseDto(
-            eventId = eventId,
-            payments = body.payments.mapIndexed { index, payment ->
-                CalendarPaymentEntryResponseDto(
-                    id = index.toLong() + 1L,
-                    paymentType = payment.paymentType,
-                    amount = payment.amount,
-                    valueTotal = payment.valueTotal,
-                    paidAt = "2026-01-01T10:00:00Z"
-                )
-            }
-        )
-    }
+    ): CalendarPaymentsResponseDto = CalendarPaymentsResponseDto(
+        eventId = eventId,
+        payments = body.payments.mapIndexed { index, payment ->
+            CalendarPaymentEntryResponseDto(
+                id = index.toLong() + 1L,
+                paymentType = payment.paymentType,
+                amount = payment.amount,
+                valueTotal = payment.valueTotal,
+                paidAt = "2026-01-01T10:00:00Z"
+            )
+        }
+    )
 }
 
 private fun httpError(code: Int, body: String): HttpException {

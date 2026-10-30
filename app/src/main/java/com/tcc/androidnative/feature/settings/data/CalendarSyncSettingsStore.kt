@@ -11,9 +11,5 @@ data class CalendarSyncSettings(
 
 interface CalendarSyncSettingsStore {
     fun getSettings(): CalendarSyncSettings
-    fun saveSettings(
-        useStartDateFilter: Boolean,
-        startDate: LocalDate,
-        considerPaidAppointmentsOnlyInReports: Boolean
-    )
+    fun saveSettings(useStartDateFilter: Boolean, startDate: LocalDate, considerPaidAppointmentsOnlyInReports: Boolean)
 }

@@ -5,7 +5,6 @@ import com.tcc.androidnative.core.network.BackendApiException
 import com.tcc.androidnative.core.network.BackendErrorDetails
 import com.tcc.androidnative.core.ui.feedback.MessageDurations
 import com.tcc.androidnative.core.ui.feedback.MessageTone
-import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.feature.clients.data.ClientModel
 import com.tcc.androidnative.feature.clients.data.ClientsPage
 import com.tcc.androidnative.feature.clients.data.ClientsRepository
@@ -320,16 +319,14 @@ private class FakeClientsRepository(
         )
     }
 
-    override suspend fun getById(id: Long): ClientModel {
-        return listItems.firstOrNull { it.id == id } ?: ClientModel(
-            id = id,
-            name = "Cliente",
-            cpf = null,
-            dateOfBirth = null,
-            email = null,
-            phone = null
-        )
-    }
+    override suspend fun getById(id: Long): ClientModel = listItems.firstOrNull { it.id == id } ?: ClientModel(
+        id = id,
+        name = "Cliente",
+        cpf = null,
+        dateOfBirth = null,
+        email = null,
+        phone = null
+    )
 
     override suspend fun create(model: ClientModel): ClientModel {
         lastCreatedModel = model
@@ -352,4 +349,3 @@ private class FakeClientsRepository(
         lastListName = null
     }
 }
-

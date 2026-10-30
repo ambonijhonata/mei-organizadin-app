@@ -2,6 +2,7 @@ package com.tcc.androidnative.feature.reports.ui
 
 import com.tcc.androidnative.R
 import com.tcc.androidnative.core.ui.feedback.MessageTone
+import com.tcc.androidnative.feature.payments.ui.PaymentMethod
 import com.tcc.androidnative.feature.reports.data.CashFlowEntryModel
 import com.tcc.androidnative.feature.reports.data.CashFlowReportModel
 import com.tcc.androidnative.feature.reports.data.CashFlowServiceModel
@@ -11,7 +12,6 @@ import com.tcc.androidnative.feature.reports.data.ReportPaymentScope
 import com.tcc.androidnative.feature.reports.data.ReportsRepository
 import com.tcc.androidnative.feature.reports.data.RevenueReportModel
 import com.tcc.androidnative.feature.reports.data.SyncMetadataModel
-import com.tcc.androidnative.feature.payments.ui.PaymentMethod
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettings
 import com.tcc.androidnative.feature.settings.data.CalendarSyncSettingsStore
 import com.tcc.androidnative.testutil.MainDispatcherRule
@@ -225,9 +225,7 @@ class ReportsViewModelMessagesTest {
     }
 }
 
-private class FakeReportsRepository(
-    private val shouldFail: Boolean = false
-) : ReportsRepository {
+private class FakeReportsRepository(private val shouldFail: Boolean = false) : ReportsRepository {
     var lastCashFlowScope: ReportPaymentScope? = null
     var lastRevenueScope: ReportPaymentScope? = null
 
@@ -308,9 +306,7 @@ private class FakeReportsRepository(
     }
 }
 
-private class FakeCalendarSyncSettingsStore(
-    considerPaidOnlyInReports: Boolean = false
-) : CalendarSyncSettingsStore {
+private class FakeCalendarSyncSettingsStore(considerPaidOnlyInReports: Boolean = false) : CalendarSyncSettingsStore {
     private val settings = CalendarSyncSettings(
         useStartDateFilter = false,
         startDate = LocalDate.of(2026, 1, 1),

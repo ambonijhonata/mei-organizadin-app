@@ -26,8 +26,4 @@ data class PaginatedClientsDto(
     val pageIndex: Int
 )
 
-data class BulkDeleteResponseDto(
-    val deleted: Int,
-    val hasLink: Int
-)
-
+data class BulkDeleteResponseDto(val deleted: Int, val hasLink: Int)

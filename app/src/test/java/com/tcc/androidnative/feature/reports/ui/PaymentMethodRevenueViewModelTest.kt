@@ -84,36 +84,28 @@ class PaymentMethodRevenueViewModelTest {
 }
 
 private class FakePaymentMethodRevenueReportsRepository : ReportsRepository {
-    override suspend fun cashFlow(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        paymentScope: ReportPaymentScope
-    ) = throw UnsupportedOperationException()
+    override suspend fun cashFlow(startDate: LocalDate, endDate: LocalDate, paymentScope: ReportPaymentScope) =
+        throw UnsupportedOperationException()
 
-    override suspend fun revenue(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        paymentScope: ReportPaymentScope
-    ) = throw UnsupportedOperationException()
+    override suspend fun revenue(startDate: LocalDate, endDate: LocalDate, paymentScope: ReportPaymentScope) =
+        throw UnsupportedOperationException()
 
     override suspend fun paymentMethodRevenue(
         startDate: LocalDate,
         endDate: LocalDate
-    ): PaymentMethodRevenueReportModel {
-        return PaymentMethodRevenueReportModel(
-            entries = listOf(
-                PaymentMethodRevenueEntryModel(PaymentMethod.DINHEIRO, BigDecimal("10.00")),
-                PaymentMethodRevenueEntryModel(PaymentMethod.PIX, BigDecimal("20.00")),
-                PaymentMethodRevenueEntryModel(PaymentMethod.DEBITO, BigDecimal("0.00")),
-                PaymentMethodRevenueEntryModel(PaymentMethod.CREDITO, BigDecimal("30.00"))
-            ),
-            startDate = startDate,
-            endDate = endDate,
-            syncMetadata = SyncMetadataModel(
-                dataUpToDate = false,
-                lastSyncAt = null,
-                reauthRequired = false
-            )
+    ): PaymentMethodRevenueReportModel = PaymentMethodRevenueReportModel(
+        entries = listOf(
+            PaymentMethodRevenueEntryModel(PaymentMethod.DINHEIRO, BigDecimal("10.00")),
+            PaymentMethodRevenueEntryModel(PaymentMethod.PIX, BigDecimal("20.00")),
+            PaymentMethodRevenueEntryModel(PaymentMethod.DEBITO, BigDecimal("0.00")),
+            PaymentMethodRevenueEntryModel(PaymentMethod.CREDITO, BigDecimal("30.00"))
+        ),
+        startDate = startDate,
+        endDate = endDate,
+        syncMetadata = SyncMetadataModel(
+            dataUpToDate = false,
+            lastSyncAt = null,
+            reauthRequired = false
         )
-    }
+    )
 }

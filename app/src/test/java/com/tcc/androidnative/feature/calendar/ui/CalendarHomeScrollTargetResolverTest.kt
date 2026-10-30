@@ -44,11 +44,9 @@ class CalendarHomeScrollTargetResolverTest {
         assertEquals(java.time.LocalDate.of(2026, 4, 1), utcMillisToLocalDate(millis))
     }
 
-    private fun buildSlots(): List<String> {
-        return (0 until 48).map { index ->
-            val hour = index / 2
-            val minute = if (index % 2 == 0) 0 else 30
-            "%02d:%02d".format(hour, minute)
-        }
+    private fun buildSlots(): List<String> = (0 until 48).map { index ->
+        val hour = index / 2
+        val minute = if (index % 2 == 0) 0 else 30
+        "%02d:%02d".format(hour, minute)
     }
 }

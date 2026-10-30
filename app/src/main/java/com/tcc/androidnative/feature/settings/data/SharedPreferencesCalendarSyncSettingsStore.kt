@@ -2,8 +2,8 @@ package com.tcc.androidnative.feature.settings.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.tcc.androidnative.core.util.DateFormats
 import com.tcc.androidnative.core.session.SessionManager
+import com.tcc.androidnative.core.util.DateFormats
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import java.time.ZoneId
@@ -36,7 +36,10 @@ class SharedPreferencesCalendarSyncSettingsStore internal constructor(
         return CalendarSyncSettings(
             useStartDateFilter = prefs.getBoolean(scopedKey(KEY_USE_START_DATE_FILTER), false),
             startDate = storedDate ?: defaultDate,
-            considerPaidAppointmentsOnlyInReports = prefs.getBoolean(scopedKey(KEY_PAID_APPOINTMENTS_ONLY_REPORTS), false),
+            considerPaidAppointmentsOnlyInReports = prefs.getBoolean(
+                scopedKey(KEY_PAID_APPOINTMENTS_ONLY_REPORTS),
+                false
+            ),
             initialSetupCompleted = prefs.getBoolean(scopedKey(KEY_INITIAL_SETUP_COMPLETED), false)
         )
     }
@@ -54,13 +57,9 @@ class SharedPreferencesCalendarSyncSettingsStore internal constructor(
             .apply()
     }
 
-    private fun scopedKey(baseKey: String): String {
-        return "${baseKey}_${currentUserScope()}"
-    }
+    private fun scopedKey(baseKey: String): String = "${baseKey}_${currentUserScope()}"
 
-    private fun currentUserScope(): String {
-        return currentUserIdProvider()?.toString() ?: ANONYMOUS_SCOPE
-    }
+    private fun currentUserScope(): String = currentUserIdProvider()?.toString() ?: ANONYMOUS_SCOPE
 
     private companion object {
         const val FILE_NAME = "calendar_sync_settings"

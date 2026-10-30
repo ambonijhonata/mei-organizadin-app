@@ -66,9 +66,7 @@ data class ClientsUiState(
 )
 
 @HiltViewModel
-class ClientsViewModel @Inject constructor(
-    private val repository: ClientsRepository
-) : ViewModel() {
+class ClientsViewModel @Inject constructor(private val repository: ClientsRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ClientsUiState())
     val uiState: StateFlow<ClientsUiState> = _uiState.asStateFlow()
     private var filterDebounceJob: Job? = null
@@ -500,4 +498,3 @@ class ClientsViewModel @Inject constructor(
         }
     }
 }
-

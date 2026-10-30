@@ -18,10 +18,7 @@ data class PaymentEntryUiState(
     val isValueTotal: Boolean = false
 )
 
-data class PaymentMethodTotalUiState(
-    val method: PaymentMethod,
-    val total: BigDecimal
-)
+data class PaymentMethodTotalUiState(val method: PaymentMethod, val total: BigDecimal)
 
 data class PaymentsUiState(
     val eventId: Long = 0L,
@@ -43,17 +40,12 @@ data class PaymentsUiState(
 object PaymentsFormReducer {
     private const val MAX_PAYMENT_ENTRIES = 4
 
-    fun initial(
-        eventId: Long,
-        totalServiceValue: BigDecimal
-    ): PaymentsUiState {
-        return recalculate(
-            PaymentsUiState(
-                eventId = eventId,
-                totalServiceValue = totalServiceValue
-            )
+    fun initial(eventId: Long, totalServiceValue: BigDecimal): PaymentsUiState = recalculate(
+        PaymentsUiState(
+            eventId = eventId,
+            totalServiceValue = totalServiceValue
         )
-    }
+    )
 
     fun withLoadedPayments(
         eventId: Long,
@@ -108,11 +100,7 @@ object PaymentsFormReducer {
         )
     }
 
-    fun updateMethod(
-        state: PaymentsUiState,
-        paymentId: Long,
-        method: PaymentMethod
-    ): PaymentsUiState {
+    fun updateMethod(state: PaymentsUiState, paymentId: Long, method: PaymentMethod): PaymentsUiState {
         if (state.payments.any { it.id != paymentId && it.method == method }) {
             return state
         }
@@ -126,11 +114,7 @@ object PaymentsFormReducer {
         )
     }
 
-    fun updateAmount(
-        state: PaymentsUiState,
-        paymentId: Long,
-        amountInput: String
-    ): PaymentsUiState {
+    fun updateAmount(state: PaymentsUiState, paymentId: Long, amountInput: String): PaymentsUiState {
         val targetEntry = state.payments.firstOrNull { it.id == paymentId } ?: return state
         if (targetEntry.isValueTotal) return state
         if (!isValidAmountInput(amountInput)) return state
@@ -150,11 +134,7 @@ object PaymentsFormReducer {
         return recalculate(updatedState)
     }
 
-    fun updateValueTotal(
-        state: PaymentsUiState,
-        paymentId: Long,
-        checked: Boolean
-    ): PaymentsUiState {
+    fun updateValueTotal(state: PaymentsUiState, paymentId: Long, checked: Boolean): PaymentsUiState {
         val targetEntry = state.payments.firstOrNull { it.id == paymentId } ?: return state
         val updatedPayments = if (checked) {
             listOf(
@@ -177,12 +157,10 @@ object PaymentsFormReducer {
         )
     }
 
-    fun shouldSaveAsClearedComposition(state: PaymentsUiState): Boolean {
-        return state.isClearedLoadedPaymentsPlaceholder &&
-            state.payments.size == 1 &&
-            state.payments.first().amountInput.isBlank() &&
-            !state.payments.first().isValueTotal
-    }
+    fun shouldSaveAsClearedComposition(state: PaymentsUiState): Boolean = state.isClearedLoadedPaymentsPlaceholder &&
+        state.payments.size == 1 &&
+        state.payments.first().amountInput.isBlank() &&
+        !state.payments.first().isValueTotal
 
     private fun recalculate(state: PaymentsUiState): PaymentsUiState {
         val totalOwner = state.payments.firstOrNull { it.isValueTotal }?.id
@@ -203,16 +181,16 @@ object PaymentsFormReducer {
         )
     }
 
-    private fun calculatePartialTotal(payments: List<PaymentEntryUiState>): BigDecimal {
-        return payments.fold(BigDecimal.ZERO) { acc, entry ->
+    private fun calculatePartialTotal(payments: List<PaymentEntryUiState>): BigDecimal =
+        payments.fold(BigDecimal.ZERO) {
+                acc,
+                entry
+            ->
             acc + (parseAmount(entry.amountInput) ?: BigDecimal.ZERO)
         }
-    }
 
-    private fun calculatePaymentTypeTotals(
-        payments: List<PaymentEntryUiState>
-    ): List<PaymentMethodTotalUiState> {
-        return PaymentMethod.entries.mapNotNull { method ->
+    private fun calculatePaymentTypeTotals(payments: List<PaymentEntryUiState>): List<PaymentMethodTotalUiState> =
+        PaymentMethod.entries.mapNotNull { method ->
             val total = payments.fold(BigDecimal.ZERO) { acc, entry ->
                 if (entry.method == method) {
                     acc + (parseAmount(entry.amountInput) ?: BigDecimal.ZERO)
@@ -227,11 +205,8 @@ object PaymentsFormReducer {
                 null
             }
         }
-    }
 
-    private fun nextPaymentId(payments: List<PaymentEntryUiState>): Long {
-        return (payments.maxOfOrNull { it.id } ?: 0L) + 1L
-    }
+    private fun nextPaymentId(payments: List<PaymentEntryUiState>): Long = (payments.maxOfOrNull { it.id } ?: 0L) + 1L
 
     private fun nextAvailableMethod(payments: List<PaymentEntryUiState>): PaymentMethod {
         val usedMethods = payments.map { it.method }.toSet()
@@ -255,17 +230,13 @@ object PaymentsFormReducer {
         }
     }
 
-    private fun toAmountInput(value: BigDecimal): String {
-        return CurrencyFormats.formatForUi(value)
-    }
+    private fun toAmountInput(value: BigDecimal): String = CurrencyFormats.formatForUi(value)
 
-    private fun hasRemainingBalance(totalPaid: BigDecimal, totalServiceValue: BigDecimal): Boolean {
-        return totalPaid.compareTo(totalServiceValue) < 0
-    }
+    private fun hasRemainingBalance(totalPaid: BigDecimal, totalServiceValue: BigDecimal): Boolean =
+        totalPaid.compareTo(totalServiceValue) < 0
 
-    private fun nonNegative(value: BigDecimal): BigDecimal {
-        return if (value.compareTo(BigDecimal.ZERO) < 0) BigDecimal.ZERO else value
-    }
+    private fun nonNegative(value: BigDecimal): BigDecimal =
+        if (value.compareTo(BigDecimal.ZERO) < 0) BigDecimal.ZERO else value
 
     private val LEGACY_NUMERIC_INPUT_REGEX = Regex("""^\d+([.,]\d{0,2})?$""")
 }

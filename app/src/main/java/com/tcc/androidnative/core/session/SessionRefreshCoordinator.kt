@@ -123,10 +123,7 @@ class SessionRefreshCoordinator @Inject constructor(
         }
     }
 
-    private suspend fun executeRefresh(
-        trigger: RefreshTrigger,
-        refreshToken: String
-    ): RefreshExecutionResult {
+    private suspend fun executeRefresh(trigger: RefreshTrigger, refreshToken: String): RefreshExecutionResult {
         var attempt = 0
         while (attempt < MAX_RECOVERABLE_ATTEMPTS) {
             val outcome = runCatching {
@@ -155,7 +152,9 @@ class SessionRefreshCoordinator @Inject constructor(
                         )
                         RefreshExecutionResult.RecoverableFailure(error.message, retryable = true)
                     } else {
-                        logWarn("session_refresh_recoverable_failure trigger=${trigger.value} error_type=${error::class.java.simpleName}")
+                        logWarn(
+                            "session_refresh_recoverable_failure trigger=${trigger.value} error_type=${error::class.java.simpleName}"
+                        )
                         RefreshExecutionResult.RecoverableFailure(error.message, retryable = false)
                     }
                 }
@@ -246,10 +245,7 @@ sealed class RefreshOutcome {
     data object NoSession : RefreshOutcome()
     data class Success(val kind: RefreshSuccessKind) : RefreshOutcome()
     data class RecoverableFailure(val message: String? = null) : RefreshOutcome()
-    data class TerminalFailure(
-        val code: RefreshTerminalCode,
-        val message: String? = null
-    ) : RefreshOutcome()
+    data class TerminalFailure(val code: RefreshTerminalCode, val message: String? = null) : RefreshOutcome()
 }
 
 enum class RefreshSuccessKind {
@@ -280,12 +276,6 @@ private data class InFlightState(
 
 private sealed class RefreshExecutionResult {
     data object Success : RefreshExecutionResult()
-    data class RecoverableFailure(
-        val message: String?,
-        val retryable: Boolean
-    ) : RefreshExecutionResult()
-    data class TerminalFailure(
-        val code: RefreshTerminalCode,
-        val message: String?
-    ) : RefreshExecutionResult()
+    data class RecoverableFailure(val message: String?, val retryable: Boolean) : RefreshExecutionResult()
+    data class TerminalFailure(val code: RefreshTerminalCode, val message: String?) : RefreshExecutionResult()
 }
