@@ -35,5 +35,6 @@ finding still fails the build.
 Android Lint promotes warnings to errors and aborts the build on every enabled
 finding. Its centralized policy excludes only `GradleDependency`, because
 dependency upgrades require dedicated compatibility work, and
-`IconLauncherShape`, because it requires a new approved visual asset. All
-other enabled Android Lint checks remain blocking.
+`OldTargetApi`, because target SDK upgrades require dedicated compatibility
+testing, and `IconLauncherShape`, because it requires a new approved visual
+asset. All other enabled Android Lint checks remain blocking.

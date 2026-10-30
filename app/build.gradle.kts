@@ -207,7 +207,7 @@ android {
         abortOnError = true
         warningsAsErrors = true
         checkDependencies = true
-        disable += setOf("GradleDependency", "IconLauncherShape")
+        disable += setOf("GradleDependency", "IconLauncherShape", "OldTargetApi")
         textReport = true
         htmlReport = true
         xmlReport = true
