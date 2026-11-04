@@ -32,6 +32,29 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 private const val defaultLastSyncNotAvailableLabel = "Nunca sincronizado"
+internal val calendarZone: ZoneId = ZoneId.of("America/Sao_Paulo")
+private val eventTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+internal fun formatEventTimeRangeLabel(
+    eventStart: Instant,
+    eventEnd: Instant?,
+    zoneResolver: () -> ZoneId
+): String {
+    val zone = runCatching { zoneResolver() }.getOrElse { ZoneOffset.UTC }
+    val startLabel = eventStart.atZone(zone).format(eventTimeFormatter)
+    if (eventEnd == null || !eventEnd.isAfter(eventStart)) return startLabel
+    val eventStartAtZone = eventStart.atZone(zone)
+    val firstSlotEnd = eventStartAtZone
+        .withMinute(if (eventStartAtZone.minute < 30) 30 else 0)
+        .withSecond(0)
+        .withNano(0)
+        .let { slotBoundary ->
+            if (eventStartAtZone.minute < 30) slotBoundary else slotBoundary.plusHours(1)
+        }
+        .toInstant()
+    if (!eventEnd.isAfter(firstSlotEnd)) return startLabel
+    return "$startLabel - ${eventEnd.atZone(zone).format(eventTimeFormatter)}"
+}
 
 data class CalendarAgendaItem(
     val eventId: Long,
@@ -47,7 +70,7 @@ data class CalendarAgendaItem(
 )
 
 data class CalendarHomeUiState(
-    val selectedDate: LocalDate = LocalDate.now(ZoneOffset.UTC),
+    val selectedDate: LocalDate = LocalDate.now(calendarZone),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val lastSyncDisplayValue: String = defaultLastSyncNotAvailableLabel,
@@ -64,8 +87,8 @@ class CalendarHomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val hourFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val lastSyncFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-    private val zoneResolver: () -> ZoneId = { ZoneId.systemDefault() }
-    private val selectedDateFlow = MutableStateFlow(LocalDate.now(ZoneOffset.UTC))
+    private val zoneResolver: () -> ZoneId = { calendarZone }
+    private val selectedDateFlow = MutableStateFlow(LocalDate.now(calendarZone))
     private var requestCounter: Long = 0L
     private var latestRequestId: Long = 0L
     private var backgroundSyncJob: Job? = null
@@ -397,7 +420,7 @@ class CalendarHomeViewModel @Inject constructor(
                 eventStart = event.eventStart,
                 eventEnd = event.eventEnd,
                 slotLabel = formatSlotLabel(event.eventStart),
-                timeLabel = formatEventTimeLabel(event.eventStart),
+                timeLabel = formatEventTimeRangeLabel(event.eventStart, event.eventEnd, zoneResolver),
                 title = event.title,
                 serviceDescription = event.serviceDescription,
                 durationLabel = formatDurationLabel(event.eventStart, event.eventEnd),

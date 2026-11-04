@@ -442,6 +442,17 @@ class CalendarHomeViewModelTest {
     }
 
     @Test
+    fun `time range label should omit end for an event occupying one slot`() = runTest {
+        val label = formatEventTimeRangeLabel(
+            eventStart = Instant.parse("2026-04-04T19:00:00Z"),
+            eventEnd = Instant.parse("2026-04-04T19:30:00Z"),
+            zoneResolver = { ZoneOffset.UTC }
+        )
+
+        assertEquals("19:00", label)
+    }
+
+    @Test
     fun `rapid day changes should keep latest selected day result`() = runTest {
         val today = LocalDate.now(ZoneOffset.UTC)
         val previousDay = today.minusDays(1)
