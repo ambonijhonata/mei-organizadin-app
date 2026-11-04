@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -72,6 +73,7 @@ import com.tcc.androidnative.ui.theme.LoginBrandBlue
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -79,6 +81,7 @@ import java.util.Locale
 
 private val slotFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val localePtBr = Locale("pt", "BR")
+private val agendaSlotHeight = 48.dp
 private const val agendaHorizontalSwipeThresholdFraction = 0.25f
 private const val agendaHorizontalSwipeThresholdMinPx = 72f
 
@@ -137,7 +140,7 @@ internal fun CalendarHomeContent(
     onEmptySlotClick: (LocalDate, LocalTime) -> Unit = { _, _ -> },
     listState: LazyListState? = null,
     currentLocalTimeProvider: () -> LocalTime = LocalTime::now,
-    currentDateProvider: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
+    currentDateProvider: () -> LocalDate = { LocalDate.now(calendarZone) },
     onAutoFocusIndexResolved: (Int) -> Unit = {},
     allowInitialAutoFocus: Boolean = true,
     autoFocusRequestId: Int? = null,
@@ -147,6 +150,7 @@ internal fun CalendarHomeContent(
     val timeSlots = remember { buildHalfHourSlots() }
     val slotLabels = remember(timeSlots) { timeSlots.map { it.format(slotFormatter) } }
     val eventsBySlot = remember(uiState.items) { buildSlotMap(uiState.items) }
+    val agendaRows = remember(timeSlots, uiState.items) { buildAgendaRows(timeSlots, uiState.items) }
     val weekdayLabel = remember(uiState.selectedDate) { formatWeekdayLabel(uiState.selectedDate) }
     val monthYearLabel = remember(uiState.selectedDate) { formatMonthYearLabel(uiState.selectedDate) }
     val datePickerContentDescription = stringResource(R.string.calendar_date_picker_open)
@@ -413,9 +417,10 @@ internal fun CalendarHomeContent(
                     .fillMaxSize()
                     .testTag("calendar_agenda_list")
             ) {
-                itemsIndexed(timeSlots) { index, slot ->
+                itemsIndexed(agendaRows) { index, row ->
+                    val slot = row.slot
                     val label = slot.format(slotFormatter)
-                    val item = eventsBySlot[label]
+                    val item = row.item
 
                     Column(modifier = Modifier.fillMaxWidth()) {
                         if (item == null) {
@@ -435,11 +440,12 @@ internal fun CalendarHomeContent(
                                 onClick = { onAppointmentClick(item) },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = (row.occupiedSlotCount * agendaSlotHeight.value).dp)
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             )
                         }
 
-                        if (index < timeSlots.lastIndex) {
+                        if (index < agendaRows.lastIndex) {
                             HorizontalDivider(color = Color(0xFFF1F2F4))
                         }
                     }
@@ -487,10 +493,9 @@ private fun AppointmentCard(item: CalendarAgendaItem, onClick: () -> Unit, modif
                 .padding(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = item.timeLabel,
-                color = appointmentColors.accent,
-                style = MaterialTheme.typography.titleMedium
+            TimeRangeLabel(
+                timeLabel = item.timeLabel,
+                color = appointmentColors.accent
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -538,6 +543,25 @@ private fun AppointmentCard(item: CalendarAgendaItem, onClick: () -> Unit, modif
             }
         }
     }
+}
+
+@Composable
+private fun TimeRangeLabel(timeLabel: String, color: Color) {
+    val (startLabel, endLabel) = splitTimeRangeLabel(timeLabel)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = startLabel, color = color, style = MaterialTheme.typography.titleMedium)
+        if (endLabel != null) {
+            Text(text = endLabel, color = color, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+internal fun splitTimeRangeLabel(timeLabel: String): Pair<String, String?> {
+    val separator = " - "
+    val separatorIndex = timeLabel.indexOf(separator)
+    if (separatorIndex < 0) return timeLabel to null
+    return timeLabel.substring(0, separatorIndex) to
+        timeLabel.substring(separatorIndex + separator.length).takeIf { it.isNotBlank() }
 }
 
 private data class AppointmentColors(val border: Color, val background: Color, val accent: Color)
@@ -592,12 +616,60 @@ private suspend fun centerSlotOnViewport(listState: LazyListState, targetIndex: 
     listState.scrollBy(targetCenter - viewportCenter)
 }
 
-private fun buildSlotMap(items: List<CalendarAgendaItem>): Map<String, CalendarAgendaItem> {
+internal fun buildSlotMap(items: List<CalendarAgendaItem>, zone: ZoneId = calendarZone): Map<String, CalendarAgendaItem> {
     val bySlot = linkedMapOf<String, CalendarAgendaItem>()
     items.forEach { item ->
-        bySlot.putIfAbsent(item.slotLabel, item)
+        val eventEnd = item.eventEnd
+        if (eventEnd == null || !eventEnd.isAfter(item.eventStart)) {
+            bySlot.putIfAbsent(item.slotLabel, item)
+            return@forEach
+        }
+        val eventStartAtZone = item.eventStart.atZone(zone)
+        val eventLocalDate = eventStartAtZone.toLocalDate()
+        var slotStart = eventStartAtZone.withMinute(if (eventStartAtZone.minute < 30) 0 else 30)
+            .withSecond(0).withNano(0)
+        while (slotStart.toInstant().isBefore(eventEnd) && slotStart.toLocalDate() == eventLocalDate) {
+            bySlot.putIfAbsent(slotStart.format(slotFormatter), item)
+            slotStart = slotStart.plusMinutes(30)
+        }
     }
     return bySlot
+}
+
+internal data class CalendarAgendaRow(val slot: LocalTime, val item: CalendarAgendaItem? = null, val occupiedSlotCount: Int = 1)
+
+internal fun buildAgendaRows(timeSlots: List<LocalTime>, items: List<CalendarAgendaItem>, zone: ZoneId = calendarZone): List<CalendarAgendaRow> {
+    val itemsByInitialSlot = linkedMapOf<String, CalendarAgendaItem>()
+    items.forEach { item -> itemsByInitialSlot.putIfAbsent(item.slotLabel, item) }
+    val rows = mutableListOf<CalendarAgendaRow>()
+    var slotIndex = 0
+    while (slotIndex < timeSlots.size) {
+        val slot = timeSlots[slotIndex]
+        val item = itemsByInitialSlot[slot.format(slotFormatter)]
+        if (item == null) {
+            rows += CalendarAgendaRow(slot = slot)
+            slotIndex += 1
+            continue
+        }
+        val occupiedSlotCount = occupiedSlotCount(item, zone).coerceAtMost(timeSlots.size - slotIndex)
+        rows += CalendarAgendaRow(slot = slot, item = item, occupiedSlotCount = occupiedSlotCount)
+        slotIndex += occupiedSlotCount
+    }
+    return rows
+}
+
+private fun occupiedSlotCount(item: CalendarAgendaItem, zone: ZoneId): Int {
+    val eventEnd = item.eventEnd ?: return 1
+    if (!eventEnd.isAfter(item.eventStart)) return 1
+    val eventStartAtZone = item.eventStart.atZone(zone)
+    var slotStart = eventStartAtZone.withMinute(if (eventStartAtZone.minute < 30) 0 else 30)
+        .withSecond(0).withNano(0)
+    var count = 0
+    while (slotStart.toInstant().isBefore(eventEnd) && slotStart.toLocalDate() == eventStartAtZone.toLocalDate()) {
+        count += 1
+        slotStart = slotStart.plusMinutes(30)
+    }
+    return count.coerceAtLeast(1)
 }
 
 private fun formatWeekdayLabel(date: LocalDate): String {
