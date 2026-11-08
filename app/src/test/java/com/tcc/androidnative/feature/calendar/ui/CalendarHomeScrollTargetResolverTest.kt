@@ -16,7 +16,7 @@ class CalendarHomeScrollTargetResolverTest {
             deviceLocalTime = LocalTime.of(9, 10)
         )
 
-        assertEquals(29, index)
+        assertEquals(58, index)
     }
 
     @Test
@@ -29,13 +29,13 @@ class CalendarHomeScrollTargetResolverTest {
             deviceLocalTime = LocalTime.of(10, 40)
         )
 
-        assertEquals(21, index)
+        assertEquals(42, index)
     }
 
     @Test
-    fun `should floor device minute to matching half-hour label`() {
+    fun `should floor device minute to matching quarter-hour label`() {
         assertEquals("10:00", mapDeviceTimeToSlotLabel(LocalTime.of(10, 5)))
-        assertEquals("10:30", mapDeviceTimeToSlotLabel(LocalTime.of(10, 59)))
+        assertEquals("10:45", mapDeviceTimeToSlotLabel(LocalTime.of(10, 59)))
     }
 
     @Test
@@ -44,9 +44,9 @@ class CalendarHomeScrollTargetResolverTest {
         assertEquals(java.time.LocalDate.of(2026, 4, 1), utcMillisToLocalDate(millis))
     }
 
-    private fun buildSlots(): List<String> = (0 until 48).map { index ->
-        val hour = index / 2
-        val minute = if (index % 2 == 0) 0 else 30
+    private fun buildSlots(): List<String> = (0 until 96).map { index ->
+        val hour = index / 4
+        val minute = index % 4 * 15
         "%02d:%02d".format(hour, minute)
     }
 }
