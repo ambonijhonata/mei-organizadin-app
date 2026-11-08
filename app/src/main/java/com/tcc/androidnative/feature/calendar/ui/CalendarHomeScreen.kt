@@ -81,7 +81,8 @@ import java.util.Locale
 
 private val slotFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val localePtBr = Locale("pt", "BR")
-private val agendaSlotHeight = 48.dp
+private val agendaSlotHeight = 24.dp
+private const val agendaSlotMinutes = 15L
 private const val agendaHorizontalSwipeThresholdFraction = 0.25f
 private const val agendaHorizontalSwipeThresholdMinPx = 72f
 
@@ -147,7 +148,7 @@ internal fun CalendarHomeContent(
     onAutoFocusRequestConsumed: () -> Unit = {}
 ) {
     val resolvedListState = listState ?: rememberLazyListState()
-    val timeSlots = remember { buildHalfHourSlots() }
+    val timeSlots = remember { buildQuarterHourSlots() }
     val slotLabels = remember(timeSlots) { timeSlots.map { it.format(slotFormatter) } }
     val eventsBySlot = remember(uiState.items) { buildSlotMap(uiState.items) }
     val agendaRows = remember(timeSlots, uiState.items) { buildAgendaRows(timeSlots, uiState.items) }
@@ -487,59 +488,55 @@ private fun AppointmentCard(item: CalendarAgendaItem, onClick: () -> Unit, modif
         border = BorderStroke(1.dp, appointmentColors.border),
         colors = CardDefaults.cardColors(containerColor = appointmentColors.background)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top
+                .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
             TimeRangeLabel(
                 timeLabel = item.timeLabel,
                 color = appointmentColors.accent
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    color = Color.Black,
-                    style = MaterialTheme.typography.titleMedium
-                )
+            Text(
+                text = item.title,
+                color = Color.Black,
+                style = MaterialTheme.typography.titleMedium
+            )
 
-                if (!item.serviceDescription.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            tint = Color(0xFF6B7280),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .padding(end = 4.dp)
-                        )
-                        Text(
-                            text = item.serviceDescription,
-                            color = Color(0xFF6B7280),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
+            if (!item.serviceDescription.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        imageVector = Icons.Default.Description,
                         contentDescription = null,
                         tint = Color(0xFF6B7280),
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(14.dp)
                             .padding(end = 4.dp)
                     )
                     Text(
-                        text = item.durationLabel,
+                        text = item.serviceDescription,
                         color = Color(0xFF6B7280),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color(0xFF6B7280),
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(end = 4.dp)
+                )
+                Text(
+                    text = item.durationLabel,
+                    color = Color(0xFF6B7280),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
@@ -548,12 +545,8 @@ private fun AppointmentCard(item: CalendarAgendaItem, onClick: () -> Unit, modif
 @Composable
 private fun TimeRangeLabel(timeLabel: String, color: Color) {
     val (startLabel, endLabel) = splitTimeRangeLabel(timeLabel)
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = startLabel, color = color, style = MaterialTheme.typography.titleMedium)
-        if (endLabel != null) {
-            Text(text = endLabel, color = color, style = MaterialTheme.typography.titleMedium)
-        }
-    }
+    val label = endLabel?.let { "$startLabel - $it" } ?: startLabel
+    Text(text = label, color = color, style = MaterialTheme.typography.bodySmall)
 }
 
 internal fun splitTimeRangeLabel(timeLabel: String): Pair<String, String?> {
@@ -566,8 +559,8 @@ internal fun splitTimeRangeLabel(timeLabel: String): Pair<String, String?> {
 
 private data class AppointmentColors(val border: Color, val background: Color, val accent: Color)
 
-private fun buildHalfHourSlots(): List<LocalTime> = (0 until 48).map { halfHourIndex ->
-    LocalTime.MIDNIGHT.plusMinutes(halfHourIndex * 30L)
+private fun buildQuarterHourSlots(): List<LocalTime> = (0 until 96).map { quarterHourIndex ->
+    LocalTime.MIDNIGHT.plusMinutes(quarterHourIndex * agendaSlotMinutes)
 }
 
 internal fun resolveInitialFocusIndex(
@@ -590,7 +583,7 @@ internal fun resolveInitialFocusIndex(
 }
 
 internal fun mapDeviceTimeToSlotLabel(deviceLocalTime: LocalTime): String {
-    val minute = if (deviceLocalTime.minute < 30) 0 else 30
+    val minute = (deviceLocalTime.minute / agendaSlotMinutes * agendaSlotMinutes).toInt()
     return deviceLocalTime
         .withMinute(minute)
         .withSecond(0)
@@ -626,11 +619,13 @@ internal fun buildSlotMap(items: List<CalendarAgendaItem>, zone: ZoneId = calend
         }
         val eventStartAtZone = item.eventStart.atZone(zone)
         val eventLocalDate = eventStartAtZone.toLocalDate()
-        var slotStart = eventStartAtZone.withMinute(if (eventStartAtZone.minute < 30) 0 else 30)
+        var slotStart = eventStartAtZone.withMinute(
+            (eventStartAtZone.minute / agendaSlotMinutes * agendaSlotMinutes).toInt()
+        )
             .withSecond(0).withNano(0)
         while (slotStart.toInstant().isBefore(eventEnd) && slotStart.toLocalDate() == eventLocalDate) {
             bySlot.putIfAbsent(slotStart.format(slotFormatter), item)
-            slotStart = slotStart.plusMinutes(30)
+            slotStart = slotStart.plusMinutes(agendaSlotMinutes)
         }
     }
     return bySlot
@@ -642,6 +637,12 @@ internal fun buildAgendaRows(timeSlots: List<LocalTime>, items: List<CalendarAge
     val itemsByInitialSlot = linkedMapOf<String, CalendarAgendaItem>()
     items.forEach { item -> itemsByInitialSlot.putIfAbsent(item.slotLabel, item) }
     val rows = mutableListOf<CalendarAgendaRow>()
+    val slotDurationMinutes = timeSlots
+        .zipWithNext()
+        .firstOrNull()
+        ?.let { (first, second) -> java.time.Duration.between(first, second).toMinutes() }
+        ?.takeIf { it > 0L }
+        ?: agendaSlotMinutes
     var slotIndex = 0
     while (slotIndex < timeSlots.size) {
         val slot = timeSlots[slotIndex]
@@ -651,23 +652,26 @@ internal fun buildAgendaRows(timeSlots: List<LocalTime>, items: List<CalendarAge
             slotIndex += 1
             continue
         }
-        val occupiedSlotCount = occupiedSlotCount(item, zone).coerceAtMost(timeSlots.size - slotIndex)
+        val occupiedSlotCount = occupiedSlotCount(item, slotDurationMinutes, zone)
+            .coerceAtMost(timeSlots.size - slotIndex)
         rows += CalendarAgendaRow(slot = slot, item = item, occupiedSlotCount = occupiedSlotCount)
         slotIndex += occupiedSlotCount
     }
     return rows
 }
 
-private fun occupiedSlotCount(item: CalendarAgendaItem, zone: ZoneId): Int {
+private fun occupiedSlotCount(item: CalendarAgendaItem, slotDurationMinutes: Long, zone: ZoneId): Int {
     val eventEnd = item.eventEnd ?: return 1
     if (!eventEnd.isAfter(item.eventStart)) return 1
     val eventStartAtZone = item.eventStart.atZone(zone)
-    var slotStart = eventStartAtZone.withMinute(if (eventStartAtZone.minute < 30) 0 else 30)
+    var slotStart = eventStartAtZone.withMinute(
+        (eventStartAtZone.minute / slotDurationMinutes * slotDurationMinutes).toInt()
+    )
         .withSecond(0).withNano(0)
     var count = 0
     while (slotStart.toInstant().isBefore(eventEnd) && slotStart.toLocalDate() == eventStartAtZone.toLocalDate()) {
         count += 1
-        slotStart = slotStart.plusMinutes(30)
+        slotStart = slotStart.plusMinutes(slotDurationMinutes)
     }
     return count.coerceAtLeast(1)
 }

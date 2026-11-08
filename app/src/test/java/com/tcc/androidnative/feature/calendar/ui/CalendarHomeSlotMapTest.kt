@@ -14,23 +14,24 @@ class CalendarHomeSlotMapTest {
     private val calendarZone = ZoneId.of("America/Sao_Paulo")
 
     @Test
-    fun `thirty minute event occupies only its initial slot`() {
+    fun `thirty minute event occupies its two quarter-hour slots`() {
         val event = agendaItem("2026-11-05T00:00:00Z", "2026-11-05T00:30:00Z")
 
         val slots = buildSlotMap(listOf(event), calendarZone)
 
-        assertEquals(setOf("21:00"), slots.keys)
+        assertEquals(setOf("21:00", "21:15"), slots.keys)
         assertFalse(slots.containsKey("21:30"))
     }
 
     @Test
-    fun `one hour event occupies two consecutive slots and leaves adjacent slots free`() {
+    fun `one hour event occupies four consecutive quarter-hour slots`() {
         val event = agendaItem("2026-11-05T00:30:00Z", "2026-11-05T01:30:00Z")
 
         val slots = buildSlotMap(listOf(event), calendarZone)
 
-        assertEquals(setOf("21:30", "22:00"), slots.keys)
+        assertEquals(setOf("21:30", "21:45", "22:00", "22:15"), slots.keys)
         assertSame(event, slots["21:30"])
+        assertSame(event, slots["21:45"])
         assertSame(event, slots["22:00"])
         assertFalse(slots.containsKey("21:00"))
         assertFalse(slots.containsKey("22:30"))
@@ -55,6 +56,66 @@ class CalendarHomeSlotMapTest {
         assertEquals(2, rows[1].occupiedSlotCount)
         assertEquals(LocalTime.of(18, 0), rows[2].slot)
         assertFalse(rows.any { it.slot == LocalTime.of(17, 30) })
+    }
+
+    @Test
+    fun `adjacent events on a quarter-hour boundary render in consecutive rows`() {
+        val firstEvent = agendaItem(
+            "2026-11-08T10:00:00Z",
+            "2026-11-08T10:45:00Z",
+            "07:00"
+        )
+        val secondEvent = agendaItem(
+            "2026-11-08T10:45:00Z",
+            "2026-11-08T11:00:00Z",
+            "07:45"
+        )
+        val timeSlots = listOf(
+            LocalTime.of(7, 0),
+            LocalTime.of(7, 15),
+            LocalTime.of(7, 30),
+            LocalTime.of(7, 45),
+            LocalTime.of(8, 0)
+        )
+
+        val rows = buildAgendaRows(timeSlots, listOf(firstEvent, secondEvent), calendarZone)
+
+        assertEquals(3, rows.size)
+        assertSame(firstEvent, rows[0].item)
+        assertEquals(3, rows[0].occupiedSlotCount)
+        assertSame(secondEvent, rows[1].item)
+        assertEquals(LocalTime.of(7, 45), rows[1].slot)
+        assertEquals(1, rows[1].occupiedSlotCount)
+        assertEquals(LocalTime.of(8, 0), rows[2].slot)
+    }
+
+    @Test
+    fun `event beginning when a prior event ends at six fifteen is rendered`() {
+        val firstEvent = agendaItem(
+            "2026-11-08T20:30:00Z",
+            "2026-11-08T21:15:00Z",
+            "17:30"
+        )
+        val secondEvent = agendaItem(
+            "2026-11-08T21:15:00Z",
+            "2026-11-08T22:45:00Z",
+            "18:15"
+        )
+        val timeSlots = listOf(
+            LocalTime.of(17, 30), LocalTime.of(17, 45), LocalTime.of(18, 0),
+            LocalTime.of(18, 15), LocalTime.of(18, 30), LocalTime.of(18, 45),
+            LocalTime.of(19, 0), LocalTime.of(19, 15), LocalTime.of(19, 30),
+            LocalTime.of(19, 45)
+        )
+
+        val rows = buildAgendaRows(timeSlots, listOf(firstEvent, secondEvent), calendarZone)
+
+        assertEquals(3, rows.size)
+        assertSame(firstEvent, rows[0].item)
+        assertEquals(3, rows[0].occupiedSlotCount)
+        assertSame(secondEvent, rows[1].item)
+        assertEquals(LocalTime.of(18, 15), rows[1].slot)
+        assertEquals(6, rows[1].occupiedSlotCount)
     }
 
     @Test

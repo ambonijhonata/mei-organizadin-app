@@ -7,7 +7,7 @@ data class SyncResponseDto(val created: Int, val updated: Int, val deleted: Int)
 data class CalendarEventDto(
     val id: Long,
     val googleEventId: String,
-    val title: String,
+    val title: String?,
     val eventStart: String,
     val eventEnd: String?,
     val identified: Boolean,

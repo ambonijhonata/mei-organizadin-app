@@ -123,7 +123,7 @@ class CalendarRepositoryImpl @Inject constructor(private val api: CalendarApi) :
         return page.content.map {
             CalendarEventModel(
                 id = it.id,
-                title = it.title,
+                title = it.title?.takeIf(String::isNotBlank) ?: UNTITLED_EVENT_TITLE,
                 eventStart = DateFormats.parseInstant(it.eventStart),
                 eventEnd = it.eventEnd?.let(DateFormats::parseInstant),
                 identified = it.identified,
@@ -154,5 +154,6 @@ class CalendarRepositoryImpl @Inject constructor(private val api: CalendarApi) :
     private companion object {
         const val HTTP_FORBIDDEN = 403
         const val INTEGRATION_REVOKED = "INTEGRATION_REVOKED"
+        const val UNTITLED_EVENT_TITLE = "(Sem título)"
     }
 }

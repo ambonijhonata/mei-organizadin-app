@@ -158,6 +158,30 @@ class CalendarRepositoryImplTest {
         assertEquals(CalendarPaymentStatus.PARTIAL, events.single().paymentSummary?.status)
         assertEquals(BigDecimal("5.00"), events.single().paymentSummary?.paidAmount)
     }
+
+    @Test
+    fun `eventsByDay should use untitled label when API title is null`() = runBlocking {
+        val repository = CalendarRepositoryImpl(
+            FakeCalendarApi(
+                events = listOf(
+                    CalendarEventDto(
+                        id = 1L,
+                        googleEventId = "g1",
+                        title = null,
+                        eventStart = "2026-11-08T10:00:00Z",
+                        eventEnd = null,
+                        identified = false,
+                        serviceDescription = null,
+                        serviceValue = null
+                    )
+                )
+            )
+        )
+
+        val events = repository.eventsByDay(LocalDate.of(2026, 11, 8))
+
+        assertEquals("(Sem título)", events.single().title)
+    }
 }
 
 private class FakeCalendarApi(

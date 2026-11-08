@@ -534,7 +534,7 @@ class CalendarHomeViewModel @Inject constructor(
     internal fun formatSlotLabel(eventStart: Instant, zoneResolver: () -> ZoneId = this.zoneResolver): String {
         val zone = runCatching { zoneResolver() }.getOrElse { ZoneOffset.UTC }
         val zoned = eventStart.atZone(zone)
-        val slotMinute = if (zoned.minute < 30) 0 else 30
+        val slotMinute = (zoned.minute / 15) * 15
         return zoned
             .withMinute(slotMinute)
             .withSecond(0)
