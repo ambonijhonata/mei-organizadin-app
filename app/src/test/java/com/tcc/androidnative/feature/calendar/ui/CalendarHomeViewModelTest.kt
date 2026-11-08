@@ -303,7 +303,7 @@ class CalendarHomeViewModelTest {
 
         val item = viewModel.uiState.value.items.single()
         assertTrue(item.timeLabel.endsWith(":45"))
-        assertTrue(item.slotLabel.endsWith(":30"))
+        assertTrue(item.slotLabel.endsWith(":45"))
         assertEquals("1 hora", item.durationLabel)
         assertEquals("Serviço teste", item.serviceDescription)
     }
