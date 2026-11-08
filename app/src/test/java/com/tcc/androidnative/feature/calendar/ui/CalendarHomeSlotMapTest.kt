@@ -71,8 +71,11 @@ class CalendarHomeSlotMapTest {
             "07:45"
         )
         val timeSlots = listOf(
-            LocalTime.of(7, 0), LocalTime.of(7, 15), LocalTime.of(7, 30),
-            LocalTime.of(7, 45), LocalTime.of(8, 0)
+            LocalTime.of(7, 0),
+            LocalTime.of(7, 15),
+            LocalTime.of(7, 30),
+            LocalTime.of(7, 45),
+            LocalTime.of(8, 0)
         )
 
         val rows = buildAgendaRows(timeSlots, listOf(firstEvent, secondEvent), calendarZone)
